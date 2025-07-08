@@ -66,11 +66,7 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
-  // OAuth Info
-  githubId: {
-    type: String,
-    default: null
-  },
+  // User Avatar
   avatar: {
     type: String,
     default: null

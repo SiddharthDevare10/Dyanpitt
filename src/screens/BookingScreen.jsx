@@ -66,14 +66,18 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
     if (!formData.membershipStartDate) {
       newErrors.membershipStartDate = 'Please select membership start date';
     } else {
-      // Validate start date is within 30 days
+      // Validate start date is within 30 days (compare dates only, not times)
       const startDate = new Date(formData.membershipStartDate);
+      startDate.setHours(0, 0, 0, 0);
+      
       const today = new Date();
-      const thirtyDaysFromNow = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+      today.setHours(0, 0, 0, 0);
+      
+      const thirtyDaysFromToday = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
       
       if (startDate < today) {
         newErrors.membershipStartDate = 'Start date cannot be in the past';
-      } else if (startDate > thirtyDaysFromNow) {
+      } else if (startDate > thirtyDaysFromToday) {
         newErrors.membershipStartDate = 'Start date must be within 30 days from today';
       }
     }

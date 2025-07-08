@@ -20,15 +20,8 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
-  'https://dyanpitt.vercel.app', // Explicit Vercel URL
   process.env.FRONTEND_URL
 ].filter(Boolean);
-
-// Add common Vercel patterns for production
-if (process.env.NODE_ENV === 'production') {
-  allowedOrigins.push(/\.vercel\.app$/);
-  allowedOrigins.push(/\.railway\.app$/);
-}
 
 console.log('🔧 CORS Configuration:');
 console.log('📍 Allowed Origins:', allowedOrigins);

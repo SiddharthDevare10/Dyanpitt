@@ -157,13 +157,8 @@ class ApiService {
     });
   }
 
-  // GitHub OAuth
-  getGitHubAuthUrl() {
-    return `${this.baseURL}/auth/github`;
-  }
-
-  // Handle GitHub OAuth callback
-  handleGitHubCallback(token) {
+  // Handle OAuth callback
+  handleOAuthCallback(token) {
     if (token) {
       this.setToken(token);
       return true;

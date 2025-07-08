@@ -1,6 +1,5 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const GitHubStrategy = require('passport-github2').Strategy;
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 const User = require('../models/User');
@@ -26,8 +25,8 @@ passport.use(new LocalStrategy({
   passwordField: 'password'
 }, async (email, password, done) => {
   try {
-    // Find user by email
-    const user = await User.findByEmail(email);
+    // Find user by email or Dyanpitt ID
+    const user = await User.findByEmailOrDyanpittId(email);
     
     if (!user) {
       return done(null, false, { message: 'Invalid email or password' });
@@ -60,59 +59,6 @@ passport.use(new LocalStrategy({
   }
 }));
 
-// GitHub OAuth Strategy (only if credentials are provided)
-if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-  passport.use(new GitHubStrategy({
-    clientID: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: "/api/auth/github/callback"
-  }, async (accessToken, refreshToken, profile, done) => {
-    try {
-      // Check if user already exists with this GitHub ID
-      let user = await User.findByGitHubId(profile.id);
-      
-      if (user) {
-        // Update last login
-        user.lastLogin = Date.now();
-        await user.save();
-        return done(null, user);
-      }
-      
-      // Check if user exists with same email
-      const email = profile.emails && profile.emails[0] ? profile.emails[0].value : null;
-      if (email) {
-        user = await User.findByEmail(email);
-        
-        if (user) {
-          // Link GitHub account to existing user
-          user.githubId = profile.id;
-          user.avatar = profile.photos[0]?.value;
-          user.isEmailVerified = true;
-          user.lastLogin = Date.now();
-          await user.save();
-          return done(null, user);
-        }
-      }
-      
-      // Create new user
-      user = new User({
-        githubId: profile.id,
-        email: email || `${profile.username}@github.local`, // Fallback email
-        name: profile.displayName || profile.username,
-        avatar: profile.photos[0]?.value,
-        isEmailVerified: !!email,
-        lastLogin: Date.now()
-      });
-      
-      await user.save();
-      return done(null, user);
-    } catch (error) {
-      return done(error, null);
-    }
-  }));
-} else {
-  console.log('GitHub OAuth disabled - GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET not provided');
-}
 
 // JWT Strategy for API authentication
 passport.use(new JwtStrategy({

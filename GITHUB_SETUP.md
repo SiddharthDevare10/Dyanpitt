@@ -6,11 +6,9 @@
 
 | Aspect | Public Repo | Private Repo |
 |--------|-------------|--------------|
-| **Vercel** | ✅ FREE | ✅ FREE |
-| **Railway** | ✅ FREE | ✅ FREE |
 | **GitHub** | ✅ FREE | ✅ FREE |
-| **Deployment** | ✅ Same features | ✅ Same features |
 | **Code Visibility** | 🌐 Anyone can see | 🔒 Only you can see |
+| **Collaboration** | ✅ Easy sharing | 🔒 Invite only |
 
 ---
 
@@ -24,9 +22,9 @@
    - Easy to share with others
 
 2. **✅ No Limitations**
-   - All deployment platforms support it
    - No restrictions on features
    - Community can contribute
+   - Easy collaboration
 
 3. **✅ Open Source Benefits**
    - Others can learn from your code
@@ -119,7 +117,7 @@ git init
 git add .
 
 # 3. Commit
-git commit -m "Initial commit - Dyanpitt app ready for deployment"
+git commit -m "Initial commit - Dyanpitt app"
 
 # 4. Add remote (replace with your repo URL)
 git remote add origin https://github.com/yourusername/dyanpitt-app.git
@@ -135,10 +133,10 @@ git push -u origin main
 ### **Go with PUBLIC repository because:**
 
 1. **✅ Perfect for portfolio**
-2. **✅ No deployment restrictions**
-3. **✅ Easy to share and showcase**
-4. **✅ All sensitive data is protected**
-5. **✅ Demonstrates your coding skills**
+2. **✅ Easy to share and showcase**
+3. **✅ All sensitive data is protected**
+4. **✅ Demonstrates your coding skills**
+5. **✅ Community collaboration**
 
 ---
 
@@ -147,6 +145,6 @@ git push -u origin main
 1. **Choose**: Public repository (recommended)
 2. **Create**: New repository on GitHub
 3. **Push**: Your code to the repository
-4. **Deploy**: Follow the deployment guide
+4. **Develop**: Start building your features
 
 **Your code is already secure and ready to be public!** 🔒✨

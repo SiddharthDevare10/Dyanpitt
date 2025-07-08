@@ -66,11 +66,7 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
-  // OAuth Info
-  githubId: {
-    type: String,
-    default: null
-  },
+  // User Avatar
   avatar: {
     type: String,
     default: null
@@ -184,9 +180,16 @@ const userSchema = new mongoose.Schema({
       type: Date,
       validate: {
         validator: function(date) {
-          const now = new Date();
-          const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-          return date >= now && date <= thirtyDaysFromNow;
+          // Compare dates only, not times
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const startDate = new Date(date);
+          startDate.setHours(0, 0, 0, 0);
+          
+          const thirtyDaysFromToday = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
+          
+          return startDate >= today && startDate <= thirtyDaysFromToday;
         },
         message: 'Membership start date must be within 30 days from today'
       }
