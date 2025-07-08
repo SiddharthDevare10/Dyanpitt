@@ -73,17 +73,17 @@ router.post('/send-otp', [
 
     const { email } = req.body;
 
-    // Check if user already exists (both verified and unverified)
-    const existingUser = await User.findOne({ email });
-    if (existingUser && existingUser.isEmailVerified) {
+    // Check if user already exists with verified email
+    const existingVerifiedUser = await User.findOne({ email, isEmailVerified: true });
+    if (existingVerifiedUser) {
       return res.status(400).json({
         success: false,
         message: 'The email already exists'
       });
     }
 
-    // Handle existing user or create new temp user
-    let tempUser = existingUser;
+    // Check for existing unverified user with this pending email
+    let tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
     
     if (!tempUser) {
       // Create temporary user WITHOUT email and Dyanpitt ID to avoid wastage
@@ -100,12 +100,6 @@ router.post('/send-otp', [
         registrationNumber: 0, // Temporary number
         isEmailVerified: false,
         pendingEmail: email // Store the actual email separately
-      });
-    } else if (tempUser.isEmailVerified) {
-      // This shouldn't happen due to the check above, but just in case
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists with this email. Please sign in instead.'
       });
     }
 
@@ -322,6 +316,16 @@ router.post('/login', [
       return res.status(400).json({
         success: false,
         message: 'Account is not active or email not verified'
+      });
+    }
+
+    // SECURITY: Ensure user has completed full registration (has real password and Dyanpitt ID)
+    if (!user.dyanpittId || user.dyanpittId.startsWith('temp_') || 
+        !user.email || user.email.includes('@temp.local') ||
+        user.password === 'temporary' || user.pendingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please complete your registration first'
       });
     }
 

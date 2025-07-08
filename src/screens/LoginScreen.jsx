@@ -186,7 +186,6 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
   const handleSignUp = () => {
     if (onNavigateToRegister) {
       onNavigateToRegister();
-    } else {
     }
   };
 
@@ -207,6 +206,19 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
       {/* Header */}
       <div className="header-section">
         <h1 className="main-title">Welcome Back</h1>
+        {/* Sign Up Link */}
+        <div className="signup-link" style={{ textAlign: 'left', marginTop: '-5px' }}>
+          <p className="signup-text">
+            Don't have an account?{' '}
+            <button 
+              onClick={handleSignUp} 
+              className="signup-button"
+              disabled={isLoading}
+            >
+              Sign up
+            </button>
+          </p>
+        </div>
       </div>
 
       {/* General Error Message */}
@@ -303,27 +315,6 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
         )}
       </button>
 
-      {/* Divider */}
-      <div className="divider">
-        <div className="divider-line"></div>
-        <span className="divider-text">Or continue with</span>
-        <div className="divider-line"></div>
-      </div>
-
-
-      {/* Sign Up Link */}
-      <div className="signup-link">
-        <p className="signup-text">
-          Don't have an account?{' '}
-          <button 
-            onClick={handleSignUp} 
-            className="signup-button"
-            disabled={isLoading}
-          >
-            Sign up
-          </button>
-        </p>
-      </div>
     </div>
   );
 }

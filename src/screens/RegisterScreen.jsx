@@ -597,7 +597,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
   );
 
   const renderProfileStep = () => (
-    <div className="main-container">
+    <div className="main-container profile-completion-form">
       <button 
         onClick={() => setCurrentStep('otp')} 
         className="back-button"

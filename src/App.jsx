@@ -32,6 +32,8 @@ export default function App() {
               if (!user.membershipCompleted) {
                 setUserData(user);
                 setCurrentScreen('membership');
+                // Mark that user came from login, not registration
+                sessionStorage.setItem('cameFromRegistration', 'false');
                 window.history.replaceState({}, '', '/membership');
               } else if (!user.bookingCompleted) {
                 setUserData(user);
@@ -59,6 +61,8 @@ export default function App() {
                 if (!user.membershipCompleted) {
                   setUserData(user);
                   setCurrentScreen('membership');
+                  // Mark that user came from login, not registration
+                  sessionStorage.setItem('cameFromRegistration', 'false');
                   window.history.replaceState({}, '', '/membership');
                 } else if (!user.bookingCompleted) {
                   setUserData(user);
@@ -182,6 +186,8 @@ export default function App() {
   const navigateToCongratulations = (user) => {
     setUserData(user);
     setCurrentScreen('congratulations');
+    // Mark that user came from registration
+    sessionStorage.setItem('cameFromRegistration', 'true');
     window.history.pushState({}, '', '/congratulations');
   };
 
@@ -193,6 +199,8 @@ export default function App() {
   const navigateToBooking = (user) => {
     setUserData(user);
     setCurrentScreen('booking');
+    // Clear the registration flag when moving forward
+    sessionStorage.removeItem('cameFromRegistration');
     window.history.pushState({}, '', '/booking');
   };
 
@@ -210,8 +218,18 @@ export default function App() {
       setCurrentScreen('membership');
       window.history.pushState({}, '', '/membership');
     } else if (currentScreen === 'membership') {
-      setCurrentScreen('congratulations');
-      window.history.pushState({}, '', '/congratulations');
+      // Check if user came from registration flow or login flow
+      // If they have userData but came from login, go back to login
+      // If they came from registration, go to congratulations
+      const cameFromRegistration = sessionStorage.getItem('cameFromRegistration');
+      if (cameFromRegistration === 'true') {
+        setCurrentScreen('congratulations');
+        window.history.pushState({}, '', '/congratulations');
+      } else {
+        // User came from login, go back to login
+        setCurrentScreen('login');
+        window.history.pushState({}, '', '/');
+      }
     } else if (currentScreen === 'congratulations') {
       setCurrentScreen('register');
       window.history.pushState({}, '', '/register');

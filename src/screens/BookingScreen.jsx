@@ -475,27 +475,27 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
               <h3>Fee Structure Breakdown</h3>
               
               <div className="fee-breakdown">
-                <div className="breakdown-item">
-                  <span className="breakdown-label">Membership Type:</span>
-                  <span className="breakdown-value">{formData.membershipType}</span>
+                <div className="fee-breakdown-item">
+                  <span className="fee-breakdown-label">Membership Type :</span>
+                  <span className="fee-breakdown-value"> {formData.membershipType}</span>
                 </div>
                 
-                <div className="breakdown-item">
-                  <span className="breakdown-label">Time Slot:</span>
-                  <span className="breakdown-value">{formData.timeSlot}</span>
+                <div className="fee-breakdown-item">
+                  <span className="fee-breakdown-label">Time Slot :</span>
+                  <span className="fee-breakdown-value">{formData.timeSlot}</span>
                 </div>
                 
-                <div className="breakdown-item">
-                  <span className="breakdown-label">Duration:</span>
-                  <span className="breakdown-value">{formData.membershipDuration}</span>
+                <div className="fee-breakdown-item">
+                  <span className="fee-breakdown-label">Duration :</span>
+                  <span className="fee-breakdown-value">{formData.membershipDuration}</span>
                 </div>
                 
-                <div className="breakdown-item">
-                  <span className="breakdown-label">Seat:</span>
-                  <span className="breakdown-value">{formData.preferredSeat || 'Not selected'}</span>
+                <div className="fee-breakdown-item">
+                  <span className="fee-breakdown-label">Seat :</span>
+                  <span className="fee-breakdown-value">{formData.preferredSeat || 'Not selected'}</span>
                 </div>
                 
-                <div className="breakdown-separator"></div>
+                <div className="fee-breakdown-separator"></div>
                 
                 {/* Show price breakdown if applicable */}
                 {(() => {
@@ -519,28 +519,28 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
                   if (showBreakdown) {
                     return (
                       <>
-                        <div className="breakdown-item">
-                          <span className="breakdown-label">Base Package Price:</span>
-                          <span className="breakdown-value">Rs.{basePrice}</span>
+                        <div className="fee-breakdown-item">
+                          <span className="fee-breakdown-label">Base Package Price :</span>
+                          <span className="fee-breakdown-value">Rs.{basePrice}</span>
                         </div>
                         {seatTier !== 'standard' && (
-                          <div className="breakdown-item">
-                            <span className="breakdown-label">
+                          <div className="fee-breakdown-item">
+                            <span className="fee-breakdown-label">
                               {seatTier === 'silver' ? 'Silver Seat (+25%)' : 'Gold Seat (+50%)'}:
                             </span>
-                            <span className="breakdown-value">+Rs.{priceWithSeatTier - basePrice}</span>
+                            <span className="fee-breakdown-value">+Rs.{priceWithSeatTier - basePrice}</span>
                           </div>
                         )}
                         {totalDiscount > 0 && (
-                          <div className="breakdown-item discount">
-                            <span className="breakdown-label">Discount ({totalDiscount}%):</span>
-                            <span className="breakdown-value">-Rs.{Math.round(priceWithSeatTier * totalDiscount / 100)}</span>
+                          <div className="fee-breakdown-item discount">
+                            <span className="fee-breakdown-label">Discount ({totalDiscount}%):</span>
+                            <span className="fee-breakdown-value">-Rs.{Math.round(priceWithSeatTier * totalDiscount / 100)}</span>
                           </div>
                         )}
                         {registrationFee > 0 && (
-                          <div className="breakdown-item">
-                            <span className="breakdown-label">Registration Fee:</span>
-                            <span className="breakdown-value">Rs.{registrationFee}</span>
+                          <div className="fee-breakdown-item">
+                            <span className="fee-breakdown-label">Registration Fee :</span>
+                            <span className="fee-breakdown-value">Rs.{registrationFee}</span>
                           </div>
                         )}
                       </>
@@ -549,12 +549,12 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
                   return null;
                 })()}
                 
-                <div className="breakdown-item total-fee">
-                  <span className="breakdown-label">Total Fee:</span>
-                  <span className="breakdown-value total-amount">Rs.{calculateTotalPrice()}</span>
+                <div className="fee-breakdown-item total-fee">
+                  <span className="fee-breakdown-label">Total Fee :</span>
+                  <span className="fee-breakdown-value total-amount">Rs.{calculateTotalPrice()}</span>
                 </div>
                 
-                <div className="breakdown-note">
+                <div className="fee-breakdown-note">
                   <p>* All fees are inclusive of applicable taxes</p>
                   <p>* Membership starts from selected date</p>
                   {(() => {

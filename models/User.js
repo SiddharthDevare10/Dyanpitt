@@ -311,23 +311,17 @@ userSchema.statics.findByEmailOrDyanpittId = async function(identifier) {
   return this.findOne(query);
 };
 
-// Check if email exists (verified users or pending email)
+// Check if email exists (only verified users)
 userSchema.statics.emailExists = async function(email) {
   const normalizedEmail = email.toLowerCase();
   
-  // Check for verified users with this email
+  // Only check for verified users with this email
   const verifiedUser = await this.findOne({ 
     email: normalizedEmail, 
     isEmailVerified: true 
   });
   
-  // Also check for pending registrations with this email
-  const pendingUser = await this.findOne({ 
-    pendingEmail: normalizedEmail, 
-    isEmailVerified: false 
-  });
-  
-  return !!(verifiedUser || pendingUser);
+  return !!verifiedUser;
 };
 
 // Check if phone exists
