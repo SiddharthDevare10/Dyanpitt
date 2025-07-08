@@ -7,7 +7,7 @@ import CustomDropdown from '../components/CustomDropdown';
 
 export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratulations }) {
   // Registration steps: 'email', 'otp', 'profile', 'congratulations'
-  const [currentStep, setCurrentStep] = useState('email');
+  const [currentStep, setCurrentStep] = useState('profile');
   
   const [formData, setFormData] = useState({
     email: '',
@@ -18,7 +18,9 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     dateOfBirth: '',
     gender: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    profilePicture: null,
+    profilePictureBase64: null
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -326,6 +328,59 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     }
   };
 
+  // Handle file change for profile picture
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (!file) {
+      // Handle case where no file is selected
+      setFormData(prev => ({ 
+        ...prev, 
+        profilePicture: null,
+        profilePictureBase64: null
+      }));
+      return;
+    }
+    
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, profilePicture: 'Please select a valid image file' }));
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, profilePicture: 'File size must be less than 5MB' }));
+        return;
+      }
+      
+      // Clear errors first
+      setErrors(prev => ({ ...prev, profilePicture: '' }));
+      
+      // Set file info immediately
+      setFormData(prev => ({ 
+        ...prev, 
+        profilePicture: file,
+        profilePictureBase64: null
+      }));
+      
+      // Convert to base64 for storage
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64Data = event.target.result;
+        setFormData(prev => ({ 
+          ...prev, 
+          profilePictureBase64: base64Data
+        }));
+        // Also store in localStorage for dashboard access
+        localStorage.setItem('registrationProfilePicture', base64Data);
+        console.log('Profile picture saved to localStorage');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Handle field blur (when user leaves the field)
   const handleBlur = (field) => {
     setTouched(prev => ({ ...prev, [field]: true }));
@@ -423,11 +478,15 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       const response = await apiService.register(registrationData);
       
       if (response.success) {
-        // Store the complete user data including Dyanpitt ID from backend
+        // Store the complete user data including Dyanpitt ID and profile picture
         const completeUserData = {
           ...registrationData,
-          dyanpittId: response.user.dyanpittId
+          dyanpittId: response.user.dyanpittId,
+          profilePicture: formData.profilePictureBase64
         };
+
+        // Store in localStorage for dashboard access
+        localStorage.setItem('userData', JSON.stringify(completeUserData));
 
 
         // Navigate to congratulations screen using the new navigation prop
@@ -617,6 +676,62 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
           {errors.general}
         </div>
       )}
+
+      {/* Profile Picture */}
+      <div className="input-group">
+        <div className="profile-picture-upload">
+          <div className="profile-picture-square">
+            {formData.profilePictureBase64 ? (
+              <img 
+                src={formData.profilePictureBase64} 
+                alt="Profile Preview" 
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '20px'
+                }}
+              />
+            ) : (
+              formData.fullName ? formData.fullName.charAt(0).toUpperCase() : 'U'
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Profile Picture Upload */}
+      <div className="input-group">
+        <label className="input-label">
+          Upload Profile Picture
+        </label>
+        <div className="file-upload-container">
+          <input
+            type="file"
+            name="profilePicture"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="file-input-hidden"
+            id="profilePicture"
+            key={formData.profilePicture ? formData.profilePicture.name : 'no-file'}
+          />
+          <label 
+            htmlFor="profilePicture" 
+            className={`file-upload-button ${errors.profilePicture ? 'input-error' : ''}`}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+              <circle cx="12" cy="13" r="4"></circle>
+            </svg>
+            {formData.profilePicture ? 'Change Picture' : 'Upload Profile Picture'}
+          </label>
+          {formData.profilePicture && (
+            <div className="file-preview">
+              <span className="file-name">Image: {formData.profilePicture.name}</span>
+            </div>
+          )}
+        </div>
+        {errors.profilePicture && <span className="error-message">{errors.profilePicture}</span>}
+      </div>
 
       {/* Email (Pre-filled with checkmark) */}
       <div className="input-group">

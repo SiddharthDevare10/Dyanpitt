@@ -53,8 +53,7 @@ export default function CongratulationsScreen({ userData, onContinue }) {
         <div className="simple-id-section">
           <div className="simple-id-card">
             <div className="simple-id-display">
-              <span className="simple-id-label">Your Dyanpitt ID is</span>
-              <span className="simple-dyanpitt-id">{dyanpittId}</span>
+              <span className="simple-id-text">Your Dyanpitt ID <span className="simple-id-bold">{dyanpittId}</span></span>
               <button 
                 onClick={copyToClipboard}
                 className="simple-copy-button"

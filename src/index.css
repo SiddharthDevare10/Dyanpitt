@@ -148,6 +148,30 @@ body {
   margin-bottom: 15px;
 }
 
+/* Profile Picture Upload Styles */
+.profile-picture-upload {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin: 20px 0;
+}
+
+.profile-picture-square {
+  width: 90px;
+  height: 90px;
+  border-radius: 20px;
+  background-color: #5B5B5B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 36px;
+  font-weight: 600;
+  text-transform: uppercase;
+  position: relative;
+}
+
 .input-group:nth-child(2) {
   animation-delay: 0.1s;
 }
@@ -1015,6 +1039,46 @@ select.form-input option:checked {
 
 .logout-button:hover {
   background-color: #dc2626;
+}
+
+.profile-picture-container {
+  display: flex;
+  align-items: center;
+  margin-right: 8px;
+}
+
+.profile-picture {
+  width: 75px;
+  height: 75px;
+  border-radius: 20px;
+  background-color: #5B5B5B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 30px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.header-text-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.welcome-message {
+  font-size: 14px;
+  color: #666;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.user-name {
+  font-size: 18px;
+  color: #000;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .dashboard-content {
@@ -1919,7 +1983,7 @@ select.form-input option:checked {
 }
 
 .simple-id-label {
-  font-size: 15px;
+  font-size: 14px;
   color: #64748b;
   font-weight: 500;
   margin-right: 12px;
@@ -1928,17 +1992,28 @@ select.form-input option:checked {
 
 .simple-id-display {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
   gap: 8px;
   margin-bottom: 8px;
-  flex-wrap: wrap;
-  word-break: break-all;
   text-align: center;
 }
 
-.simple-dyanpitt-id {
+.simple-id-text {
+  font-size: 14px;
+  font-weight: 400;
+  color: #1e293b;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.simple-id-bold {
   font-size: 16px;
+  font-weight: 600;
+}
+
+.simple-dyanpitt-id {
+  font-size: 14px;
   font-weight: 700;
   color: #1e293b;
   font-family: 'Courier New', monospace;
@@ -1985,6 +2060,56 @@ select.form-input option:checked {
 .simple-continue-button:hover {
   background-color: #5A5A5A;
   transform: translateY(-1px);
+}
+
+/* Dashboard Profile Picture Upload Styles */
+.dashboard-profile-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.profile-upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.current-profile-display {
+  display: flex;
+  justify-content: center;
+}
+
+.dashboard-profile-picture {
+  width: 90px;
+  height: 90px;
+  border-radius: 20px;
+  background-color: #5B5B5B;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 36px;
+  font-weight: 600;
+  text-transform: uppercase;
+  position: relative;
+}
+
+.profile-upload-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Mobile Responsiveness */
