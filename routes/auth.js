@@ -220,7 +220,22 @@ router.post('/register', [
 
     // Find verified temp user by pending email
     const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: true });
+    
+    // Debug logging
+    console.log('Registration Debug:');
+    console.log('Looking for email:', email);
+    console.log('Found tempUser:', tempUser ? 'YES' : 'NO');
+    
     if (!tempUser) {
+      // Additional debug - check if there's any user with this pending email
+      const anyTempUser = await User.findOne({ pendingEmail: email });
+      console.log('Any user with pendingEmail:', anyTempUser ? 'YES' : 'NO');
+      if (anyTempUser) {
+        console.log('User isEmailVerified:', anyTempUser.isEmailVerified);
+        console.log('User OTP:', anyTempUser.otp);
+        console.log('User OTP Expiry:', anyTempUser.otpExpiry);
+      }
+      
       return res.status(400).json({
         success: false,
         message: 'Email not verified. Please verify your email first.'

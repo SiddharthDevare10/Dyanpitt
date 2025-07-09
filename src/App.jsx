@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import LandingScreen from './screens/LandingScreen.jsx';
+import TourRequestScreen from './screens/TourRequestScreen.jsx';
 import LoginScreen from './screens/LoginScreen.jsx';
 import RegisterScreen from './screens/RegisterScreen.jsx';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen.jsx';
@@ -10,7 +12,7 @@ import DashboardScreen from './screens/DashboardScreen.jsx';
 import apiService from './services/api.js';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState('login'); // 'login', 'register', 'forgot-password', 'congratulations', 'membership', 'booking', 'payment', or 'dashboard'
+  const [currentScreen, setCurrentScreen] = useState('landing'); // 'landing', 'tour', 'login', 'register', 'forgot-password', 'congratulations', 'membership', 'booking', 'payment', or 'dashboard'
   const [userData, setUserData] = useState({});
 
   // Check for route changes and authentication status
@@ -91,6 +93,8 @@ export default function App() {
         }
       } else if (path === '/register') {
         setCurrentScreen('register');
+      } else if (path === '/tour') {
+        setCurrentScreen('tour');
       } else if (path === '/forgot-password') {
         setCurrentScreen('forgot-password');
       } else if (path === '/congratulations') {
@@ -155,7 +159,7 @@ export default function App() {
           setCurrentScreen('login');
         }
       } else {
-        setCurrentScreen('login');
+        setCurrentScreen('landing');
       }
     };
 
@@ -176,6 +180,11 @@ export default function App() {
   const navigateToForgotPassword = () => {
     setCurrentScreen('forgot-password');
     window.history.pushState({}, '', '/forgot-password');
+  };
+
+  const navigateToTour = () => {
+    setCurrentScreen('tour');
+    window.history.pushState({}, '', '/tour');
   };
 
   const navigateToDashboard = () => {
@@ -235,6 +244,14 @@ export default function App() {
       window.history.pushState({}, '', '/register');
     }
   };
+
+  if (currentScreen === 'landing') {
+    return <LandingScreen onNavigateToLogin={navigateToLogin} onNavigateToRegister={navigateToRegister} onNavigateToTour={navigateToTour} />;
+  }
+
+  if (currentScreen === 'tour') {
+    return <TourRequestScreen onBack={() => setCurrentScreen('landing')} onSubmit={() => setCurrentScreen('landing')} />;
+  }
 
   if (currentScreen === 'register') {
     return <RegisterScreen onNavigateToLogin={navigateToLogin} onNavigateToCongratulations={navigateToCongratulations} />;

@@ -7,7 +7,7 @@ import CustomDropdown from '../components/CustomDropdown';
 
 export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratulations }) {
   // Registration steps: 'email', 'otp', 'profile', 'congratulations'
-  const [currentStep, setCurrentStep] = useState('profile');
+  const [currentStep, setCurrentStep] = useState('email');
   
   const [formData, setFormData] = useState({
     email: '',
@@ -369,13 +369,34 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64Data = event.target.result;
-        setFormData(prev => ({ 
-          ...prev, 
-          profilePictureBase64: base64Data
-        }));
-        // Also store in localStorage for dashboard access
-        localStorage.setItem('registrationProfilePicture', base64Data);
-        console.log('Profile picture saved to localStorage');
+        
+        // Check if the base64 data is too large (> 4MB when stored)
+        const sizeInBytes = base64Data.length * 0.75; // Approximate size after base64 encoding
+        const maxSizeInBytes = 4 * 1024 * 1024; // 4MB limit
+        
+        if (sizeInBytes > maxSizeInBytes) {
+          console.error('Profile picture is too large for localStorage. Please use a smaller image.');
+          setErrors(prev => ({ ...prev, profilePicture: 'Profile picture is too large. Please choose an image smaller than 4MB.' }));
+          return;
+        }
+        
+        try {
+          setFormData(prev => ({ 
+            ...prev, 
+            profilePictureBase64: base64Data
+          }));
+          // Also store in localStorage for dashboard access
+          localStorage.setItem('registrationProfilePicture', base64Data);
+          console.log('Profile picture saved to localStorage');
+        } catch (error) {
+          if (error.name === 'QuotaExceededError') {
+            console.error('localStorage quota exceeded.');
+            setErrors(prev => ({ ...prev, profilePicture: 'Profile picture is too large for storage. Please use a smaller image.' }));
+          } else {
+            console.error('Error saving profile picture:', error);
+            setErrors(prev => ({ ...prev, profilePicture: 'Error saving profile picture. Please try again.' }));
+          }
+        }
       };
       reader.readAsDataURL(file);
     }

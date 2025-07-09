@@ -62,15 +62,51 @@ export default function DashboardScreen() {
     reader.onload = (event) => {
       const base64Data = event.target.result;
       
-      // Update user data with new profile picture
-      const updatedUser = { ...user, profilePicture: base64Data };
-      setUser(updatedUser);
+      // Check if the base64 data is too large (> 4MB when stored)
+      const sizeInBytes = base64Data.length * 0.75; // Approximate size after base64 encoding
+      const maxSizeInBytes = 4 * 1024 * 1024; // 4MB limit
       
-      // Save to localStorage
-      localStorage.setItem('userData', JSON.stringify(updatedUser));
-      localStorage.setItem('registrationProfilePicture', base64Data);
+      if (sizeInBytes > maxSizeInBytes) {
+        console.error('Profile picture is too large for localStorage. Please use a smaller image.');
+        alert('Profile picture is too large. Please choose an image smaller than 4MB.');
+        return;
+      }
       
-      console.log('Profile picture updated successfully');
+      try {
+        // Update user state
+        const updatedUser = { ...user, profilePicture: base64Data };
+        setUser(updatedUser);
+        
+        // Try to save to localStorage with error handling
+        const userDataWithoutPicture = { ...updatedUser };
+        delete userDataWithoutPicture.profilePicture; // Remove picture from main userData
+        
+        localStorage.setItem('userData', JSON.stringify(userDataWithoutPicture));
+        localStorage.setItem('registrationProfilePicture', base64Data);
+        
+        console.log('Profile picture updated successfully');
+      } catch (error) {
+        if (error.name === 'QuotaExceededError') {
+          console.error('localStorage quota exceeded. Clearing old data and retrying...');
+          
+          // Clear some old data and retry
+          localStorage.removeItem('registrationProfilePicture');
+          
+          try {
+            const userDataWithoutPicture = { ...user };
+            delete userDataWithoutPicture.profilePicture;
+            localStorage.setItem('userData', JSON.stringify(userDataWithoutPicture));
+            
+            alert('Profile picture is too large for storage. Please use a smaller image.');
+          } catch (retryError) {
+            console.error('Failed to save user data even after cleanup:', retryError);
+            alert('Storage error. Please try refreshing the page and using a smaller profile picture.');
+          }
+        } else {
+          console.error('Error saving profile picture:', error);
+          alert('Error saving profile picture. Please try again.');
+        }
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -115,7 +151,7 @@ export default function DashboardScreen() {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    borderRadius: '20px'
+                    borderRadius: '18px'
                   }}
                 />
               ) : (
@@ -125,14 +161,14 @@ export default function DashboardScreen() {
           </div>
         </div>
         <div className="header-text-section">
-          <div className="welcome-message">Welcome !</div>
+          <div className="welcome-message">Welcome!</div>
           <div className="user-name">{user?.fullName || 'User'}</div>
         </div>
       </div>
 
       <div className="dashboard-content">
         <div className="dashboard-welcome-section">
-          <h2 className="dashboard-subtitle">Welcome to your Dashboard!</h2>
+          <div style={{ height: '140px', backgroundColor: '#f4f4f4', marginBottom: '30px', borderRadius: '20px' }}></div>
           <p className="dashboard-description">
             You have successfully logged in to your Dyanpitt account.
           </p>
