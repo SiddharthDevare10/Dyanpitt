@@ -29,25 +29,9 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
   
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showModal, setShowModal] = useState(false);
+  const [isAgreed, setIsAgreed] = useState(false);
 
-  const interestOptions = [
-    'Facilities Tour',
-    'Membership Information',
-    'Class Schedules',
-    'Personal Training',
-    'Group Programs',
-    'Equipment Demo'
-  ];
-
-  const timeSlots = [
-    '9:00 AM - 10:00 AM',
-    '10:00 AM - 11:00 AM',
-    '11:00 AM - 12:00 PM',
-    '2:00 PM - 3:00 PM',
-    '3:00 PM - 4:00 PM',
-    '4:00 PM - 5:00 PM',
-    '5:00 PM - 6:00 PM'
-  ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -65,14 +49,6 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
     }
   };
 
-  const handleInterestChange = (interest) => {
-    setFormData(prev => ({
-      ...prev,
-      interests: prev.interests.includes(interest)
-        ? prev.interests.filter(i => i !== interest)
-        : [...prev.interests, interest]
-    }));
-  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -91,32 +67,43 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
       newErrors.phone = 'Phone number is required';
     }
     
-    if (!formData.preferredDate) {
-      newErrors.preferredDate = 'Preferred date is required';
+    if (!formData.tourDate) {
+      newErrors.tourDate = 'Tour date is required';
     } else {
       // Validate that the date is in the future (at least tomorrow)
-      const selectedDate = new Date(formData.preferredDate);
+      const selectedDate = new Date(formData.tourDate);
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
       
       if (selectedDate < tomorrow) {
-        newErrors.preferredDate = 'Please select a future date (tomorrow or later)';
+        newErrors.tourDate = 'Please select a future date (tomorrow or later)';
       }
     }
     
-    if (!formData.preferredTime) {
-      newErrors.preferredTime = 'Preferred time is required';
+    if (!formData.tourTime) {
+      newErrors.tourTime = 'Tour time is required';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     
     if (!validateForm()) {
+      return;
+    }
+
+    // Show the self-declaration modal instead of submitting directly
+    setShowModal(true);
+    console.log('Modal should open now, showModal:', true);
+  };
+
+  const handleFinalSubmit = async () => {
+    if (!isAgreed) {
+      alert('Please agree to the terms and conditions to proceed.');
       return;
     }
 
@@ -135,6 +122,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
       console.error('Error submitting tour request:', error);
     } finally {
       setIsLoading(false);
+      setShowModal(false);
     }
   };
 
@@ -144,10 +132,6 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
     }
   };
 
-  // Get tomorrow's date as minimum selectable date
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const minDate = tomorrow.toISOString().split('T')[0];
 
   return (
     <div className="main-container tour-request-container">
@@ -550,6 +534,103 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
           {isLoading ? 'Submitting Request...' : 'Submit Tour Request'}
         </button>
       </form>
+
+      {/* Self-Declaration Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)} style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
+            backgroundColor: 'white',
+            borderRadius: '20px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+          }}>
+            <div className="modal-header" style={{
+              padding: '20px',
+              borderBottom: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ margin: 0, color: '#333' }}>Self-Declaration</h2>
+              <button 
+                className="login-button modal-close"
+                onClick={() => setShowModal(false)}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '16px',
+                  minWidth: 'auto',
+                  width: 'auto'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <div className="declaration-content">
+                <div className="declaration-points">
+                  <ul style={{ paddingLeft: '20px', lineHeight: '1.6', fontSize: '12px' }}>
+                    <li style={{ marginBottom: '15px' }}>I declare that all information provided in this form is true and correct to the best of my knowledge. Any false or misleading information provided may result in the rejection of my application.</li>
+                    
+                    <li style={{ marginBottom: '15px' }}>I am committed to maintaining a peaceful environment and will adhere to all the rules and regulations set forth by Dnyanpeeth Abhyasika. I will respect the rights of my fellow students and ensure that my behavior and conduct do not disrupt the learning process.</li>
+                    
+                    <li style={{ marginBottom: '15px' }}>I will use facilities responsibly and comply with Dnyanpeeth Abhyasika's regulations, avoiding disruptive or illegal activities.</li>
+                    
+                    <li style={{ marginBottom: '15px' }}>I declare that I won't consume tobacco or gutkha in Dnyanpeeth Abhyasika campus. Spitting after consuming such substances is prohibited, and I will maintain a clean and healthy environment for all.</li>
+                    
+                    <li style={{ marginBottom: '15px' }}>I will take full responsibility for the personal belongings that I bring into Dnyanpeeth Abhyasika and will not hold Dnyanpeeth Abhyasika responsible for any loss or damage to my property.</li>
+                    
+                    <li style={{ marginBottom: '15px' }}>I agree to pay the necessary fees for membership at Dnyanpeeth Abhyasika, including the Non-Refundable Deposit of Rs. 699/-, which will be valid for one year from the date of my membership.</li>
+                    
+                    <li style={{ marginBottom: '15px' }}>By submitting this form, I acknowledge that I have read, understood, and agreed to the terms and conditions set by the Dnyanpeeth Abhyasika.</li>
+                  </ul>
+                </div>
+                
+                <div className="agreement-section" style={{ marginTop: '30px' }}>
+                  <label className="checkbox-container" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <input
+                      type="checkbox"
+                      checked={isAgreed}
+                      onChange={(e) => setIsAgreed(e.target.checked)}
+                    />
+                    <span className="checkbox-text" style={{ fontWeight: 'bold' }}>I Agree</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-footer" style={{
+              padding: '20px',
+              borderTop: '1px solid #eee',
+              display: 'flex',
+              justifyContent: 'center'
+            }}>
+              <button 
+                className="login-button"
+                onClick={handleFinalSubmit}
+                disabled={!isAgreed || isLoading}
+                style={{ width: '50%' }}
+              >
+                {isLoading ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
