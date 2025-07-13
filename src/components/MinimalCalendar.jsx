@@ -66,41 +66,20 @@ export default function MinimalCalendar({
     const newDate = new Date(currentDate);
     newDate.setMonth(currentDate.getMonth() + direction);
     
-    // Always prevent navigation to past months
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    
-    // For backward navigation, don't allow going to past months in current year
-    if (direction < 0) {
-      if (newDate.getFullYear() === currentYear && newDate.getMonth() < currentMonth) {
-        return false;
-      }
-      // Don't allow going to years before current year
-      if (newDate.getFullYear() < currentYear) {
-        return false;
-      }
-    }
-    
     // Check minDate constraint
     if (minDate) {
       const minDateObj = new Date(minDate);
-      
-      // If minDate is in the future
-      if (minDateObj > today) {
-        // For backward navigation, check if the new month would be before minDate
-        if (direction < 0) {
-          const newMonthStart = new Date(newDate.getFullYear(), newDate.getMonth(), 1);
-          const minMonthStart = new Date(minDateObj.getFullYear(), minDateObj.getMonth(), 1);
-          if (newMonthStart < minMonthStart) return false;
-        }
+      // For backward navigation, check if the new month would be before minDate
+      if (direction < 0) {
+        const newMonthStart = new Date(newDate.getFullYear(), newDate.getMonth(), 1);
+        const minMonthStart = new Date(minDateObj.getFullYear(), minDateObj.getMonth(), 1);
+        if (newMonthStart < minMonthStart) return false;
       }
     }
     
     // Check maxDate constraint
     if (maxDate) {
       const maxDateObj = new Date(maxDate);
-      
       // For forward navigation, check if the new month would be after maxDate
       if (direction > 0) {
         const newMonthStart = new Date(newDate.getFullYear(), newDate.getMonth(), 1);
@@ -151,9 +130,10 @@ export default function MinimalCalendar({
         endYear = currentYear + 10;
       }
     } else {
-      // Default range when no minDate
-      startYear = currentYear - 100;
-      endYear = currentYear + 10;
+      // For date of birth, limit to years that make users at least 12 years old
+      // Someone born in currentYear - 12 would be 12 years old this year
+      startYear = currentYear - 100; // Allow up to 100 years back
+      endYear = currentYear - 12; // Only show years that make users at least 12
     }
     
     // If maxDate is set, limit the end year and potentially start year
@@ -273,23 +253,18 @@ export default function MinimalCalendar({
               // Check if this month should be disabled based on minDate and maxDate
               let isMonthDisabled = false;
               
-              // Always disable past months in current year
-              const today = new Date();
-              const currentYear = today.getFullYear();
-              const currentMonth = today.getMonth();
-              
-              if (currentDate.getFullYear() === currentYear) {
-                // Disable months that have already passed
-                isMonthDisabled = index < currentMonth;
-              }
-              
               if (minDate && !isMonthDisabled) {
                 const minDateObj = new Date(minDate);
                 
-                // If minDate is in the future and we're in the same year as minDate
-                if (minDateObj > today && currentDate.getFullYear() === minDateObj.getFullYear()) {
+                // If we're in the same year as minDate
+                if (currentDate.getFullYear() === minDateObj.getFullYear()) {
                   // Disable months before the minDate month
                   isMonthDisabled = index < minDateObj.getMonth();
+                }
+                
+                // If current year is before minDate year, disable all months
+                if (currentDate.getFullYear() < minDateObj.getFullYear()) {
+                  isMonthDisabled = true;
                 }
               }
               

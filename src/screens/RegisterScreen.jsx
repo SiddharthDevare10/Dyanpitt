@@ -138,8 +138,8 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     const birthDate = new Date(dob);
     const age = today.getFullYear() - birthDate.getFullYear();
     
-    if (age < 13) {
-      return 'You must be at least 13 years old';
+    if (age < 12) {
+      return 'You must be at least 12 years old';
     }
     if (age > 120) {
       return 'Please enter a valid date of birth';
@@ -842,7 +842,6 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
           onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
           className={errors.dateOfBirth ? 'input-error' : ''}
           error={!!errors.dateOfBirth}
-          max={new Date().toISOString().split('T')[0]}
           placeholder="e.g., March 15, 1995"
         />
         {errors.dateOfBirth && (
