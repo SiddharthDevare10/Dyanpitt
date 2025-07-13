@@ -601,10 +601,10 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
           transition={{ duration: 0.5, delay: 1.3 }}
         >
           <label className="membership-input-label">
-            How long do you intend to use the study room? Is it a short-term or long-term commitment?
+            How long do you intend to use the study room?
           </label>
           <div className="marathi-text">
-            कि ती महि यां सा ठी अया सि केला या यचे आहे?
+            किती महिन्यांसाठी अभ्यासिकेला यायचे आहे?
           </div>
           <CustomDropdown
             name="studyRoomDuration"
