@@ -172,6 +172,13 @@ export default function MinimalCalendar({
     for (let year = startYear; year <= endYear; year++) {
       years.push(year);
     }
+    
+    // For date of birth (when we have a wide range going back in time), 
+    // reverse the array so oldest years appear first
+    if (startYear < currentYear - 50) {
+      return years.reverse();
+    }
+    
     return years;
   };
 

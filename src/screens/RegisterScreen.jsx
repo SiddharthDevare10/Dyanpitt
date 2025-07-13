@@ -636,7 +636,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
         <label className="input-label">Enter your OTP</label>
         <input
           type="text"
-          placeholder="Enter 6-digit OTP"
+          placeholder="XXXXXX"
           value={formData.otp}
           onChange={(e) => handleInputChange('otp', e.target.value.replace(/\D/g, '').slice(0, 6))}
           onBlur={() => handleBlur('otp')}
