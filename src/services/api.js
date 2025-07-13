@@ -35,19 +35,42 @@ class ApiService {
     
     const config = {
       headers: this.getAuthHeaders(),
+      timeout: 30000, // 30 second timeout
       ...options
     };
 
     try {
-      const response = await fetch(url, config);
-      const data = await response.json();
-
+      // Add timeout to fetch request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+        let errorMessage;
+        try {
+          const data = await response.json();
+          errorMessage = data.message || `HTTP error! status: ${response.status}`;
+        } catch {
+          errorMessage = `HTTP error! status: ${response.status}`;
+        }
+        throw new Error(errorMessage);
       }
 
+      const data = await response.json();
       return data;
     } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please check your internet connection and try again');
+      }
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('Network error - please check your internet connection and try again');
+      }
       throw error;
     }
   }

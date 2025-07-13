@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DatePicker from '../components/DatePicker';
 
 export default function TourRequestScreen({ onBack, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -78,6 +79,16 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
     
     if (!formData.preferredDate) {
       newErrors.preferredDate = 'Preferred date is required';
+    } else {
+      // Validate that the date is in the future (at least tomorrow)
+      const selectedDate = new Date(formData.preferredDate);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < tomorrow) {
+        newErrors.preferredDate = 'Please select a future date (tomorrow or later)';
+      }
     }
     
     if (!formData.preferredTime) {
@@ -198,14 +209,14 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
             Preferred Date *
             <div style={{ color: '#666', fontSize: '12px', fontWeight: '400' }}>प्राधान्य दिनांक</div>
           </label>
-          <input
-            type="date"
+          <DatePicker
             name="preferredDate"
             value={formData.preferredDate}
             onChange={handleInputChange}
-            className={`form-input ${errors.preferredDate ? 'input-error' : ''}`}
-            min={minDate}
-            disabled={isLoading}
+            className={errors.preferredDate ? 'input-error' : ''}
+            error={!!errors.preferredDate}
+            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+            placeholder="e.g., July 15, 2024"
           />
           {errors.preferredDate && <div className="error-message">{errors.preferredDate}</div>}
         </div>

@@ -110,22 +110,27 @@ export default function ForgotPasswordScreen({ onNavigateToLogin }) {
     setErrors({});
 
     try {
+      console.log('Sending password reset OTP to:', formData.email);
       const response = await apiService.forgotPassword(formData.email);
+      console.log('Password reset OTP response:', response);
       
       if (response.success) {
         setCurrentStep('otp');
         setOtpTimer(60); // 60 seconds timer
-        // Success feedback through step change
+        console.log('Password reset OTP sent successfully');
       } else {
         setErrors({ general: response.message || 'Failed to send reset code. Please check your email address and try again.' });
       }
     } catch (error) {
+      console.error('Error in handleSendOtp (forgot password):', error);
       if (error.message && error.message.includes('not found')) {
         setErrors({ email: 'No account found with this email address' });
-      } else if (error.message && error.message.includes('network')) {
+      } else if (error.message && (error.message.includes('network') || error.message.includes('Network error'))) {
         setErrors({ general: 'Network error. Please check your internet connection and try again.' });
+      } else if (error.message && error.message.includes('timeout')) {
+        setErrors({ general: 'Request timed out. Please check your connection and try again.' });
       } else {
-        setErrors({ general: 'Unable to send reset code. Please try again in a few moments.' });
+        setErrors({ general: error.message || 'Unable to send reset code. Please try again in a few moments.' });
       }
     } finally {
       setIsLoading(false);

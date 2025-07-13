@@ -235,7 +235,10 @@ export default function App() {
         setCurrentScreen('congratulations');
         window.history.pushState({}, '', '/congratulations');
       } else {
-        // User came from login, go back to login
+        // User came from login, logout and go back to login
+        apiService.removeToken();
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('cameFromRegistration');
         setCurrentScreen('login');
         window.history.pushState({}, '', '/');
       }

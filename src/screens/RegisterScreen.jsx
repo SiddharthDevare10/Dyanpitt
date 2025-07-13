@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DatePicker from '../components/DatePicker';
 import { Eye, EyeOff, Check, Calendar } from 'lucide-react';
 import apiService from '../services/api';
 import CongratulationsScreen from './CongratulationsScreen';
@@ -201,32 +202,37 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     setErrors({});
 
     try {
+      console.log('Checking if email exists:', formData.email);
       // Check if email is already registered
       const emailCheckResponse = await apiService.checkEmailExists(formData.email);
       
       if (emailCheckResponse.exists) {
         setErrors({ email: 'The email already exists' });
-        setIsLoading(false);
         return;
       }
 
+      console.log('Sending OTP to:', formData.email);
       // Send OTP to email
       const response = await apiService.sendOtp(formData.email);
+      console.log('OTP response:', response);
       
       if (response.success) {
         setCurrentStep('otp');
         setOtpTimer(60); // 60 seconds timer
-        // OTP sent successfully - user will see the step change
+        console.log('OTP sent successfully, moving to OTP step');
       } else {
         setErrors({ general: response.message || 'Failed to send verification code. Please check your email address and try again.' });
       }
     } catch (error) {
+      console.error('Error in handleSendOtp:', error);
       if (error.message && error.message.includes('already registered')) {
         setErrors({ email: 'The email already exists' });
-      } else if (error.message && error.message.includes('network')) {
+      } else if (error.message && (error.message.includes('network') || error.message.includes('Network error'))) {
         setErrors({ general: 'Network error. Please check your internet connection and try again.' });
+      } else if (error.message && error.message.includes('timeout')) {
+        setErrors({ general: 'Request timed out. Please check your connection and try again.' });
       } else {
-        setErrors({ general: 'Unable to send verification code. Please try again in a few moments.' });
+        setErrors({ general: error.message || 'Unable to send verification code. Please try again in a few moments.' });
       }
     } finally {
       setIsLoading(false);
@@ -830,14 +836,14 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       {/* Date of Birth */}
       <div className="input-group">
         <label className="input-label">Date of Birth</label>
-        <input
-          type="date"
+        <DatePicker
+          name="dateOfBirth"
           value={formData.dateOfBirth}
           onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-          onBlur={() => handleBlur('dateOfBirth')}
-          className={`form-input ${errors.dateOfBirth ? 'input-error' : ''}`}
-          disabled={isLoading}
+          className={errors.dateOfBirth ? 'input-error' : ''}
+          error={!!errors.dateOfBirth}
           max={new Date().toISOString().split('T')[0]}
+          placeholder="e.g., March 15, 1995"
         />
         {errors.dateOfBirth && (
           <div className="error-message">

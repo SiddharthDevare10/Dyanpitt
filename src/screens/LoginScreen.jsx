@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import apiService from '../services/api';
 
 export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword }) {
@@ -202,24 +204,37 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
   };
 
   return (
-    <div className="main-container">
+    <motion.div 
+      className="main-container"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       {/* Header */}
-      <div className="header-section">
+      <motion.div 
+        className="header-section"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
         <h1 className="main-title">Welcome Back</h1>
         {/* Sign Up Link */}
         <div className="signup-link" style={{ textAlign: 'left', marginTop: '-5px' }}>
           <p className="signup-text">
             Don't have an account?{' '}
-            <button 
+            <motion.button 
               onClick={handleSignUp} 
               className="signup-button"
               disabled={isLoading}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
               Sign up
-            </button>
+            </motion.button>
           </p>
         </div>
-      </div>
+      </motion.div>
 
       {/* General Error Message */}
       {errors.general && (
@@ -300,10 +315,15 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
       </div>
 
       {/* Login Button */}
-      <button 
+      <motion.button 
         onClick={handleLogin} 
         className={`login-button ${isLoading ? 'loading' : ''}`}
         disabled={isLoading}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+        whileHover={{ scale: 1.02, y: -2 }}
+        whileTap={{ scale: 0.98 }}
       >
         {isLoading ? (
           <>
@@ -313,9 +333,9 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
         ) : (
           'Sign In'
         )}
-      </button>
+      </motion.button>
 
-    </div>
+    </motion.div>
   );
 }
 

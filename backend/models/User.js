@@ -66,6 +66,14 @@ const userSchema = new mongoose.Schema({
     default: null
   },
   
+  // Pending email during registration process
+  pendingEmail: {
+    type: String,
+    default: null,
+    lowercase: true,
+    trim: true
+  },
+  
   // User Avatar
   avatar: {
     type: String,

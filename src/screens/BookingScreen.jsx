@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import CustomDropdown from '../components/CustomDropdown';
 import SeatSelectionModal from '../components/SeatSelectionModal';
+import DatePicker from '../components/DatePicker';
 import apiService from '../services/api';
 import { getPrice } from '../data/pricing';
 import { calculateTotalDiscount, qualifiesForFemaleDiscount, calculateTotalPriceWithFees, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../data/discounts';
@@ -429,14 +430,15 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
           <div className="marathi-text">
             Membership must start within 30 days from today
           </div>
-          <input
-            type="date"
+          <DatePicker
             name="membershipStartDate"
             value={formData.membershipStartDate}
             onChange={handleInputChange}
-            className={`form-input date-input ${errors.membershipStartDate ? 'input-error' : ''}`}
+            className={errors.membershipStartDate ? 'input-error' : ''}
+            error={!!errors.membershipStartDate}
             min={new Date().toISOString().split('T')[0]}
             max={new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+            placeholder="e.g., July 20, 2024"
           />
           {errors.membershipStartDate && <span className="error-message">{errors.membershipStartDate}</span>}
         </div>

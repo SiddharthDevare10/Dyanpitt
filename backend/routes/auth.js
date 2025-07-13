@@ -141,6 +141,7 @@ router.post('/verify-otp', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Invalid input',
@@ -149,24 +150,42 @@ router.post('/verify-otp', [
     }
 
     const { email, otp } = req.body;
+    console.log('Verifying OTP for email:', email, 'OTP:', otp);
 
     // Find temp user by pending email
     const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
+    console.log('Found temp user:', tempUser ? 'YES' : 'NO');
+    
     if (!tempUser) {
+      // Debug: Check if there's any user with this pending email
+      const anyUser = await User.findOne({ pendingEmail: email });
+      console.log('Any user with pendingEmail:', anyUser ? 'YES' : 'NO');
+      if (anyUser) {
+        console.log('User isEmailVerified:', anyUser.isEmailVerified);
+        console.log('User OTP:', anyUser.otpCode);
+        console.log('User OTP Expiry:', anyUser.otpExpires);
+      }
+      
       return res.status(400).json({
         success: false,
         message: 'No pending verification found for this email'
       });
     }
 
+    console.log('Temp user OTP:', tempUser.otpCode);
+    console.log('Temp user OTP expiry:', tempUser.otpExpires);
+    console.log('Current time:', new Date());
+
     // Verify OTP
     if (!tempUser.verifyOTP(otp)) {
+      console.log('OTP verification failed');
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired OTP'
       });
     }
 
+    console.log('OTP verified successfully');
     // Clear OTP and mark as verified
     tempUser.clearOTP();
     tempUser.isEmailVerified = true;
@@ -559,7 +578,7 @@ router.post('/update-membership', auth, async (req, res) => {
     const { membershipDetails } = req.body;
     
     // Validate required fields
-    const requiredFields = ['visitedBefore', 'fatherName', 'parentContactNumber', 'educationalBackground', 'currentOccupation', 'currentAddress', 'jobTitle', 'examPreparation', 'examinationDate', 'studyRoomDuration'];
+    const requiredFields = ['visitedBefore', 'fatherName', 'parentContactNumber', 'educationalBackground', 'currentOccupation', 'currentAddress', 'examPreparation', 'examinationDate', 'studyRoomDuration'];
     
     for (const field of requiredFields) {
       if (!membershipDetails[field]) {
@@ -568,6 +587,16 @@ router.post('/update-membership', auth, async (req, res) => {
           message: `${field} is required`
         });
       }
+    }
+    
+    // Job title is only required if not unemployed or student
+    if (!membershipDetails.jobTitle && 
+        membershipDetails.currentOccupation !== 'Unemployed' && 
+        membershipDetails.currentOccupation !== 'Student') {
+      return res.status(400).json({
+        success: false,
+        message: 'Job title is required'
+      });
     }
 
     // Update user with membership details

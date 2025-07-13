@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import CustomDropdown from '../components/CustomDropdown';
+import DatePicker from '../components/DatePicker';
 import apiService from '../services/api';
 
 export default function MembershipDetailsScreen({ userData, onBack, onContinue }) {
@@ -30,10 +33,19 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
         [name]: files[0]
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          [name]: value
+        };
+        
+        // Clear job title if unemployed or student is selected
+        if (name === 'currentOccupation' && (value === 'Unemployed' || value === 'Student')) {
+          newData.jobTitle = '';
+        }
+        
+        return newData;
+      });
     }
     
     // Clear error when user makes a selection
@@ -41,6 +53,14 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
       setErrors(prev => ({
         ...prev,
         [name]: ''
+      }));
+    }
+    
+    // Clear job title error when occupation is changed to unemployed or student
+    if (name === 'currentOccupation' && (value === 'Unemployed' || value === 'Student') && errors.jobTitle) {
+      setErrors(prev => ({
+        ...prev,
+        jobTitle: ''
       }));
     }
   };
@@ -72,7 +92,8 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
       newErrors.currentAddress = 'Current address is required';
     }
     
-    if (!formData.jobTitle.trim()) {
+    // Job title is only required if not unemployed or student
+    if (!formData.jobTitle.trim() && formData.currentOccupation !== 'Unemployed' && formData.currentOccupation !== 'Student') {
       newErrors.jobTitle = 'Job title is required';
     }
     
@@ -82,6 +103,16 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
     
     if (!formData.examinationDate) {
       newErrors.examinationDate = 'Examination date is required';
+    } else {
+      // Validate that the examination date is in the future (at least tomorrow)
+      const selectedDate = new Date(formData.examinationDate);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < tomorrow) {
+        newErrors.examinationDate = 'Please select a future examination date (tomorrow or later)';
+      }
     }
     
     if (!formData.studyRoomDuration) {
@@ -135,21 +166,47 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
   };
 
   return (
-    <div className="main-container membership-details-adjustment">
-      <button 
+    <motion.div 
+      className="main-container membership-details-adjustment"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <motion.button 
         onClick={onBack}
         className="back-button"
+        initial={{ opacity: 0, x: -50 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
       >
         <ArrowLeft size={20} color="white" />
-      </button>
-      <div className="header-section">
+      </motion.button>
+      <motion.div 
+        className="header-section"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
         <h1 className="main-title">Membership Details</h1>
         <p className="main-subtitle">Fill in your details to complete registration</p>
-      </div>
+      </motion.div>
 
-      <form onSubmit={handleSubmit}>
+      <motion.form 
+        onSubmit={handleSubmit}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      >
         {/* Have you visited before */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
           <label className="membership-input-label">
             Have you visited Dnyanpeeth Abhyasika before and filled out our form?
           </label>
@@ -180,11 +237,28 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
               No
             </label>
           </div>
-          {errors.visitedBefore && <span className="error-message">{errors.visitedBefore}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.visitedBefore && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.visitedBefore}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Father's Name */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+        >
           <label className="membership-input-label">
             What is your father's name?
           </label>
@@ -199,11 +273,28 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
             onChange={handleInputChange}
             className={`form-input ${errors.fatherName ? 'input-error' : ''}`}
           />
-          {errors.fatherName && <span className="error-message">{errors.fatherName}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.fatherName && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.fatherName}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Parent's Contact Number */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
           <label className="membership-input-label">
             Parent's contact number?
           </label>
@@ -218,11 +309,28 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
             onChange={handleInputChange}
             className={`form-input ${errors.parentContactNumber ? 'input-error' : ''}`}
           />
-          {errors.parentContactNumber && <span className="error-message">{errors.parentContactNumber}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.parentContactNumber && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.parentContactNumber}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Current Address */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.7 }}
+        >
           <label className="membership-input-label">
             What is your current address?
           </label>
@@ -237,11 +345,28 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
             className={`form-input ${errors.currentAddress ? 'input-error' : ''}`}
             rows="3"
           />
-          {errors.currentAddress && <span className="error-message">{errors.currentAddress}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.currentAddress && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.currentAddress}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Educational Background */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+        >
           <label className="membership-input-label">
             What is your educational background?
           </label>
@@ -264,11 +389,28 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
             className="form-input"
             error={errors.educationalBackground}
           />
-          {errors.educationalBackground && <span className="error-message">{errors.educationalBackground}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.educationalBackground && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.educationalBackground}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Current Occupation */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.9 }}
+        >
           <label className="membership-input-label">
             What is your current occupation?
           </label>
@@ -291,13 +433,33 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
             className="form-input"
             error={errors.currentOccupation}
           />
-          {errors.currentOccupation && <span className="error-message">{errors.currentOccupation}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.currentOccupation && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.currentOccupation}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Job Title */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 1.0 }}
+        >
           <label className="membership-input-label">
             What is your job title?
+            {(formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student') && 
+              <span className="optional-text"> (Not applicable)</span>
+            }
           </label>
           <div className="marathi-text">
             तुमचा हुद्दा येथे लिहा.
@@ -305,16 +467,40 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
           <input
             type="text"
             name="jobTitle"
-            placeholder="Enter your job title"
+            placeholder={
+              formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student' 
+                ? "Not applicable for your occupation" 
+                : "Enter your job title"
+            }
             value={formData.jobTitle}
             onChange={handleInputChange}
-            className={`form-input ${errors.jobTitle ? 'input-error' : ''}`}
+            disabled={formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student'}
+            className={`form-input ${errors.jobTitle ? 'input-error' : ''} ${
+              (formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student') ? 'disabled' : ''
+            }`}
           />
-          {errors.jobTitle && <span className="error-message">{errors.jobTitle}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.jobTitle && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.jobTitle}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Exam Preparation */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 1.1 }}
+        >
           <label className="membership-input-label">
             What specific exam are you preparing for by using the study room facilities?
           </label>
@@ -355,30 +541,65 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
             className="form-input"
             error={errors.examPreparation}
           />
-          {errors.examPreparation && <span className="error-message">{errors.examPreparation}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.examPreparation && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.examPreparation}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Examination Date */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 1.2 }}
+        >
           <label className="membership-input-label">
             What is the tentative date of your examination?
           </label>
           <div className="marathi-text">
             तुमच्या परीक्षेची अंदाजे तारीख येथे लिहा.
           </div>
-          <input
-            type="date"
+          <DatePicker
             name="examinationDate"
             value={formData.examinationDate}
             onChange={handleInputChange}
-            className={`form-input date-input ${errors.examinationDate ? 'input-error' : ''}`}
-            placeholder="Select examination date"
+            className={errors.examinationDate ? 'input-error' : ''}
+            error={!!errors.examinationDate}
+            min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+            placeholder="e.g., August 15, 2024"
           />
-          {errors.examinationDate && <span className="error-message">{errors.examinationDate}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.examinationDate && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.examinationDate}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Study Room Duration */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 1.3 }}
+        >
           <label className="membership-input-label">
             How long do you intend to use the study room? Is it a short-term or long-term commitment?
           </label>
@@ -405,11 +626,28 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
             className="form-input"
             error={errors.studyRoomDuration}
           />
-          {errors.studyRoomDuration && <span className="error-message">{errors.studyRoomDuration}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.studyRoomDuration && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.studyRoomDuration}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Selfie Photo Upload */}
-        <div className="input-group">
+        <motion.div 
+          className="input-group"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 1.4 }}
+        >
           <label className="membership-input-label">
             Please upload a selfie photo here. *
           </label>
@@ -442,17 +680,50 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
               </div>
             )}
           </div>
-          {errors.selfiePhoto && <span className="error-message">{errors.selfiePhoto}</span>}
-        </div>
+          <AnimatePresence>
+            {errors.selfiePhoto && (
+              <motion.span 
+                className="error-message"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                {errors.selfiePhoto}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.div>
         
         {/* Submit Error */}
-        {errors.submit && <div className="error-message">{errors.submit}</div>}
+        <AnimatePresence>
+          {errors.submit && (
+            <motion.div 
+              className="error-message"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              {errors.submit}
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Submit Button */}
-        <button type="submit" className="login-button" disabled={isLoading}>
+        <motion.button 
+          type="submit" 
+          className="login-button" 
+          disabled={isLoading}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+        >
           {isLoading ? 'Saving...' : 'Continue'}
-        </button>
-      </form>
-    </div>
+        </motion.button>
+      </motion.form>
+    </motion.div>
   );
 }
