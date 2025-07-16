@@ -47,24 +47,6 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  emailVerificationToken: {
-    type: String,
-    default: null
-  },
-  emailVerificationExpires: {
-    type: Date,
-    default: null
-  },
-  
-  // OTP for registration
-  otpCode: {
-    type: String,
-    default: null
-  },
-  otpExpires: {
-    type: Date,
-    default: null
-  },
   
   // Pending email during registration process
   pendingEmail: {
@@ -292,32 +274,7 @@ userSchema.statics.generateDyanpittId = async function() {
   };
 };
 
-// Generate OTP
-userSchema.methods.generateOTP = function() {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  this.otpCode = otp;
-  this.otpExpires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-  return otp;
-};
-
-// Verify OTP
-userSchema.methods.verifyOTP = function(otp) {
-  if (!this.otpCode || !this.otpExpires) {
-    return false;
-  }
-  
-  if (this.otpExpires < new Date()) {
-    return false;
-  }
-  
-  return this.otpCode === otp;
-};
-
-// Clear OTP
-userSchema.methods.clearOTP = function() {
-  this.otpCode = null;
-  this.otpExpires = null;
-};
+// Note: OTP functionality moved to JWT-based tokens for better security
 
 // Find by email or Dyanpitt ID
 userSchema.statics.findByEmailOrDyanpittId = async function(identifier) {
@@ -364,7 +321,12 @@ userSchema.methods.getPublicProfile = function() {
     avatar: this.avatar,
     isEmailVerified: this.isEmailVerified,
     lastLogin: this.lastLogin,
-    createdAt: this.createdAt
+    createdAt: this.createdAt,
+    membershipDetails: this.membershipDetails,
+    bookingDetails: this.bookingDetails,
+    profileCompleted: this.profileCompleted,
+    membershipCompleted: this.membershipCompleted,
+    bookingCompleted: this.bookingCompleted
   };
 };
 

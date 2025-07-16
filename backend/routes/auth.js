@@ -6,6 +6,8 @@ const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { authenticateToken: auth } = require('../middleware/auth');
 const emailService = require('../services/emailService');
+const verificationService = require('../services/verificationService');
+const { uploadSingle } = require('../middleware/upload');
 
 const router = express.Router();
 
@@ -103,12 +105,11 @@ router.post('/send-otp', [
       });
     }
 
-    // Generate and save OTP
-    const otp = tempUser.generateOTP();
+    // Save temp user first
     await tempUser.save();
 
-    // Send OTP email to the pending email address
-    const emailResult = await emailService.sendOTP(email, otp);
+    // Generate and send OTP using verification service
+    const emailResult = await verificationService.sendOTPEmail(email);
     
     if (!emailResult.success) {
       return res.status(500).json({
@@ -152,32 +153,8 @@ router.post('/verify-otp', [
     const { email, otp } = req.body;
     console.log('Verifying OTP for email:', email, 'OTP:', otp);
 
-    // Find temp user by pending email
-    const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
-    console.log('Found temp user:', tempUser ? 'YES' : 'NO');
-    
-    if (!tempUser) {
-      // Debug: Check if there's any user with this pending email
-      const anyUser = await User.findOne({ pendingEmail: email });
-      console.log('Any user with pendingEmail:', anyUser ? 'YES' : 'NO');
-      if (anyUser) {
-        console.log('User isEmailVerified:', anyUser.isEmailVerified);
-        console.log('User OTP:', anyUser.otpCode);
-        console.log('User OTP Expiry:', anyUser.otpExpires);
-      }
-      
-      return res.status(400).json({
-        success: false,
-        message: 'No pending verification found for this email'
-      });
-    }
-
-    console.log('Temp user OTP:', tempUser.otpCode);
-    console.log('Temp user OTP expiry:', tempUser.otpExpires);
-    console.log('Current time:', new Date());
-
-    // Verify OTP
-    if (!tempUser.verifyOTP(otp)) {
+    // Verify OTP using verification service
+    if (!verificationService.verifyOTP(email, otp)) {
       console.log('OTP verification failed');
       return res.status(400).json({
         success: false,
@@ -186,8 +163,18 @@ router.post('/verify-otp', [
     }
 
     console.log('OTP verified successfully');
-    // Clear OTP and mark as verified
-    tempUser.clearOTP();
+    
+    // Find temp user by pending email and mark as verified
+    const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
+    
+    if (!tempUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending verification found for this email'
+      });
+    }
+
+    // Mark as verified
     tempUser.isEmailVerified = true;
     await tempUser.save();
 
@@ -208,7 +195,7 @@ router.post('/verify-otp', [
 // @route   POST /api/auth/register
 // @desc    Complete user registration
 // @access  Public
-router.post('/register', [
+router.post('/register', uploadSingle('avatar'), [
   body('email').isEmail().normalizeEmail(),
   body('fullName').trim().isLength({ min: 2 }),
   body('phoneNumber').matches(/^\+\d{10,15}$/),
@@ -227,6 +214,12 @@ router.post('/register', [
     }
 
     const { email, fullName, phoneNumber, dateOfBirth, gender, password } = req.body;
+
+    // Handle uploaded avatar
+    let avatarUrl = null;
+    if (req.file) {
+      avatarUrl = `/uploads/${req.file.filename}`;
+    }
 
     // Check if phone number already exists
     const existingPhone = await User.findOne({ phoneNumber });
@@ -275,6 +268,10 @@ router.post('/register', [
     tempUser.registrationMonth = registrationMonth;
     tempUser.registrationNumber = registrationNumber;
     tempUser.pendingEmail = undefined; // Remove the pending email field
+    tempUser.profileCompleted = true; // Mark profile as completed since all basic info is provided
+    if (avatarUrl) {
+      tempUser.avatar = avatarUrl; // Store avatar URL in database
+    }
     
     await tempUser.save();
 
@@ -450,12 +447,8 @@ router.post('/forgot-password', [
       });
     }
 
-    // Generate and save OTP for password reset
-    const otp = user.generateOTP();
-    await user.save();
-
-    // Send OTP email
-    const emailResult = await emailService.sendPasswordResetOTP(email, otp, user.fullName);
+    // Generate and send OTP for password reset using verification service
+    const emailResult = await verificationService.sendPasswordResetOTP(email, user.fullName);
     
     if (!emailResult.success) {
       return res.status(500).json({
@@ -495,8 +488,8 @@ router.post('/verify-reset-otp', [
       });
     }
 
-    // Verify OTP
-    if (!user.verifyOTP(otp)) {
+    // Verify OTP using verification service
+    if (!verificationService.verifyOTP(email, otp)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired verification code'
@@ -535,8 +528,8 @@ router.post('/reset-password', [
       });
     }
 
-    // Verify OTP one more time
-    if (!user.verifyOTP(otp)) {
+    // Verify OTP one more time using verification service
+    if (!verificationService.verifyOTP(email, otp)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired verification code'
@@ -545,8 +538,10 @@ router.post('/reset-password', [
 
     // Update password
     user.password = newPassword; // Will be hashed by pre-save middleware
-    user.clearOTP(); // Clear the OTP
     await user.save();
+    
+    // Clear the OTP from verification service
+    verificationService.clearOTP(email);
 
     res.json({
       success: true,
@@ -573,9 +568,14 @@ router.post('/logout', auth, (req, res) => {
 });
 
 // Update membership details
-router.post('/update-membership', auth, async (req, res) => {
+router.post('/update-membership', auth, uploadSingle('selfiePhoto'), async (req, res) => {
   try {
-    const { membershipDetails } = req.body;
+    const membershipDetails = req.body;
+    
+    // Handle uploaded selfie photo
+    if (req.file) {
+      membershipDetails.selfiePhotoUrl = `/uploads/${req.file.filename}`;
+    }
     
     // Validate required fields
     const requiredFields = ['visitedBefore', 'fatherName', 'parentContactNumber', 'educationalBackground', 'currentOccupation', 'currentAddress', 'examPreparation', 'examinationDate', 'studyRoomDuration'];
@@ -587,6 +587,14 @@ router.post('/update-membership', auth, async (req, res) => {
           message: `${field} is required`
         });
       }
+    }
+    
+    // Validate selfie photo upload
+    if (!membershipDetails.selfiePhotoUrl && !req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selfie photo is required'
+      });
     }
     
     // Job title is only required if not unemployed or student
@@ -877,6 +885,50 @@ router.post('/complete-payment', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while completing payment'
+    });
+  }
+});
+
+// @route   POST /api/auth/upload-avatar
+// @desc    Upload user avatar
+// @access  Private
+router.post('/upload-avatar', auth, uploadSingle('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No avatar file uploaded'
+      });
+    }
+
+    const avatarUrl = `/uploads/${req.file.filename}`;
+    
+    // Update user avatar in database
+    const user = await User.findByIdAndUpdate(
+      req.user.userId,
+      { avatar: avatarUrl },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Avatar uploaded successfully',
+      user: user.getPublicProfile(),
+      avatarUrl
+    });
+
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while uploading avatar'
     });
   }
 });

@@ -90,27 +90,70 @@ class ApiService {
   }
 
   async register(registrationData) {
-    // In a real app, the backend would generate the Dyanpitt ID
-    // and store all user data including email and dyanpittId mapping
-    const response = await this.request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(registrationData)
-    });
-
-    if (response.success && response.token) {
-      this.setToken(response.token);
-      
-      // Store user data locally for demo purposes
-      // In production, this would be handled by the backend
-      localStorage.setItem('userData', JSON.stringify({
-        email: registrationData.email,
-        dyanpittId: registrationData.dyanpittId,
-        fullName: registrationData.fullName,
-        phoneNumber: registrationData.phoneNumber
-      }));
+    // Create FormData for file upload if avatar is included
+    let body;
+    let headers = this.getAuthHeaders();
+    
+    if (registrationData.avatar instanceof File) {
+      // Use FormData for file upload
+      const formData = new FormData();
+      Object.keys(registrationData).forEach(key => {
+        if (key === 'avatar' && registrationData[key] instanceof File) {
+          formData.append('avatar', registrationData[key]);
+        } else if (registrationData[key] !== null && registrationData[key] !== undefined) {
+          formData.append(key, registrationData[key]);
+        }
+      });
+      body = formData;
+      // Remove Content-Type header for FormData
+      delete headers['Content-Type'];
+    } else {
+      // Use JSON for regular registration
+      body = JSON.stringify(registrationData);
     }
 
-    return response;
+    const url = `${this.baseURL}/auth/register`;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        let errorMessage;
+        try {
+          const data = await response.json();
+          errorMessage = data.message || `HTTP error! status: ${response.status}`;
+        } catch {
+          errorMessage = `HTTP error! status: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.token) {
+        this.setToken(data.token);
+      }
+
+      return data;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please check your internet connection and try again');
+      }
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('Network error - please check your internet connection and try again');
+      }
+      throw error;
+    }
   }
 
   async logout() {
@@ -152,11 +195,11 @@ class ApiService {
     });
   }
 
+  // Note: Email checking is now handled by send-otp endpoint
   async checkEmailExists(email) {
-    return this.request('/auth/check-email', {
-      method: 'POST',
-      body: JSON.stringify({ email })
-    });
+    // In the new system, we don't need a separate check-email endpoint
+    // The send-otp endpoint will return an error if email already exists
+    return { exists: false }; // Always return false, let send-otp handle validation
   }
 
   async checkPhoneExists(phoneNumber) {
@@ -207,31 +250,152 @@ class ApiService {
 
   // Update membership details
   async updateMembershipDetails(membershipDetails) {
-    return this.request('/auth/update-membership', {
-      method: 'POST',
-      body: JSON.stringify({ membershipDetails })
+    // Create FormData for file upload
+    const formData = new FormData();
+    
+    // Add all membership details to FormData
+    Object.keys(membershipDetails).forEach(key => {
+      if (key === 'selfiePhoto' && membershipDetails[key] instanceof File) {
+        // Add file with correct field name expected by multer
+        formData.append('selfiePhoto', membershipDetails[key]);
+      } else if (membershipDetails[key] !== null && membershipDetails[key] !== undefined) {
+        formData.append(key, membershipDetails[key]);
+      }
     });
+
+    // Use custom request for FormData (no Content-Type header)
+    const token = this.getToken();
+    const url = `${this.baseURL}/member/details`;
+    
+    const config = {
+      method: 'POST',
+      body: formData,
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` })
+        // Don't set Content-Type - let browser set it with boundary for FormData
+      }
+    };
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        let errorMessage;
+        try {
+          const data = await response.json();
+          errorMessage = data.message || `HTTP error! status: ${response.status}`;
+        } catch {
+          errorMessage = `HTTP error! status: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please check your internet connection and try again');
+      }
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('Network error - please check your internet connection and try again');
+      }
+      throw error;
+    }
   }
 
   // Update booking details
   async updateBookingDetails(bookingDetails) {
-    return this.request('/auth/update-booking', {
+    return this.request('/booking/create', {
       method: 'POST',
-      body: JSON.stringify({ bookingDetails })
+      body: JSON.stringify(bookingDetails)
     });
   }
 
   // Complete payment
   async completePayment(paymentId, paymentStatus) {
-    return this.request('/auth/complete-payment', {
+    return this.request('/booking/payment', {
       method: 'POST',
       body: JSON.stringify({ paymentId, paymentStatus })
     });
   }
 
+  // Upload avatar
+  async uploadAvatar(avatarFile) {
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+
+    const token = this.getToken();
+    const url = `${this.baseURL}/auth/upload-avatar`;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` })
+          // Don't set Content-Type - let browser set it with boundary for FormData
+        },
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        let errorMessage;
+        try {
+          const data = await response.json();
+          errorMessage = data.message || `HTTP error! status: ${response.status}`;
+        } catch {
+          errorMessage = `HTTP error! status: ${response.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please check your internet connection and try again');
+      }
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error('Network error - please check your internet connection and try again');
+      }
+      throw error;
+    }
+  }
+
   // Health check
   async healthCheck() {
     return this.request('/health');
+  }
+
+  // Get member details
+  async getMemberDetails() {
+    return this.request('/member/details');
+  }
+
+  // Get member status
+  async getMemberStatus() {
+    return this.request('/member/status');
+  }
+
+  // Get booking details
+  async getBookingDetails() {
+    return this.request('/booking/details');
+  }
+
+  // Get booking status
+  async getBookingStatus() {
+    return this.request('/booking/status');
   }
 }
 

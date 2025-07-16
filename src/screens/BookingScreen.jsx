@@ -101,8 +101,48 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
         const hasToken = localStorage.getItem('authToken');
         
         if (hasToken) {
-          // Save booking details to database
-          const response = await apiService.updateBookingDetails(formData);
+          // Save booking details to database with calculated total amount and fee breakdown
+          const isFemale = userData?.gender === 'female';
+          const userRegistrationDate = userData?.registrationDate;
+          const lastPackageDate = userData?.lastPackageDate;
+          const seatTier = getSeatTier(formData.preferredSeat);
+          
+          // Calculate detailed fee breakdown
+          const basePrice = formData.membershipType === 'Calista Garden' 
+            ? 399 * (formData.membershipDuration.split(' ')[0] === '1' ? 1 : parseInt(formData.membershipDuration.split(' ')[0]))
+            : getPrice(formData.membershipDuration, formData.membershipType, formData.timeSlot);
+          
+          const seatTierSurcharge = applySeatTierPricing(basePrice, seatTier) - basePrice;
+          const priceWithSeat = basePrice + seatTierSurcharge;
+          
+          const totalDiscount = formData.membershipType === 'Calista Garden'
+            ? (isFemale && qualifiesForFemaleDiscount(formData.membershipDuration) ? 10 : 0)
+            : calculateTotalDiscount(formData.membershipDuration, formData.membershipType, formData.timeSlot, isFemale);
+          
+          const totalDiscountAmount = Math.round(priceWithSeat * totalDiscount / 100);
+          const registrationFee = shouldApplyRegistrationFee(userRegistrationDate, lastPackageDate) ? REGISTRATION_FEE : 0;
+          const finalAmount = priceWithSeat - totalDiscountAmount + registrationFee;
+          
+          const feeBreakdown = {
+            basePrice,
+            seatTier,
+            seatTierSurcharge,
+            discounts: {
+              femaleDiscount: isFemale && (formData.membershipType === 'Calista Garden' || qualifiesForFemaleDiscount(formData.membershipDuration)) ? (formData.membershipType === 'Calista Garden' ? 10 : 5) : 0,
+              durationDiscount: totalDiscount - (isFemale && (formData.membershipType === 'Calista Garden' || qualifiesForFemaleDiscount(formData.membershipDuration)) ? (formData.membershipType === 'Calista Garden' ? 10 : 5) : 0),
+              totalDiscountPercentage: totalDiscount,
+              totalDiscountAmount
+            },
+            registrationFee,
+            finalAmount
+          };
+          
+          const bookingData = {
+            ...formData,
+            totalAmount: calculateTotalPrice(),
+            feeBreakdown
+          };
+          const response = await apiService.updateBookingDetails(bookingData);
           
           if (response.success) {
             // Pass updated user data and payment amount to payment screen

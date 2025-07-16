@@ -9,22 +9,17 @@ export default function DashboardScreen() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Try to get user data from localStorage first (for demo)
-        const userData = localStorage.getItem('userData');
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
-          console.log('Dashboard user data:', parsedUser); // Debug log
-          console.log('Profile picture in data:', parsedUser.profilePicture);
-          console.log('All user data keys:', Object.keys(parsedUser));
-          setUser(parsedUser);
-        } else {
-          // In production, fetch from API
-          const response = await apiService.getCurrentUser();
+        // Fetch user data from API
+        const response = await apiService.getCurrentUser();
+        if (response.success) {
           setUser(response.user);
+        } else {
+          throw new Error('Failed to fetch user data');
         }
       } catch (error) {
         console.error('Error loading user data:', error);
         // If there's an error, redirect to login
+        apiService.removeToken();
         window.location.href = '/';
       } finally {
         setLoading(false);
@@ -35,7 +30,7 @@ export default function DashboardScreen() {
   }, []);
 
   // Handle file change for profile picture
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
     
     if (!file) {
@@ -57,69 +52,30 @@ export default function DashboardScreen() {
     // Clear errors
     setErrors(prev => ({ ...prev, profilePicture: '' }));
     
-    // Convert to base64 for storage
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Data = event.target.result;
+    try {
+      // Upload avatar to server
+      const response = await apiService.uploadAvatar(file);
       
-      // Check if the base64 data is too large (> 4MB when stored)
-      const sizeInBytes = base64Data.length * 0.75; // Approximate size after base64 encoding
-      const maxSizeInBytes = 4 * 1024 * 1024; // 4MB limit
-      
-      if (sizeInBytes > maxSizeInBytes) {
-        console.error('Profile picture is too large for localStorage. Please use a smaller image.');
-        alert('Profile picture is too large. Please choose an image smaller than 4MB.');
-        return;
+      if (response.success) {
+        // Update user state with new avatar URL
+        setUser(response.user);
+        console.log('Avatar uploaded successfully');
+      } else {
+        setErrors(prev => ({ ...prev, profilePicture: response.message || 'Failed to upload avatar' }));
       }
-      
-      try {
-        // Update user state
-        const updatedUser = { ...user, profilePicture: base64Data };
-        setUser(updatedUser);
-        
-        // Try to save to localStorage with error handling
-        const userDataWithoutPicture = { ...updatedUser };
-        delete userDataWithoutPicture.profilePicture; // Remove picture from main userData
-        
-        localStorage.setItem('userData', JSON.stringify(userDataWithoutPicture));
-        localStorage.setItem('registrationProfilePicture', base64Data);
-        
-        console.log('Profile picture updated successfully');
-      } catch (error) {
-        if (error.name === 'QuotaExceededError') {
-          console.error('localStorage quota exceeded. Clearing old data and retrying...');
-          
-          // Clear some old data and retry
-          localStorage.removeItem('registrationProfilePicture');
-          
-          try {
-            const userDataWithoutPicture = { ...user };
-            delete userDataWithoutPicture.profilePicture;
-            localStorage.setItem('userData', JSON.stringify(userDataWithoutPicture));
-            
-            alert('Profile picture is too large for storage. Please use a smaller image.');
-          } catch (retryError) {
-            console.error('Failed to save user data even after cleanup:', retryError);
-            alert('Storage error. Please try refreshing the page and using a smaller profile picture.');
-          }
-        } else {
-          console.error('Error saving profile picture:', error);
-          alert('Error saving profile picture. Please try again.');
-        }
-      }
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      setErrors(prev => ({ ...prev, profilePicture: error.message || 'Error uploading avatar. Please try again.' }));
+    }
   };
 
   const handleLogout = async () => {
     try {
       await apiService.logout();
-      localStorage.removeItem('userData');
       window.location.href = '/';
     } catch {
       // Force logout even if API call fails
-      localStorage.removeItem('userData');
-      localStorage.removeItem('authToken');
+      apiService.removeToken();
       window.location.href = '/';
     }
   };
@@ -140,24 +96,20 @@ export default function DashboardScreen() {
       <div className="dashboard-header">
         <div className="profile-picture-container">
           <div className="profile-picture">
-            {(() => {
-              console.log('Profile picture check:', user?.profilePicture ? 'Has image' : 'No image');
-              console.log('User full name:', user?.fullName);
-              return user?.profilePicture ? (
-                <img 
-                  src={user.profilePicture} 
-                  alt="Profile" 
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    borderRadius: '18px'
-                  }}
-                />
-              ) : (
-                user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
-              );
-            })()}
+            {user?.avatar ? (
+              <img 
+                src={`http://localhost:5000${user.avatar}`}
+                alt="Profile" 
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  borderRadius: '18px'
+                }}
+              />
+            ) : (
+              user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
+            )}
           </div>
         </div>
         <div className="header-text-section">
@@ -207,9 +159,9 @@ export default function DashboardScreen() {
             <div className="profile-upload-container">
               <div className="current-profile-display">
                 <div className="dashboard-profile-picture">
-                  {user?.profilePicture ? (
+                  {user?.avatar ? (
                     <img 
-                      src={user.profilePicture} 
+                      src={`http://localhost:5000${user.avatar}`}
                       alt="Current Profile" 
                       style={{
                         width: '100%',
@@ -242,7 +194,7 @@ export default function DashboardScreen() {
                       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                       <circle cx="12" cy="13" r="4"></circle>
                     </svg>
-                    {user?.profilePicture ? 'Change Picture' : 'Upload Profile Picture'}
+                    {user?.avatar ? 'Change Picture' : 'Upload Profile Picture'}
                   </label>
                 </div>
                 {errors.profilePicture && <span className="error-message">{errors.profilePicture}</span>}
@@ -258,20 +210,6 @@ export default function DashboardScreen() {
       </div>
       
       <div className="dashboard-footer">
-        <button onClick={() => {
-          // Get profile picture from registration page
-          const registrationData = localStorage.getItem('registrationProfilePicture');
-          if (registrationData) {
-            const updatedUser = { ...user, profilePicture: registrationData };
-            setUser(updatedUser);
-            localStorage.setItem('userData', JSON.stringify(updatedUser));
-            console.log('Profile picture updated from registration data');
-          } else {
-            console.log('No registration profile picture found');
-          }
-        }} className="logout-button" style={{marginBottom: '10px'}}>
-          Load Profile Picture
-        </button>
         <button onClick={handleLogout} className="logout-button">
           Logout
         </button>

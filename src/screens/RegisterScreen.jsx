@@ -202,17 +202,8 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     setErrors({});
 
     try {
-      console.log('Checking if email exists:', formData.email);
-      // Check if email is already registered
-      const emailCheckResponse = await apiService.checkEmailExists(formData.email);
-      
-      if (emailCheckResponse.exists) {
-        setErrors({ email: 'The email already exists' });
-        return;
-      }
-
       console.log('Sending OTP to:', formData.email);
-      // Send OTP to email
+      // Send OTP to email (this will also check if email exists)
       const response = await apiService.sendOtp(formData.email);
       console.log('OTP response:', response);
       
@@ -391,8 +382,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
             ...prev, 
             profilePictureBase64: base64Data
           }));
-          // Also store in localStorage for dashboard access
-          localStorage.setItem('registrationProfilePicture', base64Data);
+          // Profile picture will be uploaded during registration
           console.log('Profile picture saved to localStorage');
         } catch (error) {
           if (error.name === 'QuotaExceededError') {
@@ -502,21 +492,25 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
         gender: formData.gender
       };
 
+      // Add avatar file if selected
+      if (formData.profilePicture instanceof File) {
+        registrationData.avatar = formData.profilePicture;
+      }
+
       const response = await apiService.register(registrationData);
       
       if (response.success) {
-        // Store the complete user data including Dyanpitt ID and profile picture
-        const completeUserData = {
-          ...registrationData,
-          dyanpittId: response.user.dyanpittId,
-          profilePicture: formData.profilePictureBase64
-        };
-
-        // Store in localStorage for dashboard access
-        localStorage.setItem('userData', JSON.stringify(completeUserData));
+        // User data is now stored in database, no need for localStorage
+        // The avatar is already uploaded and stored in the database
 
 
         // Navigate to congratulations screen using the new navigation prop
+        const completeUserData = {
+          ...formData,
+          dyanpittId: response.user.dyanpittId,
+          userId: response.user._id
+        };
+        
         if (onNavigateToCongratulations) {
           onNavigateToCongratulations(completeUserData);
         } else {
