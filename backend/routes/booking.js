@@ -12,6 +12,7 @@ router.post('/create', authenticateToken, async (req, res) => {
   try {
     console.log('Booking create request received:', {
       userId: req.user.userId,
+      dyanpittId: req.user.dyanpittId,
       body: req.body
     });
     
@@ -41,9 +42,10 @@ router.post('/create', authenticateToken, async (req, res) => {
     }
 
     // Check if user has completed member details
-    const member = await Member.findOne({ userId: req.user.userId, isCompleted: true });
+    const member = await Member.findOne({ dyanpittId: req.user.dyanpittId, isCompleted: true });
     console.log('Member check:', {
       userId: req.user.userId,
+      dyanpittId: req.user.dyanpittId,
       memberFound: !!member,
       memberCompleted: member?.isCompleted
     });
@@ -183,7 +185,7 @@ router.post('/create', authenticateToken, async (req, res) => {
     }
 
     // Check if booking already exists
-    let booking = await Booking.findOne({ userId: req.user.userId });
+    let booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
 
     if (booking) {
       // Update existing booking
@@ -200,7 +202,7 @@ router.post('/create', authenticateToken, async (req, res) => {
     } else {
       // Create new booking
       booking = new Booking({
-        userId: req.user.userId,
+        dyanpittId: req.user.dyanpittId,
         timeSlot,
         membershipType,
         membershipDuration,
@@ -239,7 +241,7 @@ router.post('/create', authenticateToken, async (req, res) => {
 // Get booking details
 router.get('/details', authenticateToken, async (req, res) => {
   try {
-    const booking = await Booking.findOne({ userId: req.user.userId });
+    const booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
 
     if (!booking) {
       return res.status(404).json({
@@ -274,7 +276,7 @@ router.post('/payment', authenticateToken, async (req, res) => {
       });
     }
 
-    const booking = await Booking.findOne({ userId: req.user.userId });
+    const booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
 
     if (!booking) {
       return res.status(404).json({
@@ -311,7 +313,7 @@ router.post('/payment', authenticateToken, async (req, res) => {
 // Get booking status
 router.get('/status', authenticateToken, async (req, res) => {
   try {
-    const booking = await Booking.findOne({ userId: req.user.userId });
+    const booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
 
     res.json({
       success: true,
@@ -334,7 +336,7 @@ router.get('/status', authenticateToken, async (req, res) => {
 router.get('/all', authenticateToken, async (req, res) => {
   try {
     const bookings = await Booking.find()
-      .populate('userId', 'fullName email dyanpittId phoneNumber')
+      .populate('dyanpittId', 'fullName email dyanpittId phoneNumber')
       .sort({ createdAt: -1 });
 
     res.json({

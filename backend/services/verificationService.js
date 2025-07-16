@@ -40,31 +40,43 @@ class VerificationService {
    */
   verifyOTP(email, otp) {
     const normalizedEmail = email.toLowerCase().trim();
+    console.log('VerifyOTP Debug - Looking for email:', normalizedEmail);
+    console.log('VerifyOTP Debug - Current storage:', Object.fromEntries(this.otpStorage));
+    
     const storedOTP = this.otpStorage.get(normalizedEmail);
+    console.log('VerifyOTP Debug - Found stored OTP:', storedOTP);
 
     if (!storedOTP) {
+      console.log('VerifyOTP Debug - No OTP found for email');
       return false;
     }
 
     // Check if expired
+    console.log('VerifyOTP Debug - Current time:', Date.now(), 'Expires at:', storedOTP.expiresAt);
     if (Date.now() > storedOTP.expiresAt) {
+      console.log('VerifyOTP Debug - OTP expired, deleting');
       this.otpStorage.delete(normalizedEmail);
       return false;
     }
 
     // Increment attempts (prevent brute force)
+    console.log('VerifyOTP Debug - Current attempts:', storedOTP.attempts);
     storedOTP.attempts++;
     if (storedOTP.attempts > 5) {
+      console.log('VerifyOTP Debug - Too many attempts, deleting');
       this.otpStorage.delete(normalizedEmail);
       return false;
     }
 
     // Verify OTP
+    console.log('VerifyOTP Debug - Comparing:', { provided: otp, stored: storedOTP.code });
     if (storedOTP.code === otp) {
-      this.otpStorage.delete(normalizedEmail); // Clear after successful verification
+      console.log('VerifyOTP Debug - OTP match! NOT deleting yet - will delete after password reset');
+      // Don't delete here - let the reset-password route delete it after successful password change
       return true;
     }
 
+    console.log('VerifyOTP Debug - OTP mismatch');
     return false;
   }
 
@@ -194,6 +206,23 @@ class VerificationService {
   verifyPasswordResetToken(token, email, userId) {
     const decoded = tokenUtils.verifyPasswordResetToken(token, email, userId);
     return !!decoded;
+  }
+
+  /**
+   * Debug method to see stored OTPs
+   * @returns {object} Current OTP storage
+   */
+  getStoredOTPs() {
+    const otps = {};
+    for (const [email, data] of this.otpStorage.entries()) {
+      otps[email] = {
+        code: data.code,
+        expiresAt: new Date(data.expiresAt).toISOString(),
+        attempts: data.attempts,
+        isExpired: Date.now() > data.expiresAt
+      };
+    }
+    return otps;
   }
 }
 

@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 
 const memberSchema = new mongoose.Schema({
-  // Reference to User
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
+  // Reference to User using Dyanpitt ID
+  dyanpittId: {
+    type: String,
     ref: 'User',
     required: true,
-    unique: true
+    unique: true,
+    match: /^@DA\d{9}$/
   },
   
   // Membership Details

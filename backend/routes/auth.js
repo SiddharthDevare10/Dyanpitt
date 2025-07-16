@@ -448,7 +448,10 @@ router.post('/forgot-password', [
     }
 
     // Generate and send OTP for password reset using verification service
+    console.log('Sending password reset OTP to:', email);
     const emailResult = await verificationService.sendPasswordResetOTP(email, user.fullName);
+    console.log('Email result:', emailResult);
+    console.log('OTPs after sending:', verificationService.getStoredOTPs());
     
     if (!emailResult.success) {
       return res.status(500).json({
@@ -518,9 +521,22 @@ router.post('/reset-password', [
   body('newPassword').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/)
 ], async (req, res) => {
   try {
+    console.log('Reset password request received:', req.body);
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('Reset password validation errors:', errors.array());
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors.array()
+      });
+    }
+    
     const { email, otp, newPassword } = req.body;
     
     const user = await User.findOne({ email });
+    console.log('User found:', !!user);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -528,8 +544,15 @@ router.post('/reset-password', [
       });
     }
 
-    // Verify OTP one more time using verification service
-    if (!verificationService.verifyOTP(email, otp)) {
+    // Note: OTP should have already been verified in verify-reset-otp endpoint
+    // We'll verify it one more time for security, but won't delete it if it fails
+    console.log('Attempting to verify OTP:', { email, otp });
+    const otpValid = verificationService.verifyOTP(email, otp);
+    console.log('OTP verification result:', otpValid);
+    
+    // Debug: Check what OTPs are stored
+    console.log('Current stored OTPs:', verificationService.getStoredOTPs ? verificationService.getStoredOTPs() : 'No debug method available');
+    if (!otpValid) {
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired verification code'
@@ -540,7 +563,8 @@ router.post('/reset-password', [
     user.password = newPassword; // Will be hashed by pre-save middleware
     await user.save();
     
-    // Clear the OTP from verification service
+    // Clear the OTP from verification service after successful password reset
+    console.log('Password reset successful, clearing OTP');
     verificationService.clearOTP(email);
 
     res.json({

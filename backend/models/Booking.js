@@ -1,11 +1,12 @@
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
-  // Reference to User
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
+  // Reference to User using Dyanpitt ID
+  dyanpittId: {
+    type: String,
     ref: 'User',
-    required: true
+    required: true,
+    match: /^@DA\d{9}$/
   },
   
   // Time slot selection
@@ -148,6 +149,7 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Indexes for faster queries
+bookingSchema.index({ dyanpittId: 1 });
 bookingSchema.index({ membershipStartDate: 1 });
 bookingSchema.index({ membershipEndDate: 1 });
 bookingSchema.index({ paymentStatus: 1 });

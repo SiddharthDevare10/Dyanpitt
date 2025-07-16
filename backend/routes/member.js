@@ -85,7 +85,7 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
     const selfiePhotoUrl = `/uploads/selfies/${req.file.filename}`;
 
     // Check if member details already exist
-    let member = await Member.findOne({ userId: req.user.userId });
+    let member = await Member.findOne({ dyanpittId: req.user.dyanpittId });
 
     if (member) {
       // Update existing member details
@@ -104,7 +104,7 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
     } else {
       // Create new member details
       member = new Member({
-        userId: req.user.userId,
+        dyanpittId: req.user.dyanpittId,
         visitedBefore,
         fatherName,
         parentContactNumber,
@@ -145,7 +145,7 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
 // Get member details
 router.get('/details', authenticateToken, async (req, res) => {
   try {
-    const member = await Member.findOne({ userId: req.user.userId });
+    const member = await Member.findOne({ dyanpittId: req.user.dyanpittId });
 
     if (!member) {
       return res.status(404).json({
@@ -171,7 +171,7 @@ router.get('/details', authenticateToken, async (req, res) => {
 // Check if member details are completed
 router.get('/status', authenticateToken, async (req, res) => {
   try {
-    const member = await Member.findOne({ userId: req.user.userId });
+    const member = await Member.findOne({ dyanpittId: req.user.dyanpittId });
 
     res.json({
       success: true,
