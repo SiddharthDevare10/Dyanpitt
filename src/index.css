@@ -1266,12 +1266,13 @@ body {
   overflow-y: auto;
 }
 
-/* Marathi text styles */
-.marathi-text {
-  font-size: 14px;
-  color: #666;
+/* Tour page specific Marathi text styles */
+.tour-marathi-text {
+  color: #222222;
+  font-size: 13px;
   margin-bottom: 8px;
-  font-weight: normal;
+  font-style: italic;
+  font-weight: 400;;
 }
 
 /* Radio button styles */
@@ -2098,8 +2099,8 @@ select.form-input option:checked {
 }
 
 .marathi-text {
-  font-size: 13px;
   color: #222222;
+  font-size: 13px;
   margin-bottom: 8px;
   font-style: italic;
 }

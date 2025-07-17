@@ -42,7 +42,11 @@ router.post('/create', authenticateToken, async (req, res) => {
     }
 
     // Check if user has completed member details
-    const member = await Member.findOne({ dyanpittId: req.user.dyanpittId, isCompleted: true });
+    const member = await Member.findOne({ 
+      dyanpittId: req.user.dyanpittId, 
+      email: req.user.email,
+      isCompleted: true 
+    });
     console.log('Member check:', {
       userId: req.user.userId,
       dyanpittId: req.user.dyanpittId,
@@ -185,10 +189,14 @@ router.post('/create', authenticateToken, async (req, res) => {
     }
 
     // Check if booking already exists
-    let booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
+    let booking = await Booking.findOne({ 
+      dyanpittId: req.user.dyanpittId,
+      email: req.user.email 
+    });
 
     if (booking) {
       // Update existing booking
+      booking.email = req.user.email;
       booking.timeSlot = timeSlot;
       booking.membershipType = membershipType;
       booking.membershipDuration = membershipDuration;
@@ -203,6 +211,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       // Create new booking
       booking = new Booking({
         dyanpittId: req.user.dyanpittId,
+        email: req.user.email,
         timeSlot,
         membershipType,
         membershipDuration,
@@ -241,7 +250,10 @@ router.post('/create', authenticateToken, async (req, res) => {
 // Get booking details
 router.get('/details', authenticateToken, async (req, res) => {
   try {
-    const booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
+    const booking = await Booking.findOne({ 
+      dyanpittId: req.user.dyanpittId,
+      email: req.user.email 
+    });
 
     if (!booking) {
       return res.status(404).json({
@@ -276,7 +288,10 @@ router.post('/payment', authenticateToken, async (req, res) => {
       });
     }
 
-    const booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
+    const booking = await Booking.findOne({ 
+      dyanpittId: req.user.dyanpittId,
+      email: req.user.email 
+    });
 
     if (!booking) {
       return res.status(404).json({
@@ -313,7 +328,10 @@ router.post('/payment', authenticateToken, async (req, res) => {
 // Get booking status
 router.get('/status', authenticateToken, async (req, res) => {
   try {
-    const booking = await Booking.findOne({ dyanpittId: req.user.dyanpittId });
+    const booking = await Booking.findOne({ 
+      dyanpittId: req.user.dyanpittId,
+      email: req.user.email 
+    });
 
     res.json({
       success: true,

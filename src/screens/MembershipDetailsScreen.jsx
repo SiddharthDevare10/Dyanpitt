@@ -17,14 +17,14 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
     jobTitle: userData?.membershipDetails?.jobTitle || '',
     examPreparation: userData?.membershipDetails?.examPreparation || '',
     examinationDate: userData?.membershipDetails?.examinationDate || '',
-    studyRoomDuration: userData?.membershipDetails?.studyRoomDuration || '',
     selfiePhoto: userData?.membershipDetails?.selfiePhoto || null
   });
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [showTourIndicator, setShowTourIndicator] = useState(false);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const { name, value, type, files } = e.target;
     
     if (type === 'file') {
@@ -46,6 +46,11 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
         
         return newData;
       });
+
+      // If user selects "yes" for visited before, try to fetch and populate tour data
+      if (name === 'visitedBefore' && value === 'yes' && userData?.email) {
+        await fetchAndPopulateTourData(userData.email);
+      }
     }
     
     // Clear error when user makes a selection
@@ -62,6 +67,63 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
         ...prev,
         jobTitle: ''
       }));
+    }
+  };
+
+  const fetchAndPopulateTourData = async (email) => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch tour requests for this email
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests/${encodeURIComponent(email)}`);
+      
+      if (!response.ok) {
+        console.log('No tour data found for this email');
+        return;
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.length > 0) {
+        // Get the most recent tour request
+        const latestTour = result.data[0];
+        
+        // Pre-populate common fields
+        setFormData(prev => ({
+          ...prev,
+          educationalBackground: latestTour.educationalBackground || prev.educationalBackground,
+          currentOccupation: latestTour.currentOccupation || prev.currentOccupation,
+          jobTitle: latestTour.jobTitle || prev.jobTitle,
+          examPreparation: latestTour.examPreparation || prev.examPreparation,
+          examinationDate: latestTour.examinationDate ? latestTour.examinationDate.split('T')[0] : prev.examinationDate,
+        }));
+
+        // Set indicator for tour data found
+        setShowTourIndicator(true);
+
+        // Hide indicator after 5 seconds
+        setTimeout(() => {
+          setShowTourIndicator(false);
+        }, 5000);
+
+        // Show success message in console
+        console.log('✅ Pre-populated membership form with tour data:', {
+          educationalBackground: latestTour.educationalBackground,
+          currentOccupation: latestTour.currentOccupation,
+          jobTitle: latestTour.jobTitle,
+          examPreparation: latestTour.examPreparation,
+          examinationDate: latestTour.examinationDate
+        });
+        
+      } else {
+        console.log('No tour requests found for this email');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching tour data:', error);
+      // Don't show error to user, just log it
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -115,9 +177,6 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
       }
     }
     
-    if (!formData.studyRoomDuration) {
-      newErrors.studyRoomDuration = 'Please select study room duration';
-    }
     
     if (!formData.selfiePhoto) {
       newErrors.selfiePhoto = 'Please upload a selfie photo';
@@ -237,6 +296,42 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
               No
             </label>
           </div>
+          
+          {/* Tour Data Indicator */}
+          <AnimatePresence>
+            {showTourIndicator && (
+              <motion.div 
+                className="tour-data-indicator"
+                initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                transition={{ duration: 0.4 }}
+                style={{
+                  background: 'white',
+                  color: '#065f46',
+                  border: '2px solid #10b981',
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '400',
+                  fontStyle: 'italic',
+                  marginTop: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  textAlign: 'justify',
+                  lineHeight: '1.5'
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 12l2 2 4-4"/>
+                  <circle cx="12" cy="12" r="9"/>
+                </svg>
+                Great! We found you visited Dyanpitt for a tour and pre-populated some fields from the Tour Details.
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {errors.visitedBefore && (
               <motion.span 
@@ -593,53 +688,6 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
           </AnimatePresence>
         </motion.div>
 
-        {/* Study Room Duration */}
-        <motion.div 
-          className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 1.3 }}
-        >
-          <label className="membership-input-label">
-            How long do you intend to use the study room?
-          </label>
-          <div className="marathi-text">
-            किती महिन्यांसाठी अभ्यासिकेला यायचे आहे?
-          </div>
-          <CustomDropdown
-            name="studyRoomDuration"
-            value={formData.studyRoomDuration}
-            onChange={handleInputChange}
-            options={[
-              { value: "Less than a month", label: "Less than a month" },
-              { value: "1 Month", label: "1 Month" },
-              { value: "2 Month", label: "2 Month" },
-              { value: "3 Month", label: "3 Month" },
-              { value: "4 Month", label: "4 Month" },
-              { value: "5 Month", label: "5 Month" },
-              { value: "6 Month", label: "6 Month" },
-              { value: "More Than 6 Months", label: "More Than 6 Months" },
-              { value: "1 Year", label: "1 Year" },
-              { value: "More Than 1 Year", label: "More Than 1 Year" }
-            ]}
-            placeholder="Select duration"
-            className="form-input"
-            error={errors.studyRoomDuration}
-          />
-          <AnimatePresence>
-            {errors.studyRoomDuration && (
-              <motion.span 
-                className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                {errors.studyRoomDuration}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.div>
 
         {/* Selfie Photo Upload */}
         <motion.div 

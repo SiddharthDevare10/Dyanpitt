@@ -67,6 +67,10 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
       newErrors.phone = 'Phone number is required';
     }
     
+    if (!formData.gender) {
+      newErrors.gender = 'Gender is required';
+    }
+    
     if (!formData.tourDate) {
       newErrors.tourDate = 'Tour date is required';
     } else {
@@ -83,6 +87,50 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
     
     if (!formData.tourTime) {
       newErrors.tourTime = 'Tour time is required';
+    }
+    
+    if (!formData.educationalBackground) {
+      newErrors.educationalBackground = 'Educational background is required';
+    }
+    
+    if (!formData.currentOccupation) {
+      newErrors.currentOccupation = 'Current occupation is required';
+    }
+    
+    // Job title is only required if not unemployed or student
+    if (formData.currentOccupation && 
+        formData.currentOccupation !== 'Unemployed' && 
+        formData.currentOccupation !== 'Student' && 
+        !formData.jobTitle.trim()) {
+      newErrors.jobTitle = 'Job title is required';
+    }
+    
+    if (!formData.examPreparation) {
+      newErrors.examPreparation = 'Exam preparation is required';
+    }
+    
+    if (!formData.examinationDate) {
+      newErrors.examinationDate = 'Examination date is required';
+    }
+    
+    if (!formData.studyRoomDuration) {
+      newErrors.studyRoomDuration = 'Study room duration is required';
+    }
+    
+    if (!formData.howDidYouKnow) {
+      newErrors.howDidYouKnow = 'This field is required';
+    }
+    
+    if (!formData.previousStudyRoomExperience.trim()) {
+      newErrors.previousStudyRoomExperience = 'Previous study room experience is required';
+    }
+    
+    if (!formData.studyRoomComparison.trim()) {
+      newErrors.studyRoomComparison = 'Study room comparison is required';
+    }
+    
+    if (!formData.startDate) {
+      newErrors.startDate = 'Start date is required';
     }
 
     setErrors(newErrors);
@@ -110,16 +158,60 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
     setIsLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Prepare data for API
+      const tourRequestData = {
+        email: formData.email,
+        fullName: formData.fullName,
+        phoneNumber: formData.phone,
+        gender: formData.gender,
+        tourDate: formData.tourDate,
+        tourTime: formData.tourTime,
+        educationalBackground: formData.educationalBackground,
+        currentOccupation: formData.currentOccupation,
+        jobTitle: formData.jobTitle,
+        examPreparation: formData.examPreparation,
+        examinationDate: formData.examinationDate,
+        studyRoomDuration: formData.studyRoomDuration,
+        howDidYouKnow: formData.howDidYouKnow,
+        previousStudyRoomExperience: formData.previousStudyRoomExperience,
+        studyRoomComparison: formData.studyRoomComparison,
+        startDate: formData.startDate
+      };
+
+      // Submit to backend API
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tourRequestData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to submit tour request');
+      }
+
+      console.log('Tour request submitted successfully:', result);
       
-      console.log('Tour request submitted:', formData);
+      // Show success message
+      alert('Tour request submitted successfully! We will contact you soon to confirm your tour.');
       
       if (onSubmit) {
-        onSubmit(formData);
+        onSubmit(result.data);
       }
     } catch (error) {
       console.error('Error submitting tour request:', error);
+      
+      // Show user-friendly error message
+      if (error.message.includes('already have a pending')) {
+        alert('You already have a pending tour request. Please wait for confirmation or contact us.');
+      } else if (error.message.includes('already have a tour request for this date')) {
+        alert('You already have a tour request for this date. Please choose a different date.');
+      } else {
+        alert('Failed to submit tour request. Please try again or contact support.');
+      }
     } finally {
       setIsLoading(false);
       setShowModal(false);
@@ -151,7 +243,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             What is your full name?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>आपले पूर्ण नाव येथे टाका</div>
+            <div className="tour-marathi-text">आपले पूर्ण नाव येथे टाका</div>
           </label>
           <input
             type="text"
@@ -169,7 +261,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             Enter your email address
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>आपला ईमेल पत्ता येथे टाका</div>
+            <div className="tour-marathi-text">आपला ईमेल पत्ता येथे टाका</div>
           </label>
           <input
             type="email"
@@ -187,7 +279,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             Enter your Phone Number
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>आपला फोन नंबर टाका</div>
+            <div className="tour-marathi-text">आपला फोन नंबर टाका</div>
           </label>
           <input
             type="tel"
@@ -205,7 +297,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             Please select your Gender
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>कृपया आपले लिंग निवडा</div>
+            <div className="tour-marathi-text">कृपया आपले लिंग निवडा</div>
           </label>
           <CustomDropdown
             name="gender"
@@ -229,7 +321,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             Preferred Tour Date
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>टूरची प्राधान्य तारीख</div>
+            <div className="tour-marathi-text">टूरची प्राधान्य तारीख</div>
           </label>
           <DatePicker
             name="tourDate"
@@ -248,7 +340,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             Preferred Tour Time
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>टूरची प्राधान्य वेळ</div>
+            <div className="tour-marathi-text">टूरची प्राधान्य वेळ</div>
           </label>
           <CustomDropdown
             name="tourTime"
@@ -280,7 +372,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             What is your educational background?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>तुमची शैक्षणिक पात्रता निवडा</div>
+            <div className="tour-marathi-text">तुमची शैक्षणिक पात्रता निवडा</div>
           </label>
           <CustomDropdown
             name="educationalBackground"
@@ -306,7 +398,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             What is your current occupation?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>तुमचा सध्याचा व्यवसाय निवडा</div>
+            <div className="tour-marathi-text">तुमचा सध्याचा व्यवसाय निवडा</div>
           </label>
           <CustomDropdown
             name="currentOccupation"
@@ -335,7 +427,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
             {(formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student') && 
               <span className="optional-text"> (Not applicable)</span>
             }
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>तुमचा हुद्दा येथे लिहा</div>
+            <div className="tour-marathi-text">तुमचा हुद्दा येथे लिहा</div>
           </label>
           <input
             type="text"
@@ -359,7 +451,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             What specific exam are you preparing for by using the study room facilities?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>कोणत्या परीक्षेच्या तयारीसाठी अभ्यासिकेचा वापर करणार आहात?</div>
+            <div className="tour-marathi-text">कोणत्या परीक्षेच्या तयारीसाठी अभ्यासिकेचा वापर करणार आहात?</div>
           </label>
           <CustomDropdown
             name="examPreparation"
@@ -403,7 +495,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             What is the tentative date of your examination?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>तुमच्या परीक्षेची अंदाजे तारीख येथे लिहा</div>
+            <div className="tour-marathi-text">तुमच्या परीक्षेची अंदाजे तारीख येथे लिहा</div>
           </label>
           <DatePicker
             name="examinationDate"
@@ -421,7 +513,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             How long do you intend to use the study room? Is it a short-term or long-term commitment?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>किती महिन्यांसाठी अभ्यासिकेला यायचे आहे?</div>
+            <div className="tour-marathi-text">किती महिन्यांसाठी अभ्यासिकेला यायचे आहे?</div>
           </label>
           <CustomDropdown
             name="studyRoomDuration"
@@ -451,7 +543,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             How did you come to know about Dnyanpeeth Abhyasika? *
-            <div style={{ color: '#000000', fontSize: '14px', fontWeight: '400' }}>ज्ञानपीठ अभ्यासिकेबाबत आपणास माहिती कशी मिळाली?</div>
+            <div className="tour-marathi-text">ज्ञानपीठ अभ्यासिकेबाबत आपणास माहिती कशी मिळाली?</div>
           </label>
           <CustomDropdown
             name="howDidYouKnow"
@@ -480,7 +572,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             Have you ever studied at a study room before? If yes, please mention the name and location of the study room.
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>तुम्ही यापूर्वी कधी स्टडी रूममध्येे अभ्यास केला आहे का? जर होय, तर कृपया स्टडी रूमचे नाव आणि ठिकाण नमूद करा.</div>
+            <div className="tour-marathi-text">तुम्ही यापूर्वी कधी स्टडी रूममध्येे अभ्यास केला आहे का? जर होय, तर कृपया स्टडी रूमचे नाव आणि ठिकाण नमूद करा.</div>
           </label>
           <input
             type="text"
@@ -498,7 +590,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             Did you compare study room options before choosing this one? If yes, what were the deciding factors?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>ज्ञानपीठ अभ्यासिका निवडण्यापूर्वी इतर स्टडी रूम सोबत तुलना केली आहे का? होय असल्यास, ज्ञानपीठ अभ्यासिका निवडण्याचे मुख्य कारण?</div>
+            <div className="tour-marathi-text">ज्ञानपीठ अभ्यासिका निवडण्यापूर्वी इतर स्टडी रूम सोबत तुलना केली आहे का? होय असल्यास, ज्ञानपीठ अभ्यासिका निवडण्याचे मुख्य कारण काय आहे?</div>
           </label>
           <input
             type="text"
@@ -516,7 +608,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         <div className="input-group">
           <label className="input-label tour-input-label">
             When do you plan to start using the study room facilities?
-            <div style={{ color: '#000000', fontSize: '13px', fontWeight: '400' }}>किती तारखेपासून अभ्यासिकेला यायचे आहे?</div>
+            <div className="tour-marathi-text">किती तारखेपासून अभ्यासिकेला यायचे आहे?</div>
           </label>
           <DatePicker
             name="startDate"

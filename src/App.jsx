@@ -158,7 +158,16 @@ export default function App() {
           window.history.replaceState({}, '', '/');
           setCurrentScreen('login');
         }
+      } else if (path === '/login') {
+        // Handle explicit login path
+        setCurrentScreen('login');
+      } else if (path === '/') {
+        // Handle root path - show landing page for new users
+        setCurrentScreen('landing');
       } else {
+        // Handle any unknown routes - redirect to landing
+        console.log('Unknown route:', path, '- redirecting to landing');
+        window.history.replaceState({}, '', '/');
         setCurrentScreen('landing');
       }
     };

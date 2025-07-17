@@ -32,12 +32,48 @@ console.log('🌐 FRONTEND_URL:', process.env.FRONTEND_URL);
 console.log('🏗️ NODE_ENV:', process.env.NODE_ENV);
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('🚫 CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers'
+  ],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
+
+// Add debugging middleware
+app.use((req, res, next) => {
+  console.log(`📨 ${req.method} ${req.url} - Origin: ${req.get('Origin') || 'none'}`);
+  next();
+});
+
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  console.log('🔄 Preflight request for:', req.url);
+  res.header('Access-Control-Allow-Origin', req.get('Origin') || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -73,6 +109,7 @@ connectDB();
 app.use('/api/auth', authRoutes);
 app.use('/api/member', require('./routes/member'));
 app.use('/api/booking', require('./routes/booking'));
+app.use('/api/tour', require('./routes/tour'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
@@ -99,6 +136,12 @@ app.get('/api', (req, res) => {
         forgotPassword: 'POST /api/auth/forgot-password',
         me: 'GET /api/auth/me (requires auth)',
         logout: 'POST /api/auth/logout (requires auth)'
+      },
+      tour: {
+        request: 'POST /api/tour/request',
+        getByEmail: 'GET /api/tour/requests/:email',
+        getAll: 'GET /api/tour/requests',
+        updateStatus: 'PUT /api/tour/requests/:id/status'
       }
     },
     note: 'Most endpoints require POST requests with JSON data'
@@ -129,7 +172,9 @@ app.use('*', (req, res) => {
       'POST /api/auth/login',
       'GET /api/auth/me',
       'POST /api/auth/send-otp',
-      'POST /api/auth/verify-otp'
+      'POST /api/auth/verify-otp',
+      'POST /api/tour/request',
+      'GET /api/tour/requests/:email'
     ]
   });
 });

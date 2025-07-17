@@ -45,6 +45,15 @@ const upload = multer({
 // Create or update member details
 router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (req, res) => {
   try {
+    console.log('Member details request received');
+    console.log('User:', { 
+      userId: req.user.userId, 
+      dyanpittId: req.user.dyanpittId, 
+      email: req.user.email 
+    });
+    console.log('Request body:', req.body);
+    console.log('File uploaded:', req.file ? 'Yes' : 'No');
+    
     const {
       visitedBefore,
       fatherName,
@@ -54,19 +63,19 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
       currentAddress,
       jobTitle,
       examPreparation,
-      examinationDate,
-      studyRoomDuration
+      examinationDate
     } = req.body;
 
     // Validate required fields
     const requiredFields = [
       'visitedBefore', 'fatherName', 'parentContactNumber', 
       'educationalBackground', 'currentOccupation', 'currentAddress',
-      'examPreparation', 'examinationDate', 'studyRoomDuration'
+      'examPreparation', 'examinationDate'
     ];
 
     for (const field of requiredFields) {
       if (!req.body[field]) {
+        console.log('Missing required field:', field);
         return res.status(400).json({
           success: false,
           message: `${field} is required`
@@ -76,6 +85,7 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
 
     // Check if selfie photo is uploaded
     if (!req.file) {
+      console.log('No selfie photo uploaded');
       return res.status(400).json({
         success: false,
         message: 'Selfie photo is required'
@@ -85,10 +95,16 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
     const selfiePhotoUrl = `/uploads/selfies/${req.file.filename}`;
 
     // Check if member details already exist
-    let member = await Member.findOne({ dyanpittId: req.user.dyanpittId });
+    let member = await Member.findOne({ 
+      dyanpittId: req.user.dyanpittId,
+      email: req.user.email 
+    });
+
+    console.log('Existing member found:', member ? 'Yes' : 'No');
 
     if (member) {
       // Update existing member details
+      member.email = req.user.email;
       member.visitedBefore = visitedBefore;
       member.fatherName = fatherName;
       member.parentContactNumber = parentContactNumber;
@@ -98,13 +114,13 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
       member.jobTitle = jobTitle || '';
       member.examPreparation = examPreparation;
       member.examinationDate = new Date(examinationDate);
-      member.studyRoomDuration = studyRoomDuration;
       member.selfiePhotoUrl = selfiePhotoUrl;
       member.isCompleted = true;
     } else {
       // Create new member details
       member = new Member({
         dyanpittId: req.user.dyanpittId,
+        email: req.user.email,
         visitedBefore,
         fatherName,
         parentContactNumber,
@@ -114,13 +130,14 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
         jobTitle: jobTitle || '',
         examPreparation,
         examinationDate: new Date(examinationDate),
-        studyRoomDuration,
         selfiePhotoUrl,
         isCompleted: true
       });
     }
 
+    console.log('Saving member details...');
     await member.save();
+    console.log('Member details saved successfully');
 
     // Update user's membership completion status
     await User.findByIdAndUpdate(req.user.userId, {
@@ -135,9 +152,15 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
 
   } catch (error) {
     console.error('Save member details error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 });
@@ -145,7 +168,10 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
 // Get member details
 router.get('/details', authenticateToken, async (req, res) => {
   try {
-    const member = await Member.findOne({ dyanpittId: req.user.dyanpittId });
+    const member = await Member.findOne({ 
+      dyanpittId: req.user.dyanpittId,
+      email: req.user.email 
+    });
 
     if (!member) {
       return res.status(404).json({
@@ -171,7 +197,10 @@ router.get('/details', authenticateToken, async (req, res) => {
 // Check if member details are completed
 router.get('/status', authenticateToken, async (req, res) => {
   try {
-    const member = await Member.findOne({ dyanpittId: req.user.dyanpittId });
+    const member = await Member.findOne({ 
+      dyanpittId: req.user.dyanpittId,
+      email: req.user.email 
+    });
 
     res.json({
       success: true,

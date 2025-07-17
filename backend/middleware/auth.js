@@ -24,9 +24,17 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
+    console.log('Auth middleware - User from DB:', {
+      id: user._id,
+      email: user.email,
+      dyanpittId: user.dyanpittId,
+      hasEmail: !!user.email
+    });
+
     req.user = { 
       userId: user._id, 
       dyanpittId: user.dyanpittId,
+      email: user.email,
       ...decoded 
     };
     next();

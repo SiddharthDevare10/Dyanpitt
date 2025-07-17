@@ -1,13 +1,20 @@
 const mongoose = require('mongoose');
 
 const memberSchema = new mongoose.Schema({
-  // Reference to User using Dyanpitt ID
+  // Reference to User using Dyanpitt ID and Email
   dyanpittId: {
     type: String,
     ref: 'User',
     required: true,
-    unique: true,
     match: /^@DA\d{9}$/
+  },
+  email: {
+    type: String,
+    ref: 'User',
+    required: true,
+    lowercase: true,
+    trim: true,
+    match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   },
   
   // Membership Details
@@ -54,11 +61,6 @@ const memberSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  studyRoomDuration: {
-    type: String,
-    required: true,
-    enum: ['Less than a month', '1 Month', '2 Month', '3 Month', '4 Month', '5 Month', '6 Month', 'More Than 6 Months', '1 Year', 'More Than 1 Year']
-  },
   selfiePhotoUrl: {
     type: String,
     required: true
@@ -73,6 +75,9 @@ const memberSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries (userId already has unique constraint)
+// Indexes for faster queries
+memberSchema.index({ dyanpittId: 1 });
+memberSchema.index({ email: 1 });
+memberSchema.index({ dyanpittId: 1, email: 1 }, { unique: true });
 
 module.exports = mongoose.model('Member', memberSchema);
