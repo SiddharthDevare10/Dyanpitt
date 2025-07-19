@@ -1009,7 +1009,9 @@ body {
 }
 
 .month-picker {
-  max-height: 200px;
+  max-height: 250px;
+  /* Smooth scrolling within dropdown */
+  scroll-behavior: smooth;
 }
 
 .year-picker {
@@ -1442,6 +1444,8 @@ select.form-input option:checked {
 .custom-dropdown-wrapper {
   position: relative;
   width: 100%;
+  /* Ensure dropdown pushes content down smoothly */
+  transition: all 0.2s ease-out;
 }
 
 .custom-dropdown {
@@ -1509,16 +1513,19 @@ select.form-input option:checked {
   border-bottom-right-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   animation: slideDown 0.2s ease-out;
+  /* Use relative positioning to push content down instead of overlapping */
 }
 
 @keyframes slideDown {
   from {
     opacity: 0;
     transform: translateY(-10px);
+    max-height: 0;
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    max-height: 500px;
   }
 }
 
@@ -1530,6 +1537,8 @@ select.form-input option:checked {
   cursor: pointer;
   transition: all 0.2s ease;
   border-bottom: 1px solid #f3f4f6;
+  /* Ensure text is readable and properly spaced */
+  line-height: 1.4;
 }
 
 .custom-dropdown-option:last-child {

@@ -3,6 +3,7 @@ const passport = require('passport');
 const session = require('express-session');
 const cors = require('cors');
 const path = require('path');
+const cleanupService = require('./services/cleanupService');
 require('dotenv').config();
 
 // Import database connection
@@ -105,6 +106,9 @@ app.use(passport.session());
 // Connect to MongoDB
 connectDB();
 
+// Start cleanup service for temporary users (runs every 1 minute)
+cleanupService.start(1);
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/member', require('./routes/member'));
@@ -180,7 +184,7 @@ app.use('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
@@ -188,4 +192,24 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`   Frontend (dev):     http://10.178.165.20:5173`);
   console.log(`   Frontend (preview): http://10.178.165.20:4173`);
   console.log(`   Backend:            http://10.178.165.20:${PORT}/api`);
+  console.log(`🧹 Cleanup service started - temporary users will be cleaned up every 1 minute`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  cleanupService.stop();
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  cleanupService.stop();
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
 });

@@ -56,6 +56,12 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   
+  // Cleanup timestamp for temporary users
+  cleanupAt: {
+    type: Date,
+    default: null
+  },
+  
   // User Avatar
   avatar: {
     type: String,
@@ -80,14 +86,6 @@ const userSchema = new mongoose.Schema({
   registrationNumber: {
     type: Number,
     required: true
-  },
-  
-  // Pending email during registration process
-  pendingEmail: {
-    type: String,
-    default: null,
-    lowercase: true,
-    trim: true
   },
   
   // Membership Details
@@ -232,6 +230,9 @@ const userSchema = new mongoose.Schema({
 // Index for faster queries (removed duplicate indexes for email, dyanpittId, phoneNumber as they're already unique)
 userSchema.index({ registrationMonth: 1, registrationNumber: 1 });
 
+// Index for cleanup of temporary users - TTL index for automatic cleanup
+userSchema.index({ cleanupAt: 1 }, { expireAfterSeconds: 0 });
+
 // Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
@@ -328,6 +329,46 @@ userSchema.methods.getPublicProfile = function() {
     membershipCompleted: this.membershipCompleted,
     bookingCompleted: this.bookingCompleted
   };
+};
+
+// Schedule cleanup for temporary user (1 minute after successful registration)
+userSchema.methods.scheduleCleanup = function() {
+  const cleanupTime = new Date(Date.now() + 1 * 60 * 1000); // 1 minute from now
+  this.cleanupAt = cleanupTime;
+  return this.save();
+};
+
+// Cancel cleanup (called when user completes registration)
+userSchema.methods.cancelCleanup = function() {
+  this.cleanupAt = null;
+  return this.save();
+};
+
+// Static method to manually cleanup expired temporary users
+userSchema.statics.cleanupExpiredTempUsers = async function() {
+  try {
+    const result = await this.deleteMany({
+      $or: [
+        // Users with temp emails that haven't completed registration
+        { 
+          email: { $regex: /^temp_.*@temp\.local$/ },
+          isEmailVerified: false
+        },
+        // Users with pending emails that are older than 1 minute and not verified
+        {
+          pendingEmail: { $exists: true, $ne: null },
+          isEmailVerified: false,
+          createdAt: { $lt: new Date(Date.now() - 1 * 60 * 1000) }
+        }
+      ]
+    });
+    
+    console.log(`Cleaned up ${result.deletedCount} expired temporary users`);
+    return result.deletedCount;
+  } catch (error) {
+    console.error('Error cleaning up temporary users:', error);
+    return 0;
+  }
 };
 
 module.exports = mongoose.model('User', userSchema);

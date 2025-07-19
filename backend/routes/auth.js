@@ -8,6 +8,7 @@ const { authenticateToken: auth } = require('../middleware/auth');
 const emailService = require('../services/emailService');
 const verificationService = require('../services/verificationService');
 const { uploadSingle } = require('../middleware/upload');
+const cleanupService = require('../services/cleanupService');
 
 const router = express.Router();
 
@@ -107,6 +108,9 @@ router.post('/send-otp', [
 
     // Save temp user first
     await tempUser.save();
+
+    // Schedule cleanup for this temporary user (15 minutes from now)
+    await tempUser.scheduleCleanup();
 
     // Generate and send OTP using verification service
     const emailResult = await verificationService.sendOTPEmail(email);
@@ -272,6 +276,9 @@ router.post('/register', uploadSingle('avatar'), [
     if (avatarUrl) {
       tempUser.avatar = avatarUrl; // Store avatar URL in database
     }
+    
+    // Cancel cleanup since registration is now complete
+    await tempUser.cancelCleanup();
     
     await tempUser.save();
 
@@ -953,6 +960,53 @@ router.post('/upload-avatar', auth, uploadSingle('avatar'), async (req, res) => 
     res.status(500).json({
       success: false,
       message: 'Server error while uploading avatar'
+    });
+  }
+});
+
+// @route   POST /api/auth/cleanup-temp-users
+// @desc    Manually trigger cleanup of temporary users (admin endpoint)
+// @access  Public (in production, this should be protected)
+router.post('/cleanup-temp-users', async (req, res) => {
+  try {
+    console.log('Manual cleanup triggered via API');
+    const deletedCount = await cleanupService.manualCleanup();
+    
+    res.json({
+      success: true,
+      message: `Cleanup completed successfully`,
+      deletedCount,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Manual cleanup error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error during cleanup',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/auth/cleanup-status
+// @desc    Get cleanup service status
+// @access  Public (in production, this should be protected)
+router.get('/cleanup-status', (req, res) => {
+  try {
+    const status = cleanupService.getStatus();
+    
+    res.json({
+      success: true,
+      cleanupService: status,
+      message: status.isRunning ? 'Cleanup service is running' : 'Cleanup service is stopped',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Get cleanup status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting cleanup status',
+      error: error.message
     });
   }
 });

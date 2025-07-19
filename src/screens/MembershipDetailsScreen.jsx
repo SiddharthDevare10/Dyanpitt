@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +23,27 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showTourIndicator, setShowTourIndicator] = useState(false);
+  const [tourDataChecked, setTourDataChecked] = useState(false);
+
+  // Auto-check for tour data when component loads
+  useEffect(() => {
+    const checkForTourData = async () => {
+      // Only check once
+      if (tourDataChecked) {
+        return;
+      }
+
+      try {
+        setTourDataChecked(true);
+        // Try to fetch tour data - the function will handle finding the email
+        await fetchAndPopulateTourData(userData?.email);
+      } catch (error) {
+        console.error('Error auto-checking tour data:', error);
+      }
+    };
+
+    checkForTourData();
+  }, [tourDataChecked]); // Removed userData?.email dependency to run on mount
 
   const handleInputChange = async (e) => {
     const { name, value, type, files } = e.target;
@@ -74,11 +95,43 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
     try {
       setIsLoading(true);
       
+      // If no email provided, try to get it from various sources
+      let userEmail = email;
+      if (!userEmail) {
+        // Try to get email from localStorage userData
+        const localUserData = localStorage.getItem('userData');
+        if (localUserData) {
+          try {
+            const parsedData = JSON.parse(localUserData);
+            userEmail = parsedData.email;
+          } catch (e) {
+            console.log('Could not parse localStorage userData');
+          }
+        }
+        
+        // If still no email, try to get current user from API
+        if (!userEmail) {
+          try {
+            const currentUserResponse = await apiService.getCurrentUser();
+            if (currentUserResponse.success && currentUserResponse.user?.email) {
+              userEmail = currentUserResponse.user.email;
+            }
+          } catch (e) {
+            console.log('Could not get current user email from API');
+          }
+        }
+      }
+      
+      if (!userEmail) {
+        console.log('No email available to check for tour data');
+        return;
+      }
+      
       // Fetch tour requests for this email
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests/${encodeURIComponent(email)}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests/${encodeURIComponent(userEmail)}`);
       
       if (!response.ok) {
-        console.log('No tour data found for this email');
+        console.log('No tour data found for this email:', userEmail);
         return;
       }
 
@@ -88,14 +141,15 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
         // Get the most recent tour request
         const latestTour = result.data[0];
         
-        // Pre-populate common fields
+        // Pre-populate common fields only if they're not already filled
         setFormData(prev => ({
           ...prev,
-          educationalBackground: latestTour.educationalBackground || prev.educationalBackground,
-          currentOccupation: latestTour.currentOccupation || prev.currentOccupation,
-          jobTitle: latestTour.jobTitle || prev.jobTitle,
-          examPreparation: latestTour.examPreparation || prev.examPreparation,
-          examinationDate: latestTour.examinationDate ? latestTour.examinationDate.split('T')[0] : prev.examinationDate,
+          educationalBackground: prev.educationalBackground || latestTour.educationalBackground || '',
+          currentOccupation: prev.currentOccupation || latestTour.currentOccupation || '',
+          jobTitle: prev.jobTitle || latestTour.jobTitle || '',
+          examPreparation: prev.examPreparation || latestTour.examPreparation || '',
+          examinationDate: prev.examinationDate || (latestTour.examinationDate ? latestTour.examinationDate.split('T')[0] : ''),
+          visitedBefore: prev.visitedBefore || 'yes' // Auto-set to yes since we found tour data
         }));
 
         // Set indicator for tour data found
@@ -108,6 +162,7 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
 
         // Show success message in console
         console.log('✅ Pre-populated membership form with tour data:', {
+          email: userEmail,
           educationalBackground: latestTour.educationalBackground,
           currentOccupation: latestTour.currentOccupation,
           jobTitle: latestTour.jobTitle,
@@ -116,7 +171,7 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
         });
         
       } else {
-        console.log('No tour requests found for this email');
+        console.log('No tour requests found for this email:', userEmail);
       }
       
     } catch (error) {
