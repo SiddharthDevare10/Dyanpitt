@@ -22,8 +22,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'http://127.0.0.1:5173',
-  'http://10.178.165.20:5173', // Your Ubuntu PC's network IP (dev server)
-  'http://10.178.165.20:4173', // Your Ubuntu PC's network IP (preview server)
+  'http://127.0.0.1:4173', // Preview server
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -190,9 +189,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
   console.log(`🔗 API Base URL: http://localhost:${PORT}/api`);
   console.log(`🌐 Network Access:`);
-  console.log(`   Frontend (dev):     http://10.178.165.20:5173`);
-  console.log(`   Frontend (preview): http://10.178.165.20:4173`);
-  console.log(`   Backend:            http://10.178.165.20:${PORT}/api`);
+  console.log(`   Frontend (dev):     http://localhost:5173`);
+  console.log(`   Frontend (preview): http://localhost:4173`);
+  console.log(`   Backend:            http://localhost:${PORT}/api`);
   console.log(`🧹 Cleanup service started - temporary users will be cleaned up every 1 minute`);
 });
 

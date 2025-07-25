@@ -1,23 +1,23 @@
-DNYANPITT ID FLOW CHANGE - FINAL IMPLEMENTATION PLAN
+DYANPITT ID FLOW CHANGE - FINAL IMPLEMENTATION PLAN
 ====================================================
 
 OVERVIEW:
 =========
-Moving Dnyanpitt ID generation from registration to after first successful membership payment.
+Moving Dyanpitt ID generation from registration to after first successful membership payment.
 
 FLOW CHANGE:
 ============
-OLD: Email → Profile → Dnyanpitt ID Generated → Dashboard → Optional Membership
-NEW: Email → Profile → Dashboard → Mandatory Membership → Payment → Dnyanpitt ID Generated → Logout → Login with ID
+OLD: Email → Profile → Dyanpitt ID Generated → Dashboard → Optional Membership
+NEW: Email → Profile → Dashboard → Mandatory Membership → Payment → Dyanpitt ID Generated → Logout → Login with ID
 
 KEY DECISIONS:
 ==============
-✓ Users login with email/password before getting Dnyanpitt ID
-✓ Email is primary identifier until Dnyanpitt ID is generated
-✓ Membership completion is MANDATORY to get Dnyanpitt ID
-✓ After payment: Congratulations → Force logout → Login with new Dnyanpitt ID
-✓ After Dnyanpitt ID generation: BOTH email AND Dnyanpitt ID can be used for login
-✓ Dnyanpitt ID becomes PRIMARY identifier after generation (email becomes secondary)
+✓ Users login with email/password before getting Dyanpitt ID
+✓ Email is primary identifier until Dyanpitt ID is generated
+✓ Membership completion is MANDATORY to get Dyanpitt ID
+✓ After payment: Congratulations → Force logout → Login with new Dyanpitt ID
+✓ After Dyanpitt ID generation: BOTH email AND Dyanpitt ID can be used for login
+✓ Dyanpitt ID becomes PRIMARY identifier after generation (email becomes secondary)
 ✓ 10-day cleanup period for incomplete registrations
 ✓ Database will be cleaned (affects existing users)
 
@@ -32,8 +32,8 @@ Status: [✓] COMPLETED
    [✓] Make dyanpittId optional (not required initially)
    [✓] Make registrationMonth optional initially  
    [✓] Make registrationNumber optional initially
-   [✓] Add hasDnyanpittId boolean field (default: false)
-   [✓] Add dnyanpittIdGenerated timestamp field
+   [✓] Add hasDyanpittId boolean field (default: false)
+   [✓] Add dyanpittIdGenerated timestamp field
    [✓] Update indexes to handle optional dyanpittId
    [✓] Add validation: after ID generation, it becomes primary identifier
    [✓] Add 10-day cleanup logic for incomplete users
@@ -44,7 +44,7 @@ Status: [✓] COMPLETED
    [✓] Add email as primary reference initially
    [✓] Add userId reference for reliable user linking
    [✓] Update validation logic to handle both states
-   [✓] Add logic to update references after Dnyanpitt ID generation
+   [✓] Add logic to update references after Dyanpitt ID generation
    [✓] Update indexes for dual reference system
 
 1.3 Database Migration Considerations:
@@ -57,20 +57,20 @@ PHASE 2: BACKEND AUTHENTICATION & REGISTRATION
 Status: [✓] MOSTLY COMPLETED (only daily cleanup scheduling pending)
 
 2.1 Update Registration Route (backend/routes/auth.js):
-   [✓] Remove Dnyanpitt ID generation from registration (around line 261)
+   [✓] Remove Dyanpitt ID generation from registration (around line 261)
    [✓] Remove assignment of dyanpittId, registrationMonth, registrationNumber (lines 262-273)
-   [✓] Remove welcome email with Dnyanpitt ID (line 285)
+   [✓] Remove welcome email with Dyanpitt ID (line 285)
    [✓] Remove dyanpittId from registration response (line 299)
-   [✓] Add intermediate welcome email without Dnyanpitt ID
-   [✓] Update user creation to not require Dnyanpitt ID
+   [✓] Add intermediate welcome email without Dyanpitt ID
+   [✓] Update user creation to not require Dyanpitt ID
 
 2.2 Update Login Logic (backend/routes/auth.js):
-   [✓] Allow login with email/password for users without Dnyanpitt ID
-   [✓] After ID generation: Allow login with BOTH email AND Dnyanpitt ID
-   [✓] Implement priority system: Dnyanpitt ID primary, email secondary
+   [✓] Allow login with email/password for users without Dyanpitt ID
+   [✓] After ID generation: Allow login with BOTH email AND Dyanpitt ID
+   [✓] Implement priority system: Dyanpitt ID primary, email secondary
    [✓] Update findByEmailOrDyanpittId method to handle optional ID
    [✓] Update login validation for dual identifier support
-   [✓] Update security checks for users without Dnyanpitt ID
+   [✓] Update security checks for users without Dyanpitt ID
 
 2.3 Add 10-day Cleanup Service:
    [✓] Create cleanup job for incomplete registrations
@@ -78,15 +78,15 @@ Status: [✓] MOSTLY COMPLETED (only daily cleanup scheduling pending)
    [ ] Schedule automatic cleanup (daily job)
    [✓] Add manual cleanup endpoint for testing
 
-PHASE 3: BACKEND PAYMENT & DNYANPITT ID GENERATION
+PHASE 3: BACKEND PAYMENT & DYANPITT ID GENERATION
 ===================================================
 Status: [✓] COMPLETED
 
 3.1 Update Payment Completion (backend/routes/auth.js):
-   [✓] Add Dnyanpitt ID generation after successful payment (around line 877-920)
-   [✓] Set hasDnyanpittId = true
-   [✓] Set dnyanpittIdGenerated timestamp
-   [✓] Send welcome email with new Dnyanpitt ID
+   [✓] Add Dyanpitt ID generation after successful payment (around line 877-920)
+   [✓] Set hasDyanpittId = true
+   [✓] Set dyanpittIdGenerated timestamp
+   [✓] Send welcome email with new Dyanpitt ID
    [✓] Add membership completion validation before ID generation
    [✓] Update user record with generated ID and registration details
 
@@ -97,7 +97,7 @@ Status: [✓] COMPLETED
    [✓] Add validation for membership completion requirements
 
 3.3 Add Membership Validation:
-   [✓] Ensure membership completion before Dnyanpitt ID generation
+   [✓] Ensure membership completion before Dyanpitt ID generation
    [✓] Add validation to prevent ID generation without membership
    [✓] Add checks for payment completion
    [✓] Update booking completion logic
@@ -107,60 +107,60 @@ PHASE 4: FRONTEND REGISTRATION FLOW
 Status: [✓] COMPLETED
 
 4.1 Update Registration Screen (src/screens/RegisterScreen.jsx):
-   [✓] Remove Dnyanpitt ID from registration response handling (around line 507-519)
+   [✓] Remove Dyanpitt ID from registration response handling (around line 507-519)
    [✓] Remove CongratulationsScreen navigation after registration
    [✓] Update navigation to go directly to login after registration
-   [✓] Show "Registration Complete" message without Dnyanpitt ID
+   [✓] Show "Registration Complete" message without Dyanpitt ID
    [✓] Update success messaging
 
 4.2 Update App Navigation (src/App.jsx):
    [✓] Remove congratulations flow after registration
    [✓] Update congratulations to show after payment (with re-login)
    [✓] Update routing logic for new flow
-   [✓] Handle navigation states for users without Dnyanpitt ID
+   [✓] Handle navigation states for users without Dyanpitt ID
 
 PHASE 5: FRONTEND DASHBOARD & USER EXPERIENCE
 ==============================================
 Status: [✓] COMPLETED
 
 5.1 Update Dashboard (src/screens/DashboardScreen.jsx):
-   [ ] Handle users without Dnyanpitt ID
-   [ ] Show email instead of Dnyanpitt ID for incomplete users
-   [ ] Show Dnyanpitt ID as PRIMARY for users who have it (with email as secondary)
+   [ ] Handle users without Dyanpitt ID
+   [ ] Show email instead of Dyanpitt ID for incomplete users
+   [ ] Show Dyanpitt ID as PRIMARY for users who have it (with email as secondary)
    [ ] Add progress indicators for membership completion
    [ ] Force membership completion before accessing other features
    [ ] Update user info display logic
 
 5.2 Update All Screens for Dual Identifier Support:
-   [ ] Show email for users without Dnyanpitt ID
-   [ ] Show Dnyanpitt ID as primary when available
+   [ ] Show email for users without Dyanpitt ID
+   [ ] Show Dyanpitt ID as primary when available
    [ ] Update user profile displays
-   [ ] Add validation for features requiring Dnyanpitt ID
+   [ ] Add validation for features requiring Dyanpitt ID
    [ ] Update error messages
-   [ ] Update UI to prioritize Dnyanpitt ID when available
+   [ ] Update UI to prioritize Dyanpitt ID when available
 
 PHASE 6: FRONTEND PAYMENT & CONGRATULATIONS FLOW
 =================================================
 Status: [✓] COMPLETED
 
 6.1 Update Payment Screen (src/screens/PaymentScreen.jsx):
-   [✓] Add Dnyanpitt ID generation trigger after payment
+   [✓] Add Dyanpitt ID generation trigger after payment
    [✓] Handle congratulations navigation after payment
    [✓] Update payment success handling
    [✓] Add logout trigger after ID generation
 
 6.2 Update Congratulations Screen (src/screens/CongratulationsScreen.jsx):
    [✓] Move to show after payment completion instead of registration
-   [✓] Receive Dnyanpitt ID from payment response
+   [✓] Receive Dyanpitt ID from payment response
    [✓] Add logout functionality after congratulations
    [✓] Add redirect to login screen
    [✓] Update messaging for post-payment congratulations
 
 6.3 Add Logout & Re-login Flow:
-   [✓] Implement automatic logout after Dnyanpitt ID generation
+   [✓] Implement automatic logout after Dyanpitt ID generation
    [✓] Clear user session/tokens
    [✓] Redirect to login screen with message about new ID
-   [✓] Update login to accept new Dnyanpitt ID
+   [✓] Update login to accept new Dyanpitt ID
    [✓] Handle session management during transition
 
 PHASE 7: TOUR REQUESTS & OTHER FEATURES
@@ -168,7 +168,7 @@ PHASE 7: TOUR REQUESTS & OTHER FEATURES
 Status: [✓] COMPLETED
 
 7.1 Update Tour Request System:
-   [✓] Use email for users without Dnyanpitt ID
+   [✓] Use email for users without Dyanpitt ID
    [✓] Add validation for both identifier states
    [✓] Ensure compatibility with new flow
    [✓] Update tour request references

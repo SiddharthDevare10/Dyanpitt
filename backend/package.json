@@ -1,7 +1,7 @@
 {
-  "name": "login-backend",
+  "name": "dyanpitt-backend",
   "version": "1.0.0",
-  "description": "Backend for React login app with MongoDB authentication",
+  "description": "Backend for Dyanpitt app with MongoDB authentication",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -23,7 +23,6 @@
     "passport-local": "^1.0.0"
   },
   "devDependencies": {
-    "axios": "^1.10.0",
     "nodemon": "^3.0.2"
   },
   "keywords": [
