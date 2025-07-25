@@ -137,12 +137,16 @@ export default function DashboardScreen() {
                   <span className="detail-label">Email:</span>
                   <span className="detail-value">{user.email}</span>
                 </div>
-                {user.dyanpittId && (
-                  <div className="user-detail-item">
-                    <span className="detail-label">Dyanpitt ID:</span>
+                <div className="user-detail-item">
+                  <span className="detail-label">Dyanpitt ID:</span>
+                  {user.hasDnyanpittId ? (
                     <span className="detail-value dyanpitt-id">{user.dyanpittId}</span>
-                  </div>
-                )}
+                  ) : (
+                    <span className="detail-value pending-id">
+                      Pending - Complete membership & payment to get your ID
+                    </span>
+                  )}
+                </div>
                 {user.phoneNumber && (
                   <div className="user-detail-item">
                     <span className="detail-label">Phone:</span>

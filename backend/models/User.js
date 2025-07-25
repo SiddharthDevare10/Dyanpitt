@@ -12,8 +12,9 @@ const userSchema = new mongoose.Schema({
   },
   dyanpittId: {
     type: String,
-    required: true,
+    required: false, // Made optional - only required after payment
     unique: true,
+    sparse: true, // Allows multiple null values
     trim: true
   },
   fullName: {
@@ -81,11 +82,21 @@ const userSchema = new mongoose.Schema({
   // Registration tracking
   registrationMonth: {
     type: String,
-    required: true // Format: "YYYYMM"
+    required: false // Made optional - only set after payment
   },
   registrationNumber: {
     type: Number,
-    required: true
+    required: false // Made optional - only set after payment
+  },
+  
+  // Dnyanpitt ID tracking
+  hasDnyanpittId: {
+    type: Boolean,
+    default: false
+  },
+  dnyanpittIdGenerated: {
+    type: Date,
+    default: null
   },
   
   // Membership Details
@@ -229,6 +240,8 @@ const userSchema = new mongoose.Schema({
 
 // Index for faster queries (removed duplicate indexes for email, dyanpittId, phoneNumber as they're already unique)
 userSchema.index({ registrationMonth: 1, registrationNumber: 1 });
+userSchema.index({ hasDnyanpittId: 1 });
+userSchema.index({ dnyanpittIdGenerated: 1 });
 
 // Index for cleanup of temporary users - TTL index for automatic cleanup
 userSchema.index({ cleanupAt: 1 }, { expireAfterSeconds: 0 });
@@ -275,13 +288,44 @@ userSchema.statics.generateDyanpittId = async function() {
   };
 };
 
+// Assign Dyanpitt ID to user after payment (instance method)
+userSchema.methods.assignDyanpittId = async function() {
+  if (this.hasDnyanpittId) {
+    throw new Error('User already has a Dyanpitt ID');
+  }
+  
+  const { dyanpittId, registrationMonth, registrationNumber } = await this.constructor.generateDyanpittId();
+  
+  this.dyanpittId = dyanpittId;
+  this.registrationMonth = registrationMonth;
+  this.registrationNumber = registrationNumber;
+  this.hasDnyanpittId = true;
+  this.dnyanpittIdGenerated = new Date();
+  
+  await this.save();
+  
+  return {
+    dyanpittId,
+    registrationMonth,
+    registrationNumber
+  };
+};
+
 // Note: OTP functionality moved to JWT-based tokens for better security
 
-// Find by email or Dyanpitt ID
+// Find by email or Dyanpitt ID (updated for optional Dyanpitt ID)
 userSchema.statics.findByEmailOrDyanpittId = async function(identifier) {
   const isEmail = identifier.includes('@') && !identifier.startsWith('@DA');
-  const query = isEmail ? { email: identifier } : { dyanpittId: identifier };
-  return this.findOne(query);
+  
+  if (isEmail) {
+    return this.findOne({ email: identifier });
+  } else {
+    // For Dyanpitt ID, ensure it exists and is not null
+    return this.findOne({ 
+      dyanpittId: identifier,
+      hasDnyanpittId: true 
+    });
+  }
 };
 
 // Check if email exists (only verified users)
@@ -312,9 +356,10 @@ userSchema.methods.updateLastLogin = function() {
 // Get public profile (exclude sensitive data)
 userSchema.methods.getPublicProfile = function() {
   return {
-    id: this._id,
+    // Display email and dyanpittId first for better visibility
     email: this.email,
     dyanpittId: this.dyanpittId,
+    id: this._id,
     fullName: this.fullName,
     phoneNumber: this.phoneNumber,
     dateOfBirth: this.dateOfBirth,
@@ -327,7 +372,11 @@ userSchema.methods.getPublicProfile = function() {
     bookingDetails: this.bookingDetails,
     profileCompleted: this.profileCompleted,
     membershipCompleted: this.membershipCompleted,
-    bookingCompleted: this.bookingCompleted
+    bookingCompleted: this.bookingCompleted,
+    hasDnyanpittId: this.hasDnyanpittId,
+    dnyanpittIdGenerated: this.dnyanpittIdGenerated,
+    // Helper method to get primary identifier
+    primaryIdentifier: this.hasDnyanpittId ? this.dyanpittId : this.email
   };
 };
 
@@ -367,6 +416,26 @@ userSchema.statics.cleanupExpiredTempUsers = async function() {
     return result.deletedCount;
   } catch (error) {
     console.error('Error cleaning up temporary users:', error);
+    return 0;
+  }
+};
+
+// Static method to cleanup incomplete registrations (10-day period)
+userSchema.statics.cleanupIncompleteRegistrations = async function() {
+  try {
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    
+    const result = await this.deleteMany({
+      // Users who registered but never completed membership/payment
+      hasDnyanpittId: false,
+      isEmailVerified: true,
+      createdAt: { $lt: tenDaysAgo }
+    });
+    
+    console.log(`Cleaned up ${result.deletedCount} incomplete registrations older than 10 days`);
+    return result.deletedCount;
+  } catch (error) {
+    console.error('Error cleaning up incomplete registrations:', error);
     return 0;
   }
 };

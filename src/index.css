@@ -793,6 +793,8 @@ body {
   max-width: 320px;
   width: 100%;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  margin: 0 auto;
+  display: block;
 }
 
 .calendar-header {
@@ -1102,6 +1104,30 @@ body {
 }
 
 /* Mobile responsiveness for minimal calendar */
+/* Desktop responsiveness for calendar */
+@media (min-width: 769px) {
+  .date-picker-modal {
+    width: 420px;
+    max-width: 420px;
+  }
+  
+  .minimal-calendar {
+    max-width: 380px;
+    padding: 24px;
+  }
+  
+  .calendar-day {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  
+  .picker-dropdown {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
 @media (max-width: 768px) {
   .minimal-calendar {
     padding: 16px;
@@ -1173,6 +1199,7 @@ body {
     max-width: calc(100vw - 20px);
     max-height: 90vh;
     overflow: hidden;
+    margin: 0 auto;
   }
 }
 

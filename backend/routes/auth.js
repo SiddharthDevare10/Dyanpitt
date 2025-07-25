@@ -141,7 +141,7 @@ router.post('/send-otp', [
 // @access  Public
 router.post('/verify-otp', [
   body('email').isEmail().normalizeEmail(),
-  body('otp').isLength({ min: 6, max: 6 })
+  body('otp').isLength({ min: 6, max: 6 }).isNumeric()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -149,13 +149,19 @@ router.post('/verify-otp', [
       console.log('Validation errors:', errors.array());
       return res.status(400).json({
         success: false,
-        message: 'Invalid input',
+        message: 'Invalid input - ' + errors.array().map(e => e.msg).join(', '),
         errors: errors.array()
       });
     }
 
     const { email, otp } = req.body;
-    console.log('Verifying OTP for email:', email, 'OTP:', otp);
+    console.log('=== OTP VERIFICATION DEBUG ===');
+    console.log('Raw request body:', req.body);
+    console.log('Email (raw):', email);
+    console.log('OTP (raw):', otp);
+    console.log('OTP type:', typeof otp);
+    console.log('OTP length:', otp ? otp.length : 'undefined');
+    console.log('All stored OTPs:', verificationService.getStoredOTPs());
 
     // Verify OTP using verification service
     if (!verificationService.verifyOTP(email, otp)) {
@@ -202,10 +208,10 @@ router.post('/verify-otp', [
 router.post('/register', uploadSingle('avatar'), [
   body('email').isEmail().normalizeEmail(),
   body('fullName').trim().isLength({ min: 2 }),
-  body('phoneNumber').matches(/^\+\d{10,15}$/),
+  body('phoneNumber').isLength({ min: 10, max: 15 }),
   body('dateOfBirth').isISO8601(),
   body('gender').isIn(['male', 'female', 'other', 'prefer-not-to-say']),
-  body('password').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/)
+  body('password').isLength({ min: 6 })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -237,6 +243,22 @@ router.post('/register', uploadSingle('avatar'), [
     // Find verified temp user by pending email
     const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: true });
     
+    // Check for phone number conflicts before proceeding
+    const phoneUser = await User.findOne({ phoneNumber });
+    if (phoneUser && phoneUser.pendingEmail !== email) {
+      // If phone belongs to a different user
+      if (phoneUser.isEmailVerified && phoneUser.profileCompleted) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number is already in use by another account'
+        });
+      } else {
+        // If phone belongs to incomplete/unverified user, clean it up
+        await User.deleteOne({ _id: phoneUser._id });
+        console.log('Cleaned up incomplete user with phone:', phoneNumber);
+      }
+    }
+
     // Debug logging
     console.log('Registration Debug:');
     console.log('Looking for email:', email);
@@ -258,21 +280,17 @@ router.post('/register', uploadSingle('avatar'), [
       });
     }
 
-    // NOW generate the actual Dyanpitt ID and assign the real email
-    const { dyanpittId, registrationMonth, registrationNumber } = await User.generateDyanpittId();
-
-    // Update user with complete information including real email and Dyanpitt ID
+    // Update user with complete information (NO Dyanpitt ID generation yet)
     tempUser.email = email; // Now assign the real email
-    tempUser.dyanpittId = dyanpittId; // Now assign the real Dyanpitt ID
     tempUser.fullName = fullName;
     tempUser.phoneNumber = phoneNumber;
     tempUser.dateOfBirth = new Date(dateOfBirth);
     tempUser.gender = gender;
     tempUser.password = password; // Will be hashed by pre-save middleware
-    tempUser.registrationMonth = registrationMonth;
-    tempUser.registrationNumber = registrationNumber;
     tempUser.pendingEmail = undefined; // Remove the pending email field
     tempUser.profileCompleted = true; // Mark profile as completed since all basic info is provided
+    tempUser.hasDnyanpittId = false; // User doesn't have Dyanpitt ID yet
+    // Don't set dyanpittId, registrationMonth, registrationNumber - they're optional now
     if (avatarUrl) {
       tempUser.avatar = avatarUrl; // Store avatar URL in database
     }
@@ -282,8 +300,13 @@ router.post('/register', uploadSingle('avatar'), [
     
     await tempUser.save();
 
-    // Send welcome email
-    await emailService.sendWelcomeEmail(email, fullName, tempUser.dyanpittId);
+    // Send intermediate welcome email (without Dyanpitt ID)
+    try {
+      await emailService.sendRegistrationCompleteEmail(email, fullName);
+    } catch (emailError) {
+      console.error('Email sending failed, but continuing with registration:', emailError);
+      // Don't fail registration if email fails
+    }
 
     // Generate JWT token
     const token = jwt.sign(
@@ -294,7 +317,7 @@ router.post('/register', uploadSingle('avatar'), [
 
     res.status(201).json({
       success: true,
-      message: 'Registration completed successfully',
+      message: 'Registration completed successfully. Complete your membership to get your Dyanpitt ID.',
       token,
       user: {
         ...tempUser.getPublicProfile(),
@@ -340,7 +363,7 @@ router.post('/login', [
       });
     }
 
-    // Find user by email or Dyanpitt ID
+    // Find user by email or Dyanpitt ID (updated for optional Dyanpitt ID)
     const user = await User.findByEmailOrDyanpittId(identifier);
     if (!user) {
       return res.status(400).json({
@@ -357,15 +380,16 @@ router.post('/login', [
       });
     }
 
-    // SECURITY: Ensure user has completed full registration (has real password and Dyanpitt ID)
-    if (!user.dyanpittId || user.dyanpittId.startsWith('temp_') || 
-        !user.email || user.email.includes('@temp.local') ||
+    // SECURITY: Ensure user has completed full registration (has real password and email)
+    if (!user.email || user.email.includes('@temp.local') ||
         user.password === 'temporary' || user.pendingEmail) {
       return res.status(400).json({
         success: false,
         message: 'Please complete your registration first'
       });
     }
+    
+    // Note: Users can login without Dyanpitt ID (will get it after first membership payment)
 
     // Check password
     const isMatch = await user.comparePassword(password);
@@ -389,7 +413,7 @@ router.post('/login', [
 
     res.json({
       success: true,
-      message: 'Login successful',
+      message: user.hasDnyanpittId ? 'Login successful' : 'Login successful. Complete your membership to get your Dyanpitt ID.',
       token,
       user: {
         ...user.getPublicProfile(),
@@ -887,17 +911,8 @@ router.post('/complete-payment', auth, async (req, res) => {
       });
     }
 
-    // Update user with payment completion
-    const user = await User.findByIdAndUpdate(
-      req.user.userId,
-      {
-        'bookingDetails.paymentId': paymentId,
-        'bookingDetails.paymentStatus': paymentStatus,
-        bookingCompleted: paymentStatus === 'completed'
-      },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    // Get user first
+    const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -905,11 +920,60 @@ router.post('/complete-payment', auth, async (req, res) => {
       });
     }
 
-    res.json({
+    // Check if membership is completed (required for Dnyanpitt ID generation)
+    if (!user.membershipCompleted) {
+      return res.status(400).json({
+        success: false,
+        message: 'Membership must be completed before payment'
+      });
+    }
+
+    // Update payment details
+    user.bookingDetails.paymentId = paymentId;
+    user.bookingDetails.paymentStatus = paymentStatus;
+    user.bookingCompleted = paymentStatus === 'completed';
+
+    let dyanpittIdData = null;
+
+    // Generate Dnyanpitt ID if payment is successful and user doesn't have one
+    if (paymentStatus === 'completed' && !user.hasDnyanpittId) {
+      try {
+        dyanpittIdData = await user.assignDyanpittId();
+        console.log('Dnyanpitt ID generated:', dyanpittIdData.dyanpittId);
+        
+        // Send welcome email with Dnyanpitt ID
+        await emailService.sendWelcomeEmail(user.email, user.fullName, dyanpittIdData.dyanpittId);
+        
+        // Update any existing member records with the new Dnyanpitt ID
+        const Member = require('../models/Member');
+        const existingMember = await Member.findByUser(user);
+        if (existingMember) {
+          await existingMember.updateDyanpittIdReference(dyanpittIdData.dyanpittId);
+        }
+        
+      } catch (error) {
+        console.error('Error generating Dnyanpitt ID:', error);
+        // Continue with payment completion even if ID generation fails
+      }
+    }
+
+    await user.save();
+
+    const response = {
       success: true,
-      message: 'Payment completed successfully',
-      user
-    });
+      message: paymentStatus === 'completed' && dyanpittIdData 
+        ? 'Payment completed successfully! Your Dnyanpitt ID has been generated.' 
+        : 'Payment completed successfully',
+      user: user.getPublicProfile()
+    };
+
+    // Include Dnyanpitt ID in response if generated
+    if (dyanpittIdData) {
+      response.dyanpittId = dyanpittIdData.dyanpittId;
+      response.showCongratulations = true;
+    }
+
+    res.json(response);
 
   } catch (error) {
     console.error('Complete payment error:', error);
@@ -983,6 +1047,55 @@ router.post('/cleanup-temp-users', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error during cleanup',
+      error: error.message
+    });
+  }
+});
+
+// @route   POST /api/auth/cleanup-incomplete-registrations
+// @desc    Manually trigger cleanup of incomplete registrations (10-day period)
+// @access  Public (in production, this should be protected)
+router.post('/cleanup-incomplete-registrations', async (req, res) => {
+  try {
+    console.log('Manual cleanup of incomplete registrations triggered via API');
+    const deletedCount = await User.cleanupIncompleteRegistrations();
+    
+    res.json({
+      success: true,
+      message: `Incomplete registrations cleanup completed successfully`,
+      deletedCount,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Incomplete registrations cleanup error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error during incomplete registrations cleanup',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/auth/debug-otp/:email
+// @desc    Debug endpoint to get OTP for testing (development only)
+// @access  Public (remove in production)
+router.get('/debug-otp/:email', (req, res) => {
+  try {
+    const { email } = req.params;
+    const storedOTPs = verificationService.getStoredOTPs();
+    const otpForEmail = verificationService.getOTPForEmail ? verificationService.getOTPForEmail(email) : null;
+    
+    res.json({
+      success: true,
+      email,
+      otp: otpForEmail,
+      allStoredOTPs: storedOTPs,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error getting debug OTP',
       error: error.message
     });
   }

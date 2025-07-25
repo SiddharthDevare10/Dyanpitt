@@ -17,12 +17,16 @@ class VerificationService {
     const otp = tokenUtils.generateOTP(6);
     const normalizedEmail = email.toLowerCase().trim();
     
+    console.log('GenerateOTP Debug - Generated OTP:', otp, 'for email:', normalizedEmail);
+    
     // Store OTP with expiry time
     this.otpStorage.set(normalizedEmail, {
       code: otp,
       expiresAt: Date.now() + this.OTP_EXPIRY_TIME,
       attempts: 0
     });
+
+    console.log('GenerateOTP Debug - Storage after setting:', Object.fromEntries(this.otpStorage));
 
     // Auto-cleanup expired OTP after expiry time
     setTimeout(() => {
@@ -118,6 +122,7 @@ class VerificationService {
   async sendOTPEmail(email) {
     try {
       const otp = this.generateOTP(email);
+      console.log('Generated OTP for email:', email, 'OTP:', otp); // Debug log
       const result = await emailService.sendOTP(email, otp);
       
       if (!result.success) {

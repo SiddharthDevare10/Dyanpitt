@@ -41,20 +41,26 @@ router.post('/create', authenticateToken, async (req, res) => {
       }
     }
 
-    // Check if user has completed member details
-    const member = await Member.findOne({ 
-      dyanpittId: req.user.dyanpittId, 
-      email: req.user.email,
-      isCompleted: true 
-    });
+    // Get user from database to check their status
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user has completed member details using the Member model's findByUser method
+    const member = await Member.findByUser(user);
     console.log('Member check:', {
       userId: req.user.userId,
       dyanpittId: req.user.dyanpittId,
+      userHasDyanpittId: user.hasDnyanpittId,
       memberFound: !!member,
       memberCompleted: member?.isCompleted
     });
     
-    if (!member) {
+    if (!member || !member.isCompleted) {
       return res.status(400).json({
         success: false,
         message: 'Please complete member details first'
@@ -188,15 +194,17 @@ router.post('/create', authenticateToken, async (req, res) => {
       };
     }
 
-    // Check if booking already exists
+    // Check if booking already exists - use email first, then email + dyanpittId
     let booking = await Booking.findOne({ 
-      dyanpittId: req.user.dyanpittId,
-      email: req.user.email 
+      email: user.email
     });
 
     if (booking) {
       // Update existing booking
-      booking.email = req.user.email;
+      booking.email = user.email;
+      if (user.hasDnyanpittId && user.dyanpittId) {
+        booking.dyanpittId = user.dyanpittId; // Update Dyanpitt ID if user has one
+      }
       booking.timeSlot = timeSlot;
       booking.membershipType = membershipType;
       booking.membershipDuration = membershipDuration;
@@ -209,9 +217,8 @@ router.post('/create', authenticateToken, async (req, res) => {
       booking.paymentStatus = 'pending'; // Reset payment status for new booking
     } else {
       // Create new booking
-      booking = new Booking({
-        dyanpittId: req.user.dyanpittId,
-        email: req.user.email,
+      const bookingData = {
+        email: user.email,
         timeSlot,
         membershipType,
         membershipDuration,
@@ -222,7 +229,14 @@ router.post('/create', authenticateToken, async (req, res) => {
         feeBreakdown: calculatedFeeBreakdown,
         isCompleted: true,
         paymentStatus: 'pending'
-      });
+      };
+      
+      // Add Dyanpitt ID only if user has a real one
+      if (user.hasDnyanpittId && user.dyanpittId) {
+        bookingData.dyanpittId = user.dyanpittId;
+      }
+      
+      booking = new Booking(bookingData);
     }
 
     await booking.save();
@@ -250,9 +264,16 @@ router.post('/create', authenticateToken, async (req, res) => {
 // Get booking details
 router.get('/details', authenticateToken, async (req, res) => {
   try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     const booking = await Booking.findOne({ 
-      dyanpittId: req.user.dyanpittId,
-      email: req.user.email 
+      email: user.email
     });
 
     if (!booking) {
@@ -288,9 +309,16 @@ router.post('/payment', authenticateToken, async (req, res) => {
       });
     }
 
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     const booking = await Booking.findOne({ 
-      dyanpittId: req.user.dyanpittId,
-      email: req.user.email 
+      email: user.email
     });
 
     if (!booking) {
@@ -310,11 +338,56 @@ router.post('/payment', authenticateToken, async (req, res) => {
 
     await booking.save();
 
-    res.json({
-      success: true,
-      message: 'Payment status updated successfully',
-      booking
+    let dyanpittIdData = null;
+
+    // Generate Dnyanpitt ID if payment is successful and user doesn't have one
+    if (paymentStatus === 'completed' && !user.hasDnyanpittId) {
+      try {
+        dyanpittIdData = await user.assignDyanpittId();
+        console.log('Dnyanpitt ID generated:', dyanpittIdData.dyanpittId);
+        
+        // Send welcome email with Dnyanpitt ID
+        const emailService = require('../services/emailService');
+        await emailService.sendWelcomeEmail(user.email, user.fullName, dyanpittIdData.dyanpittId);
+        
+        // Update any existing member records with the new Dnyanpitt ID
+        const existingMember = await Member.findByUser(user);
+        if (existingMember) {
+          await existingMember.updateDyanpittIdReference(dyanpittIdData.dyanpittId);
+        }
+        
+        // Update the booking with the new Dyanpitt ID
+        if (dyanpittIdData.dyanpittId) {
+          booking.dyanpittId = dyanpittIdData.dyanpittId;
+          await booking.save();
+        }
+        
+      } catch (error) {
+        console.error('Error generating Dnyanpitt ID:', error);
+        // Continue with payment completion even if ID generation fails
+      }
+    }
+
+    // Update user's booking completion status
+    await User.findByIdAndUpdate(req.user.userId, {
+      bookingCompleted: true
     });
+
+    const response = {
+      success: true,
+      message: paymentStatus === 'completed' && dyanpittIdData 
+        ? 'Payment completed successfully! Your Dnyanpitt ID has been generated.' 
+        : 'Payment status updated successfully',
+      booking
+    };
+
+    // Include Dnyanpitt ID in response if generated
+    if (dyanpittIdData) {
+      response.dyanpittId = dyanpittIdData.dyanpittId;
+      response.showCongratulations = true;
+    }
+
+    res.json(response);
 
   } catch (error) {
     console.error('Update payment error:', error);
@@ -328,9 +401,16 @@ router.post('/payment', authenticateToken, async (req, res) => {
 // Get booking status
 router.get('/status', authenticateToken, async (req, res) => {
   try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     const booking = await Booking.findOne({ 
-      dyanpittId: req.user.dyanpittId,
-      email: req.user.email 
+      email: user.email
     });
 
     res.json({

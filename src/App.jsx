@@ -173,12 +173,24 @@ export default function App() {
     };
 
     checkUserProgress();
+
+    // Add popstate event listener for browser back/forward buttons
+    const handlePopState = () => {
+      checkUserProgress();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    // Cleanup event listener
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, []);
 
   // Handle navigation
   const navigateToLogin = () => {
     setCurrentScreen('login');
-    window.history.pushState({}, '', '/');
+    window.history.pushState({}, '', '/login');
   };
 
   const navigateToRegister = () => {
@@ -201,11 +213,13 @@ export default function App() {
     window.history.pushState({}, '', '/dashboard');
   };
 
+  // Updated: Congratulations now shows after payment, not registration
   const navigateToCongratulations = (user) => {
     setUserData(user);
     setCurrentScreen('congratulations');
-    // Mark that user came from registration
-    sessionStorage.setItem('cameFromRegistration', 'true');
+    // Clear any authentication since user needs to re-login with new Dyanpitt ID
+    apiService.removeToken();
+    localStorage.removeItem('userData');
     window.history.pushState({}, '', '/congratulations');
   };
 
@@ -226,6 +240,11 @@ export default function App() {
     setUserData(user);
     setCurrentScreen('payment');
     window.history.pushState({}, '', '/payment');
+  };
+
+  const navigateToLanding = () => {
+    setCurrentScreen('landing');
+    window.history.pushState({}, '', '/');
   };
 
   const navigateBack = () => {
@@ -249,7 +268,7 @@ export default function App() {
         localStorage.removeItem('userData');
         sessionStorage.removeItem('cameFromRegistration');
         setCurrentScreen('login');
-        window.history.pushState({}, '', '/');
+        window.history.pushState({}, '', '/login');
       }
     } else if (currentScreen === 'congratulations') {
       setCurrentScreen('register');
@@ -266,7 +285,7 @@ export default function App() {
   }
 
   if (currentScreen === 'register') {
-    return <RegisterScreen onNavigateToLogin={navigateToLogin} onNavigateToCongratulations={navigateToCongratulations} />;
+    return <RegisterScreen onNavigateToLogin={navigateToLogin} onNavigateBack={navigateToLanding} />;
   }
 
   if (currentScreen === 'forgot-password') {
@@ -274,7 +293,9 @@ export default function App() {
   }
 
   if (currentScreen === 'congratulations') {
-    return <CongratulationsScreen userData={userData} onContinue={navigateToMembership} />;
+    // Congratulations now shows after payment completion with Dyanpitt ID
+    // Force user to re-login with new Dyanpitt ID
+    return <CongratulationsScreen userData={userData} onContinue={navigateToLogin} />;
   }
 
   if (currentScreen === 'membership') {
@@ -286,12 +307,19 @@ export default function App() {
   }
 
   if (currentScreen === 'payment') {
-    return <PaymentScreen userData={userData} onBack={navigateBack} onContinue={navigateToDashboard} />;
+    return <PaymentScreen userData={userData} onBack={navigateBack} onContinue={(user) => {
+      // Check if user should see congratulations (Dyanpitt ID generated)
+      if (user.showCongratulations && user.dyanpittId) {
+        navigateToCongratulations(user);
+      } else {
+        navigateToDashboard();
+      }
+    }} />;
   }
 
   if (currentScreen === 'dashboard') {
     return <DashboardScreen />;
   }
 
-  return <LoginScreen onNavigateToRegister={navigateToRegister} onNavigateToForgotPassword={navigateToForgotPassword} />;
+  return <LoginScreen onNavigateToRegister={navigateToRegister} onNavigateToForgotPassword={navigateToForgotPassword} onNavigateBack={navigateToLanding} />;
 }

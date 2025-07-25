@@ -94,11 +94,17 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
 
     const selfiePhotoUrl = `/uploads/selfies/${req.file.filename}`;
 
-    // Check if member details already exist
-    let member = await Member.findOne({ 
-      dyanpittId: req.user.dyanpittId,
-      email: req.user.email 
-    });
+    // Get user first
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if member details already exist using new findByUser method
+    let member = await Member.findByUser(user);
 
     console.log('Existing member found:', member ? 'Yes' : 'No');
 
@@ -117,10 +123,8 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
       member.selfiePhotoUrl = selfiePhotoUrl;
       member.isCompleted = true;
     } else {
-      // Create new member details
-      member = new Member({
-        dyanpittId: req.user.dyanpittId,
-        email: req.user.email,
+      // Create new member using createForUser method
+      const memberData = {
         visitedBefore,
         fatherName,
         parentContactNumber,
@@ -132,11 +136,15 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
         examinationDate: new Date(examinationDate),
         selfiePhotoUrl,
         isCompleted: true
-      });
+      };
+
+      member = await Member.createForUser(user, memberData);
     }
 
     console.log('Saving member details...');
-    await member.save();
+    if (!member.isNew) {
+      await member.save(); // Only save if updating existing member
+    }
     console.log('Member details saved successfully');
 
     // Update user's membership completion status
@@ -168,10 +176,15 @@ router.post('/details', authenticateToken, upload.single('selfiePhoto'), async (
 // Get member details
 router.get('/details', authenticateToken, async (req, res) => {
   try {
-    const member = await Member.findOne({ 
-      dyanpittId: req.user.dyanpittId,
-      email: req.user.email 
-    });
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const member = await Member.findByUser(user);
 
     if (!member) {
       return res.status(404).json({
@@ -197,10 +210,15 @@ router.get('/details', authenticateToken, async (req, res) => {
 // Check if member details are completed
 router.get('/status', authenticateToken, async (req, res) => {
   try {
-    const member = await Member.findOne({ 
-      dyanpittId: req.user.dyanpittId,
-      email: req.user.email 
-    });
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const member = await Member.findByUser(user);
 
     res.json({
       success: true,

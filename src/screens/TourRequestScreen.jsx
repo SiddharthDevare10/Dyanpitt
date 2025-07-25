@@ -159,8 +159,10 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
     
     try {
       // Prepare data for API
+      // Tour requests use email as primary identifier (works for both registered and non-registered users)
+      // No Dyanpitt ID required - supports dual identifier system
       const tourRequestData = {
-        email: formData.email,
+        email: formData.email, // Primary identifier for tour requests
         fullName: formData.fullName,
         phoneNumber: formData.phone,
         gender: formData.gender,
@@ -175,7 +177,10 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
         howDidYouKnow: formData.howDidYouKnow,
         previousStudyRoomExperience: formData.previousStudyRoomExperience,
         studyRoomComparison: formData.studyRoomComparison,
-        startDate: formData.startDate
+        startDate: formData.startDate,
+        // Additional metadata for dual identifier support
+        requiresDnyanpittId: false,
+        submissionType: 'tour_request'
       };
 
       // Submit to backend API

@@ -4,7 +4,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import apiService from '../services/api';
 
-export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword }) {
+export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, onNavigateBack }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -211,6 +211,18 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
+      {/* Back Button */}
+      {onNavigateBack && (
+        <button 
+          onClick={onNavigateBack} 
+          className="back-button"
+          disabled={isLoading}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
       {/* Header */}
       <motion.div 
         className="header-section"

@@ -6,7 +6,7 @@ import CongratulationsScreen from './CongratulationsScreen';
 import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
 import CustomDropdown from '../components/CustomDropdown';
 
-export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratulations }) {
+export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratulations, onNavigateBack }) {
   // Registration steps: 'email', 'otp', 'profile', 'congratulations'
   const [currentStep, setCurrentStep] = useState('email');
   
@@ -242,6 +242,12 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     setErrors({});
 
     try {
+      console.log('=== FRONTEND OTP VERIFICATION DEBUG ===');
+      console.log('Email:', formData.email);
+      console.log('OTP:', formData.otp);
+      console.log('OTP type:', typeof formData.otp);
+      console.log('OTP length:', formData.otp.length);
+      
       const response = await apiService.verifyOtp(formData.email, formData.otp);
       
       if (response.success) {
@@ -500,23 +506,22 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       const response = await apiService.register(registrationData);
       
       if (response.success) {
-        // User data is now stored in database, no need for localStorage
-        // The avatar is already uploaded and stored in the database
-
-
-        // Navigate to congratulations screen using the new navigation prop
-        const completeUserData = {
+        // Registration completed successfully - no Dyanpitt ID yet
+        // User will get Dyanpitt ID after completing membership and payment
+        
+        // Store user data for navigation
+        const userData = {
           ...formData,
-          dyanpittId: response.user.dyanpittId,
-          userId: response.user._id
+          userId: response.user._id,
+          token: response.token
         };
         
-        if (onNavigateToCongratulations) {
-          onNavigateToCongratulations(completeUserData);
-        } else {
-          // Fallback to internal state
-          setCurrentStep('congratulations');
-          setFormData(prev => ({ ...prev, dyanpittId: response.user.dyanpittId }));
+        // Navigate directly to dashboard - no congratulations screen yet
+        if (onNavigateToLogin) {
+          // For now, redirect to login with success message
+          // In a real app, you might want to auto-login or navigate to dashboard
+          alert('Registration completed successfully! You can now login. Complete your membership to get your Dyanpitt ID.');
+          onNavigateToLogin();
         }
       } else {
         setErrors({ general: response.message || 'Registration failed. Please try again.' });
@@ -548,6 +553,18 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
   // Render different steps
   const renderEmailStep = () => (
     <div className="main-container">
+      {/* Back Button */}
+      {onNavigateBack && (
+        <button 
+          onClick={onNavigateBack} 
+          className="back-button"
+          disabled={isLoading}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      )}
       <div className="header-section">
         <h1 className="main-title">Create your Account</h1>
       </div>

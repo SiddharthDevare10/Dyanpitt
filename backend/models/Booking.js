@@ -1,20 +1,27 @@
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema({
-  // Reference to User using Dyanpitt ID and Email
-  dyanpittId: {
-    type: String,
-    ref: 'User',
-    required: true,
-    match: /^@DA\d{9}$/
-  },
+  // Display email and dyanpittId first for better visibility in database
   email: {
     type: String,
     ref: 'User',
-    required: true,
+    required: true, // Email is primary reference until Dyanpitt ID is generated
     lowercase: true,
     trim: true,
     match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  },
+  dyanpittId: {
+    type: String,
+    ref: 'User',
+    required: false, // Made optional - may not exist initially
+    match: /^@DA\d{9}$/
+  },
+  
+  // User ID reference for cases where Dyanpitt ID doesn't exist yet
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false // Not required - we use email first, then email + dyanpittId
   },
   
   // Time slot selection
@@ -159,7 +166,9 @@ const bookingSchema = new mongoose.Schema({
 // Indexes for faster queries
 bookingSchema.index({ dyanpittId: 1 });
 bookingSchema.index({ email: 1 });
-bookingSchema.index({ dyanpittId: 1, email: 1 }, { unique: true });
+bookingSchema.index({ userId: 1 });
+bookingSchema.index({ email: 1 }, { unique: true }); // Ensure one booking per email
+bookingSchema.index({ dyanpittId: 1 }, { sparse: true }); // Sparse index for optional dyanpittId
 bookingSchema.index({ membershipStartDate: 1 });
 bookingSchema.index({ membershipEndDate: 1 });
 bookingSchema.index({ paymentStatus: 1 });

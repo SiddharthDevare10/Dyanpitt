@@ -56,13 +56,29 @@ export default function PaymentScreen({ userData, onBack, onContinue }) {
       const response = await apiService.completePayment(paymentId, 'completed');
       
       if (response.success) {
-        // Navigate to dashboard - user has completed all steps
-        onContinue({
-          ...userData,
-          ...response.user,
-          bookingCompleted: true,
-          paymentCompleted: true
-        });
+        // Check if Dyanpitt ID was generated
+        if (response.dyanpittId && response.showCongratulations) {
+          // Dyanpitt ID generated! Show congratulations and force re-login
+          
+          // Navigate to congratulations screen with new Dyanpitt ID
+          onContinue({
+            ...userData,
+            ...response.user,
+            dyanpittId: response.dyanpittId,
+            showCongratulations: true,
+            bookingCompleted: true,
+            paymentCompleted: true
+          });
+        } else {
+          // Regular payment completion without Dyanpitt ID generation
+          alert('Payment completed successfully!');
+          onContinue({
+            ...userData,
+            ...response.user,
+            bookingCompleted: true,
+            paymentCompleted: true
+          });
+        }
       } else {
         setErrors({ payment: response.message || 'Payment failed' });
       }

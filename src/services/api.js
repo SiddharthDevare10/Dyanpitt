@@ -217,6 +217,11 @@ class ApiService {
   }
 
   async verifyOtp(email, otp) {
+    console.log('=== API SERVICE VERIFY OTP DEBUG ===');
+    console.log('Email:', email);
+    console.log('OTP:', otp);
+    console.log('Request payload:', { email, otp });
+    
     return this.request('/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ email, otp })

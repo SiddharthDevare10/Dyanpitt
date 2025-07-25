@@ -280,6 +280,51 @@ class EmailService {
       return { success: false, error: error.message };
     }
   }
+  /**
+   * Send registration complete email (without Dyanpitt ID)
+   * @param {string} email - Recipient email
+   * @param {string} fullName - User's full name
+   * @returns {object} Result object
+   */
+  async sendRegistrationCompleteEmail(email, fullName) {
+    try {
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || 'noreply@dyanpitt.com',
+        to: email,
+        subject: 'Registration Complete - Welcome to Dyanpitt!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Registration Complete, ${fullName}!</h2>
+            <p>Your account has been successfully created.</p>
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #007bff; margin: 0;">Next Steps</h3>
+              <p style="margin: 10px 0;">Complete your membership and make your first payment to receive your Dyanpitt ID.</p>
+            </div>
+            <p>You can now login and complete your membership details.</p>
+            <p>Thank you for joining Dyanpitt!</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+            <p style="color: #666; font-size: 12px;">
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </div>
+        `
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Registration complete email sent successfully:', result.messageId);
+      
+      return {
+        success: true,
+        messageId: result.messageId
+      };
+    } catch (error) {
+      console.error('Error sending registration complete email:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
 }
 
 module.exports = new EmailService();

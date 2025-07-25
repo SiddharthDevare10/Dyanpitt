@@ -114,6 +114,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/member', require('./routes/member'));
 app.use('/api/booking', require('./routes/booking'));
 app.use('/api/tour', require('./routes/tour'));
+app.use('/api/cleanup', require('./routes/cleanup'));
 
 // Health check route
 app.get('/api/health', (req, res) => {

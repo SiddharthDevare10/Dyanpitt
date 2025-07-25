@@ -375,7 +375,7 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
     return calculateTotalPriceWithFees(originalPrice, formData.membershipDuration, formData.membershipType, formData.timeSlot, isFemale, userRegistrationDate, lastPackageDate);
   };
 
-  return (
+  return ( /*  */
     <div className="main-container membership-details-adjustment">
       <button 
         onClick={onBack}
