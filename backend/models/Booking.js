@@ -164,11 +164,9 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Indexes for faster queries
-bookingSchema.index({ dyanpittId: 1 });
-bookingSchema.index({ email: 1 });
-bookingSchema.index({ userId: 1 });
 bookingSchema.index({ email: 1 }, { unique: true }); // Ensure one booking per email
 bookingSchema.index({ dyanpittId: 1 }, { sparse: true }); // Sparse index for optional dyanpittId
+bookingSchema.index({ userId: 1 });
 bookingSchema.index({ membershipStartDate: 1 });
 bookingSchema.index({ membershipEndDate: 1 });
 bookingSchema.index({ paymentStatus: 1 });

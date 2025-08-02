@@ -32,6 +32,8 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
   // Validation states
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [showTourIndicator, setShowTourIndicator] = useState(false);
+  const [tourDataChecked, setTourDataChecked] = useState(false);
 
   // OTP Timer effect
   useEffect(() => {
@@ -43,6 +45,25 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     }
     return () => clearInterval(interval);
   }, [otpTimer]);
+
+  // Auto-check for tour data when user reaches profile step
+  useEffect(() => {
+    const checkForTourData = async () => {
+      // Only check when on profile step and haven't checked yet
+      if (currentStep !== 'profile' || tourDataChecked) {
+        return;
+      }
+
+      try {
+        setTourDataChecked(true);
+        await fetchAndPopulateTourData(formData.email);
+      } catch (error) {
+        console.error('Error auto-checking tour data:', error);
+      }
+    };
+
+    checkForTourData();
+  }, [currentStep, tourDataChecked, formData.email]);
 
   // Check for OAuth callback on component mount
   useEffect(() => {
@@ -60,6 +81,59 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       }
     }
   }, []);
+
+  const fetchAndPopulateTourData = async (email) => {
+    try {
+      if (!email) {
+        console.log('No email available to check for tour data');
+        return;
+      }
+      
+      // Fetch tour requests for this email
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests/${encodeURIComponent(email)}`);
+      
+      if (!response.ok) {
+        console.log('No tour data found for this email:', email);
+        return;
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data && result.data.length > 0) {
+        // Get the most recent tour request
+        const latestTour = result.data[0];
+        
+        // Pre-populate matching fields only if they're not already filled
+        setFormData(prev => ({
+          ...prev,
+          fullName: prev.fullName || latestTour.fullName || '',
+          gender: prev.gender || latestTour.gender || ''
+        }));
+
+        // Set indicator for tour data found
+        setShowTourIndicator(true);
+
+        // Hide indicator after 5 seconds
+        setTimeout(() => {
+          setShowTourIndicator(false);
+        }, 5000);
+
+        // Show success message in console
+        console.log('✅ Pre-populated profile form with tour data:', {
+          email: email,
+          fullName: latestTour.fullName,
+          gender: latestTour.gender
+        });
+        
+      } else {
+        console.log('No tour requests found for this email:', email);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching tour data:', error);
+      // Don't show error to user, just log it
+    }
+  };
 
   // Validation functions
   const validateEmail = (email) => {
@@ -708,6 +782,35 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
         <h1 className="main-title">Complete your Profile</h1>
         <p className="main-subtitle">Fill in your details to complete registration</p>
       </div>
+
+      {/* Tour Data Indicator */}
+      {showTourIndicator && (
+        <div 
+          className="tour-data-indicator"
+          style={{
+            background: 'white',
+            color: '#065f46',
+            border: '2px solid #10b981',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: '400',
+            fontStyle: 'italic',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            textAlign: 'justify',
+            lineHeight: '1.5'
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 12l2 2 4-4"/>
+            <circle cx="12" cy="12" r="9"/>
+          </svg>
+          Great! We found you visited Dyanpitt for a tour and pre-populated your name and gender from the Tour Details.
+        </div>
+      )}
 
       {errors.general && (
         <div className="error-message general-error">

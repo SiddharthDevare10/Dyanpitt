@@ -83,11 +83,9 @@ const memberSchema = new mongoose.Schema({
 });
 
 // Indexes for faster queries
-memberSchema.index({ dyanpittId: 1 });
-memberSchema.index({ email: 1 });
-memberSchema.index({ userId: 1 });
 memberSchema.index({ email: 1 }, { unique: true }); // Ensure one membership per email
 memberSchema.index({ dyanpittId: 1 }, { sparse: true }); // Sparse index for optional dyanpittId
+memberSchema.index({ userId: 1 });
 
 // Static method to find member by user (handles both states)
 memberSchema.statics.findByUser = async function(user) {
