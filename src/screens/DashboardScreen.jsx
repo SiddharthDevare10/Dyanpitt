@@ -100,12 +100,7 @@ export default function DashboardScreen() {
               <img 
                 src={`http://localhost:5000${user.avatar}`}
                 alt="Profile" 
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  borderRadius: '18px'
-                }}
+                className="dashboard-profile-image"
               />
             ) : (
               user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
@@ -120,7 +115,7 @@ export default function DashboardScreen() {
 
       <div className="dashboard-content">
         <div className="dashboard-welcome-section">
-          <div style={{ height: '140px', backgroundColor: '#f4f4f4', marginBottom: '30px', borderRadius: '20px' }}></div>
+          <div className="dashboard-welcome-placeholder"></div>
           <p className="dashboard-description">
             You have successfully logged in to your Dyanpitt account.
           </p>
@@ -167,12 +162,7 @@ export default function DashboardScreen() {
                     <img 
                       src={`http://localhost:5000${user.avatar}`}
                       alt="Current Profile" 
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        borderRadius: '20px'
-                      }}
+                      className="dashboard-current-profile-image"
                     />
                   ) : (
                     user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'

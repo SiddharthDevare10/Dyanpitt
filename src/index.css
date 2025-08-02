@@ -13,6 +13,263 @@ body {
   color: #000000;
 }
 
+/* ========================================
+   SEAT SELECTION MODAL STYLES
+   ======================================== */
+
+/* Seat Modal - Access Restricted Content */
+.seat-modal-access-restricted-content {
+  padding: 24px;
+  text-align: center;
+}
+
+.seat-modal-access-restricted-message {
+  margin-bottom: 16px;
+  color: #ef4444;
+  font-size: 16px;
+}
+
+.seat-modal-access-restricted-description {
+  color: #666;
+  font-size: 14px;
+}
+
+.seat-modal-seat-disabled {
+  pointer-events: none;
+}
+
+/* ========================================
+   PASSWORD STRENGTH INDICATOR STYLES
+   ======================================== */
+
+.password-strength-container {
+  margin-top: 8px;
+}
+
+.strength-bar-container {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.strength-bar-segment {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.strength-bar-segment.inactive {
+  background-color: #e5e7eb;
+}
+
+.strength-label-container {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.strength-label {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* ========================================
+   DASHBOARD SCREEN STYLES
+   ======================================== */
+
+/* Dashboard Profile Images */
+.dashboard-profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 18px;
+}
+
+.dashboard-welcome-placeholder {
+  height: 140px;
+  background-color: #f4f4f4;
+  margin-bottom: 30px;
+  border-radius: 20px;
+}
+
+.dashboard-current-profile-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 20px;
+}
+
+/* ========================================
+   TOUR REQUEST SCREEN STYLES
+   ======================================== */
+
+/* Tour Request Submit Button */
+.tour-request-submit-button {
+  margin-top: 40px;
+}
+
+/* Tour Request Modal Overlay */
+.tour-request-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+/* Tour Request Modal Content */
+.tour-request-modal-content {
+  background-color: white;
+  border-radius: 20px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Tour Request Modal Header */
+.tour-request-modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tour-request-modal-title {
+  margin: 0;
+  color: #333;
+}
+
+.tour-request-modal-close {
+  padding: 8px 12px;
+  font-size: 16px;
+  min-width: auto;
+  width: auto;
+}
+
+/* Tour Request Modal Body */
+.tour-request-modal-body {
+  padding: 20px;
+}
+
+.tour-request-declaration-points {
+  padding-left: 20px;
+  line-height: 1.6;
+  font-size: 12px;
+}
+
+.tour-request-declaration-point {
+  margin-bottom: 15px;
+}
+
+.tour-request-agreement-section {
+  margin-top: 30px;
+}
+
+.tour-request-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.tour-request-checkbox-text {
+  font-weight: bold;
+}
+
+/* Tour Request Modal Footer */
+.tour-request-modal-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+}
+
+.tour-request-modal-submit-button {
+  width: 50%;
+}
+
+/* ========================================
+   REGISTER SCREEN STYLES
+   ======================================== */
+
+/* Register Screen Tour Data Indicator */
+.register-tour-data-indicator {
+  background: white;
+  color: #065f46;
+  border: 2px solid #10b981;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: justify;
+  line-height: 1.5;
+}
+
+.register-profile-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 20px;
+}
+
+/* ========================================
+   BOOKING SCREEN STYLES
+   ======================================== */
+
+/* Booking Screen Spacers */
+.booking-screen-spacer {
+  height: 15px;
+}
+
+.booking-screen-divider {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 15px 0;
+}
+
+/* ========================================
+   MEMBERSHIP DETAILS SCREEN STYLES
+   ======================================== */
+
+.membership-details-tour-indicator {
+  background: white;
+  color: #065f46;
+  border: 2px solid #10b981;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 400;
+  font-style: italic;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: justify;
+  line-height: 1.5;
+}
+
+/* ========================================
+   LOGIN SCREEN STYLES
+   ======================================== */
+
+/* Login Screen Signup Link */
+.login-screen-signup-link {
+  text-align: left;
+  margin-top: -5px;
+}
+
 /* Main Container */
 .main-container {
   min-height: 100vh;

@@ -787,22 +787,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       {showTourIndicator && (
         <div 
           className="tour-data-indicator"
-          style={{
-            background: 'white',
-            color: '#065f46',
-            border: '2px solid #10b981',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '400',
-            fontStyle: 'italic',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            textAlign: 'justify',
-            lineHeight: '1.5'
-          }}
+          className="register-tour-data-indicator"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 12l2 2 4-4"/>
@@ -826,12 +811,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
               <img 
                 src={formData.profilePictureBase64} 
                 alt="Profile Preview" 
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  borderRadius: '20px'
-                }}
+                className="register-profile-preview-image"
               />
             ) : (
               formData.fullName ? formData.fullName.charAt(0).toUpperCase() : 'U'

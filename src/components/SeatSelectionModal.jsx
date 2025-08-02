@@ -23,11 +23,11 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
               <X size={20} />
             </button>
           </div>
-          <div style={{ padding: '24px', textAlign: 'center' }}>
-            <p style={{ marginBottom: '16px', color: '#ef4444', fontSize: '16px' }}>
+          <div className="seat-modal-access-restricted-content">
+            <p className="seat-modal-access-restricted-message">
               Dhyandhara Kaksh is exclusively for male students.
             </p>
-            <p style={{ color: '#666', fontSize: '14px' }}>
+            <p className="seat-modal-access-restricted-description">
               Please select a different study area that accommodates female students.
             </p>
           </div>
@@ -238,7 +238,7 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                         key={`${row.row}-zero-${index}`}
                         className="seat zero-value-seat"
                         disabled={true}
-                        style={{ pointerEvents: 'none' }}
+                        className="seat-modal-seat-disabled"
                       >
                         <span className="seat-number">{seatNum}</span>
                       </button>

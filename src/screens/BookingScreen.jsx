@@ -506,9 +506,9 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
         </div>
 
         {/* Spacing Break with Line */}
-        <div style={{ height: '15px' }}></div>
-        <hr style={{ border: 'none', borderTop: '1px solid #e0e0e0', margin: '15px 0' }} />
-        <div style={{ height: '15px' }}></div>
+        <div className="booking-screen-spacer"></div>
+        <hr className="booking-screen-divider" />
+        <div className="booking-screen-spacer"></div>
 
         {/* Price Display with Fee Breakdown */}
         {formData.membershipType && formData.membershipDuration && formData.timeSlot && (

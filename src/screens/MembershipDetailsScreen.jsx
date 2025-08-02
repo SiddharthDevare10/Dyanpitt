@@ -361,22 +361,7 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.9 }}
                 transition={{ duration: 0.4 }}
-                style={{
-                  background: 'white',
-                  color: '#065f46',
-                  border: '2px solid #10b981',
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  fontWeight: '400',
-                  fontStyle: 'italic',
-                  marginTop: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  textAlign: 'justify',
-                  lineHeight: '1.5'
-                }}
+                className="membership-details-tour-indicator"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 12l2 2 4-4"/>

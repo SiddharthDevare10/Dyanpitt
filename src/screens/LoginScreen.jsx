@@ -232,7 +232,7 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
       >
         <h1 className="main-title">Welcome Back</h1>
         {/* Sign Up Link */}
-        <div className="signup-link" style={{ textAlign: 'left', marginTop: '-5px' }}>
+        <div className="signup-link login-screen-signup-link">
           <p className="signup-text">
             Don't have an account?{' '}
             <motion.button 

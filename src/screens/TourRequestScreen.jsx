@@ -627,100 +627,65 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
           {errors.startDate && <div className="error-message">{errors.startDate}</div>}
         </div>
 
-        <button type="submit" className="login-button" disabled={isLoading} style={{ marginTop: '40px' }}>
+        <button type="submit" className="login-button tour-request-submit-button" disabled={isLoading}>
           {isLoading ? 'Submitting Request...' : 'Submit Tour Request'}
         </button>
       </form>
 
       {/* Self-Declaration Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)} style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{
-            backgroundColor: 'white',
-            borderRadius: '20px',
-            maxWidth: '600px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
-          }}>
-            <div className="modal-header" style={{
-              padding: '20px',
-              borderBottom: '1px solid #eee',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <h2 style={{ margin: 0, color: '#333' }}>Self-Declaration</h2>
+        <div className="modal-overlay tour-request-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-content tour-request-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header tour-request-modal-header">
+              <h2 className="tour-request-modal-title">Self-Declaration</h2>
               <button 
                 className="login-button modal-close"
                 onClick={() => setShowModal(false)}
-                style={{
-                  padding: '8px 12px',
-                  fontSize: '16px',
-                  minWidth: 'auto',
-                  width: 'auto'
-                }}
+                className="tour-request-modal-close"
               >
                 ×
               </button>
             </div>
             
-            <div className="modal-body" style={{ padding: '20px' }}>
+            <div className="modal-body tour-request-modal-body">
               <div className="declaration-content">
                 <div className="declaration-points">
-                  <ul style={{ paddingLeft: '20px', lineHeight: '1.6', fontSize: '12px' }}>
-                    <li style={{ marginBottom: '15px' }}>I declare that all information provided in this form is true and correct to the best of my knowledge. Any false or misleading information provided may result in the rejection of my application.</li>
+                  <ul className="tour-request-declaration-points">
+                    <li className="tour-request-declaration-point">I declare that all information provided in this form is true and correct to the best of my knowledge. Any false or misleading information provided may result in the rejection of my application.</li>
                     
-                    <li style={{ marginBottom: '15px' }}>I am committed to maintaining a peaceful environment and will adhere to all the rules and regulations set forth by Dnyanpeeth Abhyasika. I will respect the rights of my fellow students and ensure that my behavior and conduct do not disrupt the learning process.</li>
+                    <li className="tour-request-declaration-point">I am committed to maintaining a peaceful environment and will adhere to all the rules and regulations set forth by Dnyanpeeth Abhyasika. I will respect the rights of my fellow students and ensure that my behavior and conduct do not disrupt the learning process.</li>
                     
-                    <li style={{ marginBottom: '15px' }}>I will use facilities responsibly and comply with Dnyanpeeth Abhyasika's regulations, avoiding disruptive or illegal activities.</li>
+                    <li className="tour-request-declaration-point">I will use facilities responsibly and comply with Dnyanpeeth Abhyasika's regulations, avoiding disruptive or illegal activities.</li>
                     
-                    <li style={{ marginBottom: '15px' }}>I declare that I won't consume tobacco or gutkha in Dnyanpeeth Abhyasika campus. Spitting after consuming such substances is prohibited, and I will maintain a clean and healthy environment for all.</li>
+                    <li className="tour-request-declaration-point">I declare that I won't consume tobacco or gutkha in Dnyanpeeth Abhyasika campus. Spitting after consuming such substances is prohibited, and I will maintain a clean and healthy environment for all.</li>
                     
-                    <li style={{ marginBottom: '15px' }}>I will take full responsibility for the personal belongings that I bring into Dnyanpeeth Abhyasika and will not hold Dnyanpeeth Abhyasika responsible for any loss or damage to my property.</li>
+                    <li className="tour-request-declaration-point">I will take full responsibility for the personal belongings that I bring into Dnyanpeeth Abhyasika and will not hold Dnyanpeeth Abhyasika responsible for any loss or damage to my property.</li>
                     
-                    <li style={{ marginBottom: '15px' }}>I agree to pay the necessary fees for membership at Dnyanpeeth Abhyasika, including the Non-Refundable Deposit of Rs. 699/-, which will be valid for one year from the date of my membership.</li>
+                    <li className="tour-request-declaration-point">I agree to pay the necessary fees for membership at Dnyanpeeth Abhyasika, including the Non-Refundable Deposit of Rs. 699/-, which will be valid for one year from the date of my membership.</li>
                     
-                    <li style={{ marginBottom: '15px' }}>By submitting this form, I acknowledge that I have read, understood, and agreed to the terms and conditions set by the Dnyanpeeth Abhyasika.</li>
+                    <li className="tour-request-declaration-point">By submitting this form, I acknowledge that I have read, understood, and agreed to the terms and conditions set by the Dnyanpeeth Abhyasika.</li>
                   </ul>
                 </div>
                 
-                <div className="agreement-section" style={{ marginTop: '30px' }}>
-                  <label className="checkbox-container" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div className="agreement-section tour-request-agreement-section">
+                  <label className="checkbox-container tour-request-checkbox-container">
                     <input
                       type="checkbox"
                       checked={isAgreed}
                       onChange={(e) => setIsAgreed(e.target.checked)}
                     />
-                    <span className="checkbox-text" style={{ fontWeight: 'bold' }}>I Agree</span>
+                    <span className="checkbox-text tour-request-checkbox-text">I Agree</span>
                   </label>
                 </div>
               </div>
             </div>
             
-            <div className="modal-footer" style={{
-              padding: '20px',
-              borderTop: '1px solid #eee',
-              display: 'flex',
-              justifyContent: 'center'
-            }}>
+            <div className="modal-footer tour-request-modal-footer">
               <button 
                 className="login-button"
                 onClick={handleFinalSubmit}
                 disabled={!isAgreed || isLoading}
-                style={{ width: '50%' }}
+                className="tour-request-modal-submit-button"
               >
                 {isLoading ? 'Submitting...' : 'Submit'}
               </button>
