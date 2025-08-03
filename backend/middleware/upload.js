@@ -1,6 +1,47 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+
+// Track uploaded files for cleanup
+const uploadedFiles = new Map(); // userId -> [filenames]
+
+// Cleanup orphaned files older than 24 hours
+const cleanupOrphanedFiles = () => {
+  const uploadsDir = path.join(__dirname, '../uploads');
+  const selfiesDir = path.join(uploadsDir, 'selfies');
+  
+  const cleanupDirectory = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    
+    const files = fs.readdirSync(dir);
+    const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+    
+    files.forEach(file => {
+      const filePath = path.join(dir, file);
+      const stats = fs.statSync(filePath);
+      
+      // Delete files older than 24 hours that are not referenced in database
+      if (stats.mtime.getTime() < twentyFourHoursAgo) {
+        // Check if file is temporary (contains timestamp in name)
+        if (file.includes('temp_') || file.includes('anonymous_')) {
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`Cleaned up orphaned file: ${file}`);
+          } catch (error) {
+            console.error(`Error deleting orphaned file ${file}:`, error);
+          }
+        }
+      }
+    });
+  };
+  
+  cleanupDirectory(uploadsDir);
+  cleanupDirectory(selfiesDir);
+};
+
+// Run cleanup every hour
+setInterval(cleanupOrphanedFiles, 60 * 60 * 1000);
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -14,12 +55,13 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
-    // Generate unique filename: userId_timestamp_originalname
+    // Generate unique filename: userId_timestamp_uuid_originalname
     const userId = req.user?.userId || 'anonymous';
     const timestamp = Date.now();
+    const uuid = crypto.randomBytes(8).toString('hex'); // 16 char unique string
     const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext);
-    cb(null, `${userId}_${timestamp}_${name}${ext}`);
+    const name = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9]/g, '_'); // Sanitize filename
+    cb(null, `${userId}_${timestamp}_${uuid}_${name}${ext}`);
   }
 });
 

@@ -1,27 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import DatePicker from '../components/DatePicker';
+import DatePicker from '../../components/DatePicker';
 import { Eye, EyeOff, Check, Calendar } from 'lucide-react';
-import apiService from '../services/api';
-import CongratulationsScreen from './CongratulationsScreen';
-import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
-import CustomDropdown from '../components/CustomDropdown';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+import CongratulationsScreen from '../user/CongratulationsScreen';
+import PasswordStrengthIndicator from '../../components/PasswordStrengthIndicator';
+import CustomDropdown from '../../components/CustomDropdown';
+import apiService from '../../services/api';
 
-export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratulations, onNavigateBack }) {
+export default function RegisterScreen() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  
   // Registration steps: 'email', 'otp', 'profile', 'congratulations'
   const [currentStep, setCurrentStep] = useState('email');
   
-  const [formData, setFormData] = useState({
-    email: '',
-    otp: '',
-    fullName: '',
-    countryCode: '+1',
-    phoneNumber: '',
-    dateOfBirth: '',
-    gender: '',
-    password: '',
-    confirmPassword: '',
-    profilePicture: null,
-    profilePictureBase64: null
+  const [formData, setFormData] = useState(() => {
+    // Recover form data from sessionStorage to prevent data loss
+    const savedData = sessionStorage.getItem('registrationFormData');
+    return savedData ? JSON.parse(savedData) : {
+      email: '',
+      otp: '',
+      fullName: '',
+      countryCode: '+91', // Fixed to India format
+      phoneNumber: '',
+      dateOfBirth: '',
+      gender: '',
+      password: '',
+      confirmPassword: '',
+      profilePicture: null,
+      profilePictureBase64: null
+    };
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +52,12 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
         setOtpTimer(prev => prev - 1);
       }, 1000);
     }
-    return () => clearInterval(interval);
+    // Cleanup interval to prevent memory leaks
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
   }, [otpTimer]);
 
   // Auto-check for tour data when user reaches profile step
@@ -72,13 +86,11 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     
     if (token) {
       // Handle OAuth callback
-      const success = apiService.handleOAuthCallback(token);
-      if (success) {
-        // Clear URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
-        // Redirect to dashboard or show success message
-        // You can redirect to dashboard here
-      }
+      // Handle OAuth callback - using navigate instead
+      // Clear URL parameters and redirect
+      window.history.replaceState({}, document.title, window.location.pathname);
+      console.log('OAuth registration successful');
+      navigate('/dashboard');
     }
   }, []);
 
@@ -189,17 +201,14 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     if (!phoneNumber) {
       return 'Phone number is required';
     }
-    if (phoneNumber.length < 10) {
-      return 'Phone number must be at least 10 digits long';
-    }
-    if (phoneNumber.length > 15) {
-      return 'Phone number is too long (maximum 15 digits)';
+    if (phoneNumber.length !== 10) {
+      return 'Phone number must be exactly 10 digits long';
     }
     if (!/^\d+$/.test(phoneNumber)) {
       return 'Phone number must contain only numbers (0-9)';
     }
-    if (phoneNumber.startsWith('0')) {
-      return 'Phone number should not start with 0 (country code is already selected)';
+    if (!/^[6-9]/.test(phoneNumber)) {
+      return 'Phone number must start with 6, 7, 8, or 9 (valid Indian mobile numbers)';
     }
     return '';
   };
@@ -331,7 +340,19 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
         setErrors({ general: response.message || 'Invalid OTP. Please try again.' });
       }
     } catch (error) {
-      setErrors({ general: error.message || 'Invalid OTP. Please try again.' });
+      console.error('OTP verification error:', error);
+      console.error('Error details:', error.message);
+      
+      // Try to get more specific error from response
+      if (error.message && error.message.includes('Validation failed')) {
+        setErrors({ otp: 'Please enter a valid 6-digit OTP (numbers only)' });
+      } else if (error.message && error.message.includes('Invalid OTP')) {
+        setErrors({ otp: 'Invalid OTP. Please check and try again.' });
+      } else if (error.message && error.message.includes('expired')) {
+        setErrors({ otp: 'OTP has expired. Please request a new one.' });
+      } else {
+        setErrors({ general: error.message || 'Invalid OTP. Please try again.' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -357,13 +378,22 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
     }
   };
 
-  // Handle input changes with validation
+  // Handle input changes with validation - improved timing
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    
+    // Persist form data to prevent loss on page refresh
+    sessionStorage.setItem('registrationFormData', JSON.stringify(newFormData));
     
     // Clear general errors when user starts typing
     if (errors.general) {
       setErrors(prev => ({ ...prev, general: '' }));
+    }
+    
+    // Clear field-specific error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
     
     if (touched[field]) {
@@ -567,7 +597,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
         email: formData.email,
         password: formData.password,
         fullName: formData.fullName,
-        phoneNumber: fullPhoneNumber,
+        phoneNumber: `+91${formData.phoneNumber}`,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender
       };
@@ -583,6 +613,9 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
         // Registration completed successfully - no Dyanpitt ID yet
         // User will get Dyanpitt ID after completing membership and payment
         
+        // Clear form data from sessionStorage since registration is complete
+        sessionStorage.removeItem('registrationFormData');
+        
         // Store user data for navigation
         const userData = {
           ...formData,
@@ -590,13 +623,8 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
           token: response.token
         };
         
-        // Navigate directly to dashboard - no congratulations screen yet
-        if (onNavigateToLogin) {
-          // For now, redirect to login with success message
-          // In a real app, you might want to auto-login or navigate to dashboard
-          alert('Registration completed successfully! You can now login. Complete your membership to get your Dyanpitt ID.');
-          onNavigateToLogin();
-        }
+        // Show congratulations screen instead of alert
+        setCurrentStep('congratulations');
       } else {
         setErrors({ general: response.message || 'Registration failed. Please try again.' });
       }
@@ -618,9 +646,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
 
 
   const handleSignIn = () => {
-    if (onNavigateToLogin) {
-      onNavigateToLogin();
-    }
+    navigate('/login');
   };
 
 
@@ -628,17 +654,12 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
   const renderEmailStep = () => (
     <div className="main-container">
       {/* Back Button */}
-      {onNavigateBack && (
-        <button 
-          onClick={onNavigateBack} 
-          className="back-button"
-          disabled={isLoading}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M12 19L5 12L12 5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
+      <Link to="/" className="back-button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M12 19L5 12L12 5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        ← Back
+      </Link>
       <div className="header-section">
         <h1 className="main-title">Create your Account</h1>
       </div>
@@ -893,31 +914,16 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       <div className="input-group">
         <label className="input-label">Mobile Number</label>
         <div className="phone-input-wrapper">
-          <select
-            value={formData.countryCode}
-            onChange={(e) => handleInputChange('countryCode', e.target.value)}
-            className="country-code-select"
-            disabled={isLoading}
-          >
-            <option value="+1">+1</option>
-            <option value="+44">+44</option>
-            <option value="+91">+91</option>
-            <option value="+86">+86</option>
-            <option value="+81">+81</option>
-            <option value="+49">+49</option>
-            <option value="+33">+33</option>
-            <option value="+39">+39</option>
-            <option value="+34">+34</option>
-            <option value="+7">+7</option>
-          </select>
+          <div className="country-code-display">+91</div>
           <input
             type="tel"
-            placeholder="Phone number"
+            placeholder="Enter 10-digit mobile number"
             value={formData.phoneNumber}
-            onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => handleInputChange('phoneNumber', e.target.value.replace(/\D/g, '').slice(0, 10))}
             onBlur={() => handleBlur('phoneNumber')}
             className={`form-input phone-number-input ${errors.phoneNumber ? 'input-error' : ''}`}
             disabled={isLoading}
+            maxLength={10}
           />
         </div>
         {errors.phoneNumber && (
@@ -1053,6 +1059,7 @@ export default function RegisterScreen({ onNavigateToLogin, onNavigateToCongratu
       {currentStep === 'email' && renderEmailStep()}
       {currentStep === 'otp' && renderOtpStep()}
       {currentStep === 'profile' && renderProfileStep()}
+      {currentStep === 'congratulations' && <CongratulationsScreen email={formData.email} />}
     </>
   );
 }

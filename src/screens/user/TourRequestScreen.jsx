@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import DatePicker from '../components/DatePicker';
-import CustomDropdown from '../components/CustomDropdown';
+import { useNavigate } from 'react-router-dom';
+import DatePicker from '../../components/DatePicker';
+import CustomDropdown from '../../components/CustomDropdown';
 
-export default function TourRequestScreen({ onBack, onSubmit }) {
+export default function TourRequestScreen() {
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -65,6 +68,13 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
     
     if (!formData.phone.trim()) {
       newErrors.phone = 'Phone number is required';
+    } else {
+      // Validate Indian mobile number format
+      const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+      const cleanPhone = formData.phone.replace(/\s+/g, '');
+      if (!phoneRegex.test(cleanPhone)) {
+        newErrors.phone = 'Please enter a valid 10-digit Indian mobile number';
+      }
     }
     
     if (!formData.gender) {
@@ -164,7 +174,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
       const tourRequestData = {
         email: formData.email, // Primary identifier for tour requests
         fullName: formData.fullName,
-        phoneNumber: formData.phone,
+        phoneNumber: formData.phone.startsWith('+91') ? formData.phone : `+91${formData.phone.replace(/^\+?91?/, '')}`,
         gender: formData.gender,
         tourDate: formData.tourDate,
         tourTime: formData.tourTime,
@@ -224,9 +234,7 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
   };
 
   const handleBack = () => {
-    if (onBack) {
-      onBack();
-    }
+    navigate('/');
   };
 
 
@@ -639,11 +647,13 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
             <div className="modal-header tour-request-modal-header">
               <h2 className="tour-request-modal-title">Self-Declaration</h2>
               <button 
-                className="login-button modal-close"
+                className="back-button tour-request-modal-close"
                 onClick={() => setShowModal(false)}
-                className="tour-request-modal-close"
+                style={{ position: 'relative', top: 'auto', left: 'auto' }}
               >
-                ×
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </div>
             
@@ -682,12 +692,18 @@ export default function TourRequestScreen({ onBack, onSubmit }) {
             
             <div className="modal-footer tour-request-modal-footer">
               <button 
-                className="login-button"
+                className={`login-button tour-request-modal-submit-button ${isLoading ? 'loading' : ''}`}
                 onClick={handleFinalSubmit}
                 disabled={!isAgreed || isLoading}
-                className="tour-request-modal-submit-button"
               >
-                {isLoading ? 'Submitting...' : 'Submit'}
+                {isLoading ? (
+                  <>
+                    <div className="spinner"></div>
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit'
+                )}
               </button>
             </div>
           </div>

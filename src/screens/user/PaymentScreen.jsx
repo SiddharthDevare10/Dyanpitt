@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CreditCard, Smartphone, Building } from 'lucide-react';
-import apiService from '../services/api';
-import { getPrice } from '../data/pricing';
-import { calculateTotalDiscount, qualifiesForFemaleDiscount, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../data/discounts';
+import { ArrowLeft, CreditCard, Smartphone, Building, Banknote } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+import apiService from '../../services/api';
+import { getPrice } from '../../data/pricing';
+import { calculateTotalDiscount, qualifiesForFemaleDiscount, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../../data/discounts';
 
-export default function PaymentScreen({ userData, onBack, onContinue }) {
+export default function PaymentScreen() {
+  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
+  
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
@@ -18,16 +23,10 @@ export default function PaymentScreen({ userData, onBack, onContinue }) {
       description: 'Pay using UPI apps like GPay, PhonePe, Paytm'
     },
     {
-      id: 'card',
-      name: 'Credit/Debit Card',
-      icon: <CreditCard size={24} />,
-      description: 'Visa, Mastercard, RuPay cards accepted'
-    },
-    {
-      id: 'netbanking',
-      name: 'Net Banking',
-      icon: <Building size={24} />,
-      description: 'Pay directly from your bank account'
+      id: 'cash',
+      name: 'Cash Payment',
+      icon: <Banknote size={24} />,
+      description: 'Pay in cash at the center'
     }
   ];
 
@@ -61,23 +60,25 @@ export default function PaymentScreen({ userData, onBack, onContinue }) {
           // Dyanpitt ID generated! Show congratulations and force re-login
           
           // Navigate to congratulations screen with new Dyanpitt ID
-          onContinue({
-            ...userData,
+          updateUser({
+            ...user,
             ...response.user,
             dyanpittId: response.dyanpittId,
             showCongratulations: true,
             bookingCompleted: true,
             paymentCompleted: true
           });
+          navigate('/congratulations');
         } else {
           // Regular payment completion without Dyanpitt ID generation
           alert('Payment completed successfully!');
-          onContinue({
-            ...userData,
+          updateUser({
+            ...user,
             ...response.user,
             bookingCompleted: true,
             paymentCompleted: true
           });
+          navigate('/dashboard');
         }
       } else {
         setErrors({ payment: response.message || 'Payment failed' });
@@ -89,15 +90,15 @@ export default function PaymentScreen({ userData, onBack, onContinue }) {
     }
   };
 
-  const { bookingDetails, paymentAmount } = userData || {};
+  const { bookingDetails, paymentAmount } = user || {};
   
   // Calculate pricing breakdown
   const calculatePriceBreakdown = () => {
     if (!bookingDetails) return null;
     
-    const isFemale = userData?.gender === 'female';
-    const userRegistrationDate = userData?.registrationDate;
-    const lastPackageDate = userData?.lastPackageDate;
+    const isFemale = user?.gender === 'female';
+    const userRegistrationDate = user?.registrationDate;
+    const lastPackageDate = user?.lastPackageDate;
     
     // Get seat tier
     const getSeatTier = (seatId) => {
@@ -174,7 +175,7 @@ export default function PaymentScreen({ userData, onBack, onContinue }) {
   return (
     <div className="main-container membership-details-adjustment">
       <button 
-        onClick={onBack}
+        onClick={() => navigate(-1)}
         className="back-button"
         disabled={isProcessing}
       >

@@ -1,16 +1,19 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const LandingScreen = ({ onNavigateToLogin, onNavigateToRegister, onNavigateToTour }) => {
+const LandingScreen = () => {
+  const navigate = useNavigate();
+
   const handleTour = () => {
-    onNavigateToTour();
+    navigate('/tour');
   };
 
   const handleSignIn = () => {
-    onNavigateToLogin();
+    navigate('/login');
   };
 
   const handleSignUp = () => {
-    onNavigateToRegister();
+    navigate('/register');
   };
 
   return (

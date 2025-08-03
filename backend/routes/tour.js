@@ -7,7 +7,7 @@ const { body, validationResult } = require('express-validator');
 const validateTourRequest = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('fullName').trim().isLength({ min: 2 }).withMessage('Full name must be at least 2 characters'),
-  body('phoneNumber').trim().isLength({ min: 10 }).withMessage('Valid phone number is required'),
+  body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format with valid Indian mobile number'),
   body('gender').isIn(['male', 'female', 'other', 'prefer-not-to-say']).withMessage('Valid gender is required'),
   body('tourDate').isISO8601().withMessage('Valid tour date is required'),
   body('tourTime').isIn([

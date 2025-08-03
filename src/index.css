@@ -148,10 +148,11 @@ body {
 }
 
 .tour-request-modal-close {
-  padding: 8px 12px;
+  padding: 8px;
   font-size: 16px;
   min-width: auto;
   width: auto;
+  margin-left: auto;
 }
 
 /* Tour Request Modal Body */
@@ -264,10 +265,213 @@ body {
    LOGIN SCREEN STYLES
    ======================================== */
 
-/* Login Screen Signup Link */
-.login-screen-signup-link {
+/* Login Screen Container */
+.login-screen-container {
+  /* Inherits from main-container */
+}
+
+/* Login Screen Header */
+.login-screen-header {
+  margin-bottom: 20px;
+}
+
+.login-screen-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #000000;
+  letter-spacing: -0.025em;
+  margin-bottom: 1px;
+}
+
+/* Login Screen - Don't have an account? Sign up */
+.login-dont-have-account {
   text-align: left;
-  margin-top: -5px;
+  margin-top: -2px;
+  margin-bottom: 0;
+}
+
+.login-dont-have-account p {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.login-dont-have-account button {
+  background: none;
+  border: none;
+  color: #000000;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.login-dont-have-account button:hover {
+  color: #374151;
+}
+
+.login-dont-have-account button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Login Screen Form Elements */
+.login-screen-input-group {
+  margin-bottom: 20px;
+}
+
+.login-screen-input-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+  margin-bottom: 8px;
+}
+
+.login-screen-form-input {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 16px;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease;
+}
+
+.login-screen-form-input:focus {
+  outline: none;
+  border-color: #000000;
+}
+
+.login-screen-form-input.error {
+  border-color: #ef4444;
+}
+
+/* Login Screen Password Wrapper */
+.login-screen-password-wrapper {
+  position: relative;
+}
+
+.login-screen-password-input {
+  padding-right: 50px;
+}
+
+.login-screen-password-toggle {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+/* Login Screen Form Options */
+.login-screen-form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.login-screen-remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #000000;
+  cursor: pointer;
+}
+
+.login-screen-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.login-screen-forgot-password {
+  background: none;
+  border: none;
+  color: #000000;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.login-screen-forgot-password:hover {
+  color: #374151;
+}
+
+/* Login Screen Submit Button */
+.login-screen-submit-button {
+  width: 100%;
+  padding: 16px;
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.login-screen-submit-button:hover {
+  background-color: #374151;
+  transform: translateY(-2px);
+}
+
+.login-screen-submit-button:active {
+  transform: translateY(0);
+}
+
+.login-screen-submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-screen-submit-button.loading {
+  opacity: 0.8;
+}
+
+/* Login Screen Error Messages */
+.login-screen-error-message {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.login-screen-general-error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* Login Screen Loading Spinner */
+.login-screen-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Main Container */
@@ -368,6 +572,9 @@ body {
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
+  text-decoration: none;
+  color: transparent;
+  font-size: 0;
 }
 
 .back-button:hover {
@@ -388,6 +595,12 @@ body {
 .back-button:disabled:hover {
   background-color: #5B5B5B;
   transform: none;
+}
+
+.back-button svg {
+  display: block;
+  width: 20px;
+  height: 20px;
 }
 
 /* Input Groups */
@@ -2584,7 +2797,6 @@ select.form-input option:checked {
 
 .fee-breakdown-item.total-fee {
   padding: 12px 0;
-  border-top: 2px solid #000000;
   margin-top: 8px;
 }
 
@@ -2678,6 +2890,33 @@ select.form-input option:checked {
   color: #6b7280;
   font-weight: 400;
   margin-bottom: 40px;
+}
+
+.email-highlight {
+  font-weight: bold;
+}
+
+.congratulations-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.congratulations-buttons .login-button {
+  flex: 1;
+  margin: 0;
+}
+
+.congratulations-buttons .secondary-button {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.congratulations-buttons .secondary-button:hover {
+  background-color: #e5e7eb;
+  color: #111827;
 }
 
 .user-info-card {
@@ -4145,3 +4384,187 @@ select.form-input option:checked {
 }
 
 
+
+
+/* ========================================
+   ADMIN SCREEN STYLES
+   ======================================== */
+
+/* Admin Dashboard */
+.admin-dashboard-container {
+  /* Inherits from main-container */
+}
+
+.admin-dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.admin-stat-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+
+.admin-stat-card h3 {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+}
+
+.admin-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.admin-action-button {
+  padding: 16px 20px;
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-action-button:hover {
+  background-color: #374151;
+  transform: translateY(-2px);
+}
+
+/* User Management */
+.user-management-container {
+  /* Inherits from main-container */
+}
+
+.user-management-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.search-section {
+  margin-bottom: 20px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 16px;
+  background-color: #ffffff;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #000000;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.user-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.user-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.user-info p {
+  margin: 2px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.user-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.action-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-button.view {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.action-button.edit {
+  background-color: #f59e0b;
+  color: white;
+}
+
+.action-button.delete {
+  background-color: #ef4444;
+  color: white;
+}
+
+.action-button:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+}
+
+.empty-state p {
+  font-size: 16px;
+  margin: 0;
+}
+
+.country-code-display {
+  width: 60px;
+  padding: 16px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 16px;
+  background-color: #f9fafb;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+}

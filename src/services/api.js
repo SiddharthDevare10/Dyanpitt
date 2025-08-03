@@ -217,14 +217,20 @@ class ApiService {
   }
 
   async verifyOtp(email, otp) {
+    // Clean the OTP - remove any whitespace and ensure it's a string
+    const cleanOtp = String(otp).trim().replace(/\s+/g, '');
+    
     console.log('=== API SERVICE VERIFY OTP DEBUG ===');
     console.log('Email:', email);
-    console.log('OTP:', otp);
-    console.log('Request payload:', { email, otp });
+    console.log('OTP (original):', otp);
+    console.log('OTP (cleaned):', cleanOtp);
+    console.log('OTP length:', cleanOtp.length);
+    console.log('OTP is numeric:', /^\d+$/.test(cleanOtp));
+    console.log('Request payload:', { email, otp: cleanOtp });
     
     return this.request('/auth/verify-otp', {
       method: 'POST',
-      body: JSON.stringify({ email, otp })
+      body: JSON.stringify({ email, otp: cleanOtp })
     });
   }
 

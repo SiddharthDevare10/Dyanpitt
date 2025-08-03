@@ -57,6 +57,16 @@ const userSchema = new mongoose.Schema({
     trim: true
   },
   
+  // Email verification token and expiry for persistent verification state
+  emailVerificationToken: {
+    type: String,
+    default: null
+  },
+  emailVerificationExpiry: {
+    type: Date,
+    default: null
+  },
+  
   // Cleanup timestamp for temporary users
   cleanupAt: {
     type: Date,
@@ -77,6 +87,13 @@ const userSchema = new mongoose.Schema({
   lastLogin: {
     type: Date,
     default: null
+  },
+  
+  // User Role
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'super_admin'],
+    default: 'user'
   },
   
   // Registration tracking
@@ -264,51 +281,135 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Generate Dyanpitt ID
+// Generate Dyanpitt ID with atomic operation to prevent race conditions
 userSchema.statics.generateDyanpittId = async function() {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const monthKey = `${year}${month}`;
   
-  // Find the highest registration number for this month
-  const lastUser = await this.findOne(
-    { registrationMonth: monthKey },
-    {},
-    { sort: { registrationNumber: -1 } }
-  );
+  // Use MongoDB's findOneAndUpdate with atomic increment to prevent race conditions
+  let attempts = 0;
+  const maxAttempts = 5;
   
-  const nextNumber = lastUser ? lastUser.registrationNumber + 1 : 1;
-  const registrationNumber = String(nextNumber).padStart(3, '0');
-  
-  return {
-    dyanpittId: `@DA${year}${month}${registrationNumber}`,
-    registrationMonth: monthKey,
-    registrationNumber: nextNumber
-  };
+  while (attempts < maxAttempts) {
+    try {
+      // Find the highest registration number for this month and increment atomically
+      const result = await this.findOneAndUpdate(
+        { registrationMonth: monthKey },
+        { $inc: { registrationNumber: 1 } },
+        { 
+          sort: { registrationNumber: -1 },
+          new: true,
+          upsert: false
+        }
+      );
+      
+      let nextNumber;
+      if (result) {
+        nextNumber = result.registrationNumber;
+      } else {
+        // No existing user for this month, start with 1
+        // Create a counter document to track the sequence
+        try {
+          await this.create({
+            email: `counter_${monthKey}@system.local`,
+            dyanpittId: `counter_${monthKey}`,
+            fullName: 'System Counter',
+            phoneNumber: `+91${monthKey}0000`,
+            dateOfBirth: now,
+            gender: 'other',
+            password: 'system',
+            registrationMonth: monthKey,
+            registrationNumber: 1,
+            isEmailVerified: true,
+            profileCompleted: false,
+            isActive: false // Mark as inactive system user
+          });
+          nextNumber = 1;
+        } catch (error) {
+          // Counter might have been created by another process, try again
+          attempts++;
+          continue;
+        }
+      }
+      
+      const registrationNumber = String(nextNumber).padStart(3, '0');
+      
+      return {
+        dyanpittId: `@DA${year}${month}${registrationNumber}`,
+        registrationMonth: monthKey,
+        registrationNumber: nextNumber
+      };
+      
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        throw new Error(`Failed to generate Dyanpitt ID after ${maxAttempts} attempts: ${error.message}`);
+      }
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
 };
 
-// Assign Dyanpitt ID to user after payment (instance method)
+// Assign Dyanpitt ID to user after payment (instance method) - atomic operation
 userSchema.methods.assignDyanpittId = async function() {
   if (this.hasDnyanpittId) {
     throw new Error('User already has a Dyanpitt ID');
   }
   
-  const { dyanpittId, registrationMonth, registrationNumber } = await this.constructor.generateDyanpittId();
+  let attempts = 0;
+  const maxAttempts = 3;
   
-  this.dyanpittId = dyanpittId;
-  this.registrationMonth = registrationMonth;
-  this.registrationNumber = registrationNumber;
-  this.hasDnyanpittId = true;
-  this.dnyanpittIdGenerated = new Date();
-  
-  await this.save();
-  
-  return {
-    dyanpittId,
-    registrationMonth,
-    registrationNumber
-  };
+  while (attempts < maxAttempts) {
+    try {
+      const { dyanpittId, registrationMonth, registrationNumber } = await this.constructor.generateDyanpittId();
+      
+      // Use atomic update to prevent race conditions
+      const updateResult = await this.constructor.findOneAndUpdate(
+        { 
+          _id: this._id,
+          hasDnyanpittId: false // Ensure user still doesn't have ID
+        },
+        {
+          $set: {
+            dyanpittId,
+            registrationMonth,
+            registrationNumber,
+            hasDnyanpittId: true,
+            dnyanpittIdGenerated: new Date()
+          }
+        },
+        { new: true }
+      );
+      
+      if (!updateResult) {
+        throw new Error('User already has a Dyanpitt ID or user not found');
+      }
+      
+      // Update current instance
+      this.dyanpittId = dyanpittId;
+      this.registrationMonth = registrationMonth;
+      this.registrationNumber = registrationNumber;
+      this.hasDnyanpittId = true;
+      this.dnyanpittIdGenerated = new Date();
+      
+      return {
+        dyanpittId,
+        registrationMonth,
+        registrationNumber
+      };
+      
+    } catch (error) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        throw new Error(`Failed to assign Dyanpitt ID after ${maxAttempts} attempts: ${error.message}`);
+      }
+      // Wait a bit before retrying
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
 };
 
 // Note: OTP functionality moved to JWT-based tokens for better security
@@ -368,6 +469,7 @@ userSchema.methods.getPublicProfile = function() {
     isEmailVerified: this.isEmailVerified,
     lastLogin: this.lastLogin,
     createdAt: this.createdAt,
+    role: this.role,
     membershipDetails: this.membershipDetails,
     bookingDetails: this.bookingDetails,
     profileCompleted: this.profileCompleted,
@@ -380,9 +482,19 @@ userSchema.methods.getPublicProfile = function() {
   };
 };
 
-// Schedule cleanup for temporary user (1 minute after successful registration)
-userSchema.methods.scheduleCleanup = function() {
-  const cleanupTime = new Date(Date.now() + 1 * 60 * 1000); // 1 minute from now
+// Check if user is admin
+userSchema.methods.isAdmin = function() {
+  return this.role === 'admin' || this.role === 'super_admin';
+};
+
+// Check if user is super admin
+userSchema.methods.isSuperAdmin = function() {
+  return this.role === 'super_admin';
+};
+
+// Schedule cleanup for temporary user (2 hours - industry standard for profile completion)
+userSchema.methods.scheduleCleanup = function(minutesFromNow = 120) {
+  const cleanupTime = new Date(Date.now() + minutesFromNow * 60 * 1000);
   this.cleanupAt = cleanupTime;
   return this.save();
 };
@@ -390,6 +502,38 @@ userSchema.methods.scheduleCleanup = function() {
 // Cancel cleanup (called when user completes registration)
 userSchema.methods.cancelCleanup = function() {
   this.cleanupAt = null;
+  return this.save();
+};
+
+// Generate persistent email verification token (1 hour validity)
+userSchema.methods.generateEmailVerificationToken = function() {
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  this.emailVerificationToken = token;
+  this.emailVerificationExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  return token;
+};
+
+// Verify email verification token
+userSchema.methods.verifyEmailVerificationToken = function(token) {
+  if (!this.emailVerificationToken || !this.emailVerificationExpiry) {
+    return false;
+  }
+  
+  if (Date.now() > this.emailVerificationExpiry.getTime()) {
+    // Token expired, clear it
+    this.emailVerificationToken = null;
+    this.emailVerificationExpiry = null;
+    return false;
+  }
+  
+  return this.emailVerificationToken === token;
+};
+
+// Clear email verification token
+userSchema.methods.clearEmailVerificationToken = function() {
+  this.emailVerificationToken = null;
+  this.emailVerificationExpiry = null;
   return this.save();
 };
 
@@ -403,11 +547,11 @@ userSchema.statics.cleanupExpiredTempUsers = async function() {
           email: { $regex: /^temp_.*@temp\.local$/ },
           isEmailVerified: false
         },
-        // Users with pending emails that are older than 1 minute and not verified
+        // Users with pending emails that are older than 35 minutes and not verified
         {
           pendingEmail: { $exists: true, $ne: null },
           isEmailVerified: false,
-          createdAt: { $lt: new Date(Date.now() - 1 * 60 * 1000) }
+          createdAt: { $lt: new Date(Date.now() - 35 * 60 * 1000) }
         }
       ]
     });
@@ -420,20 +564,42 @@ userSchema.statics.cleanupExpiredTempUsers = async function() {
   }
 };
 
-// Static method to cleanup incomplete registrations (10-day period)
+// Static method to cleanup incomplete registrations (24-hour period for temp users, 10-day for verified users)
 userSchema.statics.cleanupIncompleteRegistrations = async function() {
   try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
     
-    const result = await this.deleteMany({
-      // Users who registered but never completed membership/payment
+    // Cleanup temp users who haven't completed registration within 24 hours
+    const tempUserResult = await this.deleteMany({
+      $or: [
+        // Temp users with expired verification tokens
+        {
+          emailVerificationToken: { $exists: true },
+          emailVerificationExpiry: { $lt: new Date() },
+          profileCompleted: false
+        },
+        // Temp users older than 24 hours who haven't completed profile
+        {
+          email: { $regex: /^temp_.*@temp\.local$/ },
+          profileCompleted: false,
+          createdAt: { $lt: twentyFourHoursAgo }
+        }
+      ]
+    });
+    
+    // Cleanup verified users who registered but never completed membership/payment (10-day period)
+    const verifiedUserResult = await this.deleteMany({
       hasDnyanpittId: false,
       isEmailVerified: true,
+      profileCompleted: true,
+      membershipCompleted: false,
       createdAt: { $lt: tenDaysAgo }
     });
     
-    console.log(`Cleaned up ${result.deletedCount} incomplete registrations older than 10 days`);
-    return result.deletedCount;
+    const totalDeleted = tempUserResult.deletedCount + verifiedUserResult.deletedCount;
+    console.log(`Cleaned up ${tempUserResult.deletedCount} incomplete temp registrations (24h) and ${verifiedUserResult.deletedCount} incomplete verified registrations (10d)`);
+    return totalDeleted;
   } catch (error) {
     console.error('Error cleaning up incomplete registrations:', error);
     return 0;

@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import apiService from '../services/api';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 
-export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPassword, onNavigateBack }) {
+export default function LoginScreen() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,13 +26,10 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
     
     if (token) {
       // Handle OAuth callback
-      const success = apiService.handleOAuthCallback(token);
-      if (success) {
-        // Clear URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
-        // Check completion status and redirect accordingly
-        window.location.href = '/dashboard';
-      }
+      // Clear URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Redirect to dashboard after OAuth
+      navigate('/dashboard');
     }
   }, []);
 
@@ -155,23 +156,29 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
         rememberMe: rememberMe
       };
 
-      const response = await apiService.login(loginData);
+      const response = await login(loginData);
       
-      if (response.success) {
-        // Store user data for the dashboard
-        if (response.user) {
-          localStorage.setItem('userData', JSON.stringify(response.user));
-        }
+      if (response.success && response.user) {
+        // Mark that user came from login, not registration
+        sessionStorage.setItem('cameFromRegistration', 'false');
         
-        // Check user completion status and redirect accordingly
         const user = response.user;
-        if (!user.membershipCompleted) {
-          window.location.href = '/membership';
+        
+        // Navigate based on user role and completion status
+        if (user.role === 'admin' || user.role === 'super_admin') {
+          navigate('/admin-dashboard');
+        } else if (!user.membershipCompleted) {
+          navigate('/membership');
         } else if (!user.bookingCompleted) {
-          window.location.href = '/booking';
+          navigate('/booking');
         } else {
-          window.location.href = '/dashboard';
+          navigate('/dashboard');
         }
+      } else {
+        setErrors(prev => ({ 
+          ...prev, 
+          general: response.message || 'Login failed. Please check your credentials and try again.' 
+        }));
       }
       
     } catch (error) {
@@ -186,15 +193,11 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
 
 
   const handleSignUp = () => {
-    if (onNavigateToRegister) {
-      onNavigateToRegister();
-    }
+    navigate('/register');
   };
 
   const handleForgotPassword = () => {
-    if (onNavigateToForgotPassword) {
-      onNavigateToForgotPassword();
-    }
+    navigate('/forgot-password');
   };
 
   const handleKeyPress = (e) => {
@@ -205,39 +208,33 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
 
   return (
     <motion.div 
-      className="main-container"
+      className="main-container login-screen-container"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
       {/* Back Button */}
-      {onNavigateBack && (
-        <button 
-          onClick={onNavigateBack} 
-          className="back-button"
-          disabled={isLoading}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M12 19L5 12L12 5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      )}
+      <Link to="/" className="back-button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M12 19L5 12L12 5" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        ← Back
+      </Link>
       {/* Header */}
       <motion.div 
-        className="header-section"
+        className="header-section login-screen-header"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.1 }}
       >
-        <h1 className="main-title">Welcome Back</h1>
-        {/* Sign Up Link */}
-        <div className="signup-link login-screen-signup-link">
-          <p className="signup-text">
+        <h1 className="main-title login-screen-title">Welcome Back</h1>
+        {/* Don't have an account? Sign up */}
+        <div className="login-dont-have-account">
+          <p>
             Don't have an account?{' '}
             <motion.button 
               onClick={handleSignUp} 
-              className="signup-button"
               disabled={isLoading}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -250,14 +247,14 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
 
       {/* General Error Message */}
       {errors.general && (
-        <div className="error-message general-error">
+        <div className="error-message general-error login-screen-general-error">
           {errors.general}
         </div>
       )}
 
       {/* Email Input */}
-      <div className="input-group">
-        <label className="input-label">Email or Dyanpitt ID</label>
+      <div className="input-group login-screen-input-group">
+        <label className="input-label login-screen-input-label">Email or Dyanpitt ID</label>
         <input
           type="text"
           placeholder="Enter your email or Dyanpitt ID"
@@ -265,20 +262,20 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
           onChange={handleEmailChange}
           onBlur={() => handleBlur('email')}
           onKeyPress={handleKeyPress}
-          className={`form-input ${errors.email ? 'input-error' : ''}`}
+          className={`form-input login-screen-form-input ${errors.email ? 'error' : ''}`}
           disabled={isLoading}
         />
         {errors.email && (
-          <div className="error-message">
+          <div className="error-message login-screen-error-message">
             {errors.email}
           </div>
         )}
       </div>
 
       {/* Password Input */}
-      <div className="input-group">
-        <label className="input-label">Password</label>
-        <div className="password-wrapper">
+      <div className="input-group login-screen-input-group">
+        <label className="input-label login-screen-input-label">Password</label>
+        <div className="password-wrapper login-screen-password-wrapper">
           <input
             type={showPassword ? 'text' : 'password'}
             placeholder="Enter your password"
@@ -286,31 +283,31 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
             onChange={handlePasswordChange}
             onBlur={() => handleBlur('password')}
             onKeyPress={handleKeyPress}
-            className={`form-input password-input ${errors.password ? 'input-error' : ''}`}
+            className={`form-input login-screen-form-input login-screen-password-input ${errors.password ? 'error' : ''}`}
             disabled={isLoading}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="password-toggle"
+            className="password-toggle login-screen-password-toggle"
             disabled={isLoading}
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
         </div>
         {errors.password && (
-          <div className="error-message">
+          <div className="error-message login-screen-error-message">
             {errors.password}
           </div>
         )}
       </div>
 
       {/* Remember Me & Forgot Password */}
-      <div className="form-options">
-        <label className="remember-me">
+      <div className="form-options login-screen-form-options">
+        <label className="remember-me login-screen-remember-me">
           <input 
             type="checkbox" 
-            className="checkbox"
+            className="checkbox login-screen-checkbox"
             checked={rememberMe}
             onChange={(e) => setRememberMe(e.target.checked)}
             disabled={isLoading}
@@ -319,7 +316,7 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
         </label>
         <button 
           onClick={handleForgotPassword} 
-          className="forgot-password"
+          className="forgot-password login-screen-forgot-password"
           disabled={isLoading}
         >
           Forgot Password?
@@ -329,7 +326,7 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
       {/* Login Button */}
       <motion.button 
         onClick={handleLogin} 
-        className={`login-button ${isLoading ? 'loading' : ''}`}
+        className={`login-button login-screen-submit-button ${isLoading ? 'loading' : ''}`}
         disabled={isLoading}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -339,7 +336,7 @@ export default function LoginScreen({ onNavigateToRegister, onNavigateToForgotPa
       >
         {isLoading ? (
           <>
-            <div className="spinner"></div>
+            <div className="spinner login-screen-spinner"></div>
             Signing In...
           </>
         ) : (

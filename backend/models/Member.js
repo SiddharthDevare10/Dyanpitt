@@ -87,9 +87,9 @@ memberSchema.index({ email: 1 }, { unique: true }); // Ensure one membership per
 memberSchema.index({ dyanpittId: 1 }, { sparse: true }); // Sparse index for optional dyanpittId
 memberSchema.index({ userId: 1 });
 
-// Static method to find member by user (handles both states)
+// Static method to find member by user (handles both states) - improved consistency
 memberSchema.statics.findByUser = async function(user) {
-  // Try to find by email + Dyanpitt ID if user has one
+  // Priority 1: Try to find by email + Dyanpitt ID if user has one
   if (user.hasDnyanpittId && user.dyanpittId) {
     const memberByDyanpittId = await this.findOne({ 
       email: user.email,
@@ -100,17 +100,30 @@ memberSchema.statics.findByUser = async function(user) {
     }
   }
   
-  // Fall back to email only
-  return this.findOne({ 
+  // Priority 2: Try to find by userId if available
+  if (user._id) {
+    const memberByUserId = await this.findOne({ 
+      userId: user._id
+    });
+    if (memberByUserId) {
+      return memberByUserId;
+    }
+  }
+  
+  // Priority 3: Fall back to email only
+  const memberByEmail = await this.findOne({ 
     email: user.email
   });
+  
+  return memberByEmail;
 };
 
-// Static method to create member with proper references
+// Static method to create member with proper references - improved consistency
 memberSchema.statics.createForUser = async function(user, membershipData) {
   const memberData = {
     ...membershipData,
-    email: user.email
+    email: user.email,
+    userId: user._id // Always include userId for consistency
   };
   
   // Add Dyanpitt ID if user has one

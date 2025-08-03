@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import CustomDropdown from '../components/CustomDropdown';
-import SeatSelectionModal from '../components/SeatSelectionModal';
-import DatePicker from '../components/DatePicker';
-import apiService from '../services/api';
-import { getPrice } from '../data/pricing';
-import { calculateTotalDiscount, qualifiesForFemaleDiscount, calculateTotalPriceWithFees, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../data/discounts';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+import CustomDropdown from '../../components/CustomDropdown';
+import SeatSelectionModal from '../../components/SeatSelectionModal';
+import DatePicker from '../../components/DatePicker';
+import apiService from '../../services/api';
+import { getPrice } from '../../data/pricing';
+import { calculateTotalDiscount, qualifiesForFemaleDiscount, calculateTotalPriceWithFees, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../../data/discounts';
 
-export default function BookingScreen({ userData, onBack, onContinue }) {
+export default function BookingScreen() {
+  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
+  
   const [formData, setFormData] = useState({
-    timeSlot: userData?.bookingDetails?.timeSlot || '',
-    membershipType: userData?.bookingDetails?.membershipType || '',
-    membershipDuration: userData?.bookingDetails?.membershipDuration || '',
-    membershipStartDate: userData?.bookingDetails?.membershipStartDate || '',
-    preferredSeat: userData?.bookingDetails?.preferredSeat || ''
+    timeSlot: user?.bookingDetails?.timeSlot || '',
+    membershipType: user?.bookingDetails?.membershipType || '',
+    membershipDuration: user?.bookingDetails?.membershipDuration || '',
+    membershipStartDate: user?.bookingDetails?.membershipStartDate || '',
+    preferredSeat: user?.bookingDetails?.preferredSeat || ''
   });
 
   const [errors, setErrors] = useState({});
@@ -102,52 +107,16 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
         
         if (hasToken) {
           // Save booking details to database with calculated total amount and fee breakdown
-          const isFemale = userData?.gender === 'female';
-          const userRegistrationDate = userData?.registrationDate;
-          const lastPackageDate = userData?.lastPackageDate;
-          const seatTier = getSeatTier(formData.preferredSeat);
-          
-          // Calculate detailed fee breakdown
-          const basePrice = formData.membershipType === 'Calista Garden' 
-            ? 399 * (formData.membershipDuration.split(' ')[0] === '1' ? 1 : parseInt(formData.membershipDuration.split(' ')[0]))
-            : getPrice(formData.membershipDuration, formData.membershipType, formData.timeSlot);
-          
-          const seatTierSurcharge = applySeatTierPricing(basePrice, seatTier) - basePrice;
-          const priceWithSeat = basePrice + seatTierSurcharge;
-          
-          const totalDiscount = formData.membershipType === 'Calista Garden'
-            ? (isFemale && qualifiesForFemaleDiscount(formData.membershipDuration) ? 10 : 0)
-            : calculateTotalDiscount(formData.membershipDuration, formData.membershipType, formData.timeSlot, isFemale);
-          
-          const totalDiscountAmount = Math.round(priceWithSeat * totalDiscount / 100);
-          const registrationFee = shouldApplyRegistrationFee(userRegistrationDate, lastPackageDate) ? REGISTRATION_FEE : 0;
-          const finalAmount = priceWithSeat - totalDiscountAmount + registrationFee;
-          
-          const feeBreakdown = {
-            basePrice,
-            seatTier,
-            seatTierSurcharge,
-            discounts: {
-              femaleDiscount: isFemale && (formData.membershipType === 'Calista Garden' || qualifiesForFemaleDiscount(formData.membershipDuration)) ? (formData.membershipType === 'Calista Garden' ? 10 : 5) : 0,
-              durationDiscount: totalDiscount - (isFemale && (formData.membershipType === 'Calista Garden' || qualifiesForFemaleDiscount(formData.membershipDuration)) ? (formData.membershipType === 'Calista Garden' ? 10 : 5) : 0),
-              totalDiscountPercentage: totalDiscount,
-              totalDiscountAmount
-            },
-            registrationFee,
-            finalAmount
-          };
-          
           const bookingData = {
             ...formData,
-            totalAmount: calculateTotalPrice(),
-            feeBreakdown
+            totalAmount: calculateTotalPrice()
           };
           const response = await apiService.updateBookingDetails(bookingData);
           
           if (response.success) {
             // Pass updated user data and payment amount to payment screen
             onContinue({
-              ...userData,
+              ...user,
               ...response.user,
               bookingDetails: formData,
               paymentAmount: response.paymentAmount
@@ -158,7 +127,7 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
         } else {
           // For now, just continue without saving to DB (demo mode)
           onContinue({
-            ...userData,
+            ...user,
             bookingDetails: formData,
             paymentAmount: calculateTotalPrice()
           });
@@ -229,7 +198,7 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
 
   const membershipTypes = getAllMembershipTypes().filter(membership => {
     // Filter out male-only memberships for female users
-    if (userData?.gender === 'female' && membership.maleOnly) {
+    if (user?.gender === 'female' && membership.maleOnly) {
       return false;
     }
     return true;
@@ -338,9 +307,9 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
   const calculateTotalPrice = () => {
     if (!formData.membershipType || !formData.membershipDuration || !formData.timeSlot) return 0;
     
-    const isFemale = userData?.gender === 'female';
-    const userRegistrationDate = userData?.registrationDate;
-    const lastPackageDate = userData?.lastPackageDate;
+    const isFemale = user?.gender === 'female';
+    const userRegistrationDate = user?.registrationDate;
+    const lastPackageDate = user?.lastPackageDate;
     const seatTier = getSeatTier(formData.preferredSeat);
     
     // Special pricing for Calista Garden
@@ -378,7 +347,7 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
   return ( /*  */
     <div className="main-container membership-details-adjustment">
       <button 
-        onClick={onBack}
+        onClick={() => navigate(-1)}
         className="back-button"
       >
         <ArrowLeft size={20} color="white" />
@@ -504,116 +473,6 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
           </button>
           {errors.preferredSeat && <span className="error-message">{errors.preferredSeat}</span>}
         </div>
-
-        {/* Spacing Break with Line */}
-        <div className="booking-screen-spacer"></div>
-        <hr className="booking-screen-divider" />
-        <div className="booking-screen-spacer"></div>
-
-        {/* Price Display with Fee Breakdown */}
-        {formData.membershipType && formData.membershipDuration && formData.timeSlot && (
-          <div className="price-display">
-            <div className="price-card">
-              <h3>Fee Structure Breakdown</h3>
-              
-              <div className="fee-breakdown">
-                <div className="fee-breakdown-item">
-                  <span className="fee-breakdown-label">Membership Type :</span>
-                  <span className="fee-breakdown-value"> {formData.membershipType}</span>
-                </div>
-                
-                <div className="fee-breakdown-item">
-                  <span className="fee-breakdown-label">Time Slot :</span>
-                  <span className="fee-breakdown-value">{formData.timeSlot}</span>
-                </div>
-                
-                <div className="fee-breakdown-item">
-                  <span className="fee-breakdown-label">Duration :</span>
-                  <span className="fee-breakdown-value">{formData.membershipDuration}</span>
-                </div>
-                
-                <div className="fee-breakdown-item">
-                  <span className="fee-breakdown-label">Seat :</span>
-                  <span className="fee-breakdown-value">{formData.preferredSeat || 'Not selected'}</span>
-                </div>
-                
-                <div className="fee-breakdown-separator"></div>
-                
-                {/* Show price breakdown if applicable */}
-                {(() => {
-                  const isFemale = userData?.gender === 'female';
-                  const userRegistrationDate = userData?.registrationDate;
-                  const lastPackageDate = userData?.lastPackageDate;
-                  const seatTier = getSeatTier(formData.preferredSeat);
-                  
-                  const basePrice = formData.membershipType === 'Calista Garden' 
-                    ? 399 * (formData.membershipDuration.split(' ')[0] === '1' ? 1 : parseInt(formData.membershipDuration.split(' ')[0]))
-                    : getPrice(formData.membershipDuration, formData.membershipType, formData.timeSlot);
-                  
-                  const priceWithSeatTier = applySeatTierPricing(basePrice, seatTier);
-                  const totalDiscount = formData.membershipType === 'Calista Garden'
-                    ? (isFemale && qualifiesForFemaleDiscount(formData.membershipDuration) ? 10 : 0)
-                    : calculateTotalDiscount(formData.membershipDuration, formData.membershipType, formData.timeSlot, isFemale);
-                  const registrationFee = shouldApplyRegistrationFee(userRegistrationDate, lastPackageDate) ? REGISTRATION_FEE : 0;
-                  
-                  const showBreakdown = totalDiscount > 0 || registrationFee > 0 || seatTier !== 'standard';
-                  
-                  if (showBreakdown) {
-                    return (
-                      <>
-                        <div className="fee-breakdown-item">
-                          <span className="fee-breakdown-label">Base Package Price :</span>
-                          <span className="fee-breakdown-value">Rs.{basePrice}</span>
-                        </div>
-                        {seatTier !== 'standard' && (
-                          <div className="fee-breakdown-item">
-                            <span className="fee-breakdown-label">
-                              {seatTier === 'silver' ? 'Silver Seat (+25%)' : 'Gold Seat (+50%)'}:
-                            </span>
-                            <span className="fee-breakdown-value">+Rs.{priceWithSeatTier - basePrice}</span>
-                          </div>
-                        )}
-                        {totalDiscount > 0 && (
-                          <div className="fee-breakdown-item discount">
-                            <span className="fee-breakdown-label">Discount ({totalDiscount}%):</span>
-                            <span className="fee-breakdown-value">-Rs.{Math.round(priceWithSeatTier * totalDiscount / 100)}</span>
-                          </div>
-                        )}
-                        {registrationFee > 0 && (
-                          <div className="fee-breakdown-item">
-                            <span className="fee-breakdown-label">Registration Fee :</span>
-                            <span className="fee-breakdown-value">Rs.{registrationFee}</span>
-                          </div>
-                        )}
-                      </>
-                    );
-                  }
-                  return null;
-                })()}
-                
-                <div className="fee-breakdown-item total-fee">
-                  <span className="fee-breakdown-label">Total Fee :</span>
-                  <span className="fee-breakdown-value total-amount">Rs.{calculateTotalPrice()}</span>
-                </div>
-                
-                <div className="fee-breakdown-note">
-                  <p>* All fees are inclusive of applicable taxes</p>
-                  <p>* Membership starts from selected date</p>
-                  {(() => {
-                    const userRegistrationDate = userData?.registrationDate;
-                    const lastPackageDate = userData?.lastPackageDate;
-                    const registrationFee = shouldApplyRegistrationFee(userRegistrationDate, lastPackageDate) ? REGISTRATION_FEE : 0;
-                    
-                    if (registrationFee > 0) {
-                      return <p>* Registration fee is one-time and valid for 1 year from purchase</p>;
-                    }
-                    return null;
-                  })()}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         
         {/* Submit Error */}
         {errors.submit && <div className="error-message">{errors.submit}</div>}
@@ -630,7 +489,7 @@ export default function BookingScreen({ userData, onBack, onContinue }) {
         onClose={() => setShowSeatModal(false)}
         selectedSeat={formData.preferredSeat}
         onSeatSelect={handleSeatSelect}
-        userData={userData}
+        userData={user}
         membershipType={formData.membershipType}
       />
     </div>

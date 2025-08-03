@@ -5,7 +5,8 @@ class VerificationService {
   constructor() {
     // In-memory storage for OTP codes (in production, use Redis)
     this.otpStorage = new Map();
-    this.OTP_EXPIRY_TIME = 30 * 60 * 1000; // 30 minutes
+    this.OTP_EXPIRY_TIME = 10 * 60 * 1000; // 10 minutes (industry standard)
+    this.PASSWORD_RESET_OTP_EXPIRY = 5 * 60 * 1000; // 5 minutes (security standard)
   }
 
   /**
@@ -32,6 +33,35 @@ class VerificationService {
     setTimeout(() => {
       this.otpStorage.delete(normalizedEmail);
     }, this.OTP_EXPIRY_TIME);
+
+    return otp;
+  }
+
+  /**
+   * Generate and store OTP for password reset (shorter expiry)
+   * @param {string} email - Email address
+   * @returns {string} Generated OTP
+   */
+  generatePasswordResetOTP(email) {
+    const otp = tokenUtils.generateOTP(6);
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    console.log('GeneratePasswordResetOTP Debug - Generated OTP:', otp, 'for email:', normalizedEmail);
+    
+    // Store OTP with shorter expiry time for security
+    this.otpStorage.set(normalizedEmail, {
+      code: otp,
+      expiresAt: Date.now() + this.PASSWORD_RESET_OTP_EXPIRY,
+      attempts: 0,
+      type: 'password-reset'
+    });
+
+    console.log('GeneratePasswordResetOTP Debug - Storage after setting:', Object.fromEntries(this.otpStorage));
+
+    // Auto-cleanup expired OTP after expiry time
+    setTimeout(() => {
+      this.otpStorage.delete(normalizedEmail);
+    }, this.PASSWORD_RESET_OTP_EXPIRY);
 
     return otp;
   }
@@ -115,6 +145,31 @@ class VerificationService {
   }
 
   /**
+   * Alias for hasValidOTP for backward compatibility
+   * @param {string} email - Email address
+   * @returns {boolean} True if OTP exists and not expired
+   */
+  hasOTP(email) {
+    return this.hasValidOTP(email);
+  }
+
+  /**
+   * Get OTP for specific email (debug/recovery purposes)
+   * @param {string} email - Email address
+   * @returns {string|null} OTP code if exists and valid
+   */
+  getOTPForEmail(email) {
+    const normalizedEmail = email.toLowerCase().trim();
+    const storedOTP = this.otpStorage.get(normalizedEmail);
+    
+    if (!storedOTP || Date.now() > storedOTP.expiresAt) {
+      return null;
+    }
+    
+    return storedOTP.code;
+  }
+
+  /**
    * Send OTP via email
    * @param {string} email - Email address
    * @returns {object} Result object with success status
@@ -148,7 +203,7 @@ class VerificationService {
    */
   async sendPasswordResetOTP(email, fullName) {
     try {
-      const otp = this.generateOTP(email);
+      const otp = this.generatePasswordResetOTP(email);
       const result = await emailService.sendPasswordResetOTP(email, otp, fullName);
       
       if (!result.success) {

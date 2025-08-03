@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import apiService from '../services/api';
-import PasswordStrengthIndicator from '../components/PasswordStrengthIndicator';
+import { useNavigate } from 'react-router-dom';
+import apiService from '../../services/api';
+import PasswordStrengthIndicator from '../../components/PasswordStrengthIndicator';
 
-export default function ForgotPasswordScreen({ onNavigateToLogin }) {
+export default function ForgotPasswordScreen() {
+  const navigate = useNavigate();
+  
   // Password reset steps: 'email', 'otp', 'reset'
   const [currentStep, setCurrentStep] = useState('email');
   
@@ -207,9 +210,7 @@ export default function ForgotPasswordScreen({ onNavigateToLogin }) {
         // Show success message and redirect to login
         setErrors({ general: 'Password reset successful! You can now sign in with your new password.' });
         setTimeout(() => {
-          if (onNavigateToLogin) {
-            onNavigateToLogin();
-          }
+          navigate('/login');
         }, 2000);
       } else {
         setErrors({ general: response.message || 'Failed to reset password. Please try again.' });
@@ -282,9 +283,7 @@ export default function ForgotPasswordScreen({ onNavigateToLogin }) {
   };
 
   const handleSignIn = () => {
-    if (onNavigateToLogin) {
-      onNavigateToLogin();
-    }
+    navigate('/login');
   };
 
   // Render different steps

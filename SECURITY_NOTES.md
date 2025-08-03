@@ -1,22 +1,48 @@
-# Security Notes
+# 🔒 Security Notes for Production
 
-## Known Vulnerabilities (as of current date)
+## ⚠️ IMPORTANT: Development Bypass
 
-### esbuild/Vite Development Server Vulnerability
-- **Severity**: Moderate
-- **Affected**: Development server only (not production builds)
-- **Issue**: esbuild allows websites to send requests to dev server
-- **Fix Required**: Upgrade to Vite 7.x (requires Node.js 20.19+)
-- **Current Blocker**: Project uses Node.js 18.19.1
+### What it is:
+- A development-only feature in `ProgressProtectedRoute.jsx`
+- Allows bypassing authentication with `?bypass=true` parameter
+- **ONLY works in development mode**
 
-### Mitigation Strategy
-- Vulnerability only affects development environment
-- Production builds are not affected
-- Plan Node.js upgrade to 20.x LTS in next development cycle
-- Monitor for critical security updates
+### Safety Measures:
+1. **Automatic Disabling**: 
+   - Only works when `import.meta.env.DEV === true`
+   - Only works when `import.meta.env.MODE !== 'production'`
+   
+2. **Production Safeguards**:
+   - Completely disabled in production builds
+   - Logs security warning if bypass attempted in production
+   - No security risk in production environment
 
-### Action Items
-- [ ] Upgrade Node.js to 20.x LTS
-- [ ] Run `npm audit fix --force` after Node.js upgrade
-- [ ] Test application thoroughly after upgrade
-- [ ] Remove this file after vulnerabilities are resolved
+3. **Build Process**:
+   - `npm run build` creates production build
+   - All development bypasses automatically disabled
+   - Environment variables properly set for production
+
+### Before Deployment Checklist:
+- [ ] Run `npm run build` for production
+- [ ] Test production build with `npm run preview`
+- [ ] Verify no bypass functionality in production
+- [ ] Confirm all authentication works properly
+
+### Development vs Production:
+
+| Environment | Bypass Works | Security Level |
+|-------------|--------------|----------------|
+| Development (`npm run dev`) | ✅ Yes | Lower (for testing) |
+| Production (`npm run build`) | ❌ No | Full Security |
+
+### How to Remove Manually (if needed):
+If you want to completely remove the bypass code:
+
+1. Open `src/components/ProgressProtectedRoute.jsx`
+2. Remove lines containing:
+   - `bypassAuth` variable
+   - `isDevelopment` variable  
+   - `if (bypassAuth)` block
+   - Console warnings
+
+But this is **NOT necessary** as it's automatically disabled in production.

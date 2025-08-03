@@ -197,4 +197,57 @@ bookingSchema.pre('save', function(next) {
   next();
 });
 
+// Static method to find booking by user (handles both states) - consistent with Member model
+bookingSchema.statics.findByUser = async function(user) {
+  // Priority 1: Try to find by email + Dyanpitt ID if user has one
+  if (user.hasDnyanpittId && user.dyanpittId) {
+    const bookingByDyanpittId = await this.findOne({ 
+      email: user.email,
+      dyanpittId: user.dyanpittId 
+    });
+    if (bookingByDyanpittId) {
+      return bookingByDyanpittId;
+    }
+  }
+  
+  // Priority 2: Try to find by userId if available
+  if (user._id) {
+    const bookingByUserId = await this.findOne({ 
+      userId: user._id
+    });
+    if (bookingByUserId) {
+      return bookingByUserId;
+    }
+  }
+  
+  // Priority 3: Fall back to email only
+  const bookingByEmail = await this.findOne({ 
+    email: user.email
+  });
+  
+  return bookingByEmail;
+};
+
+// Static method to create booking with proper references - consistent with Member model
+bookingSchema.statics.createForUser = async function(user, bookingData) {
+  const bookingDataWithRefs = {
+    ...bookingData,
+    email: user.email,
+    userId: user._id // Always include userId for consistency
+  };
+  
+  // Add Dyanpitt ID if user has one
+  if (user.hasDnyanpittId && user.dyanpittId) {
+    bookingDataWithRefs.dyanpittId = user.dyanpittId;
+  }
+  
+  return this.create(bookingDataWithRefs);
+};
+
+// Instance method to update Dyanpitt ID reference after ID generation - consistent with Member model
+bookingSchema.methods.updateDyanpittIdReference = async function(dyanpittId) {
+  this.dyanpittId = dyanpittId;
+  return this.save();
+};
+
 module.exports = mongoose.model('Booking', bookingSchema);

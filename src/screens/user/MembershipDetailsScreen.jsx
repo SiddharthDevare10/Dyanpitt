@@ -2,22 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
-import CustomDropdown from '../components/CustomDropdown';
-import DatePicker from '../components/DatePicker';
-import apiService from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+import CustomDropdown from '../../components/CustomDropdown';
+import DatePicker from '../../components/DatePicker';
+import apiService from '../../services/api';
 
-export default function MembershipDetailsScreen({ userData, onBack, onContinue }) {
+export default function MembershipDetailsScreen() {
+  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
+  
   const [formData, setFormData] = useState({
-    visitedBefore: userData?.membershipDetails?.visitedBefore || '',
-    fatherName: userData?.membershipDetails?.fatherName || '',
-    parentContactNumber: userData?.membershipDetails?.parentContactNumber || '',
-    educationalBackground: userData?.membershipDetails?.educationalBackground || '',
-    currentOccupation: userData?.membershipDetails?.currentOccupation || '',
-    currentAddress: userData?.membershipDetails?.currentAddress || '',
-    jobTitle: userData?.membershipDetails?.jobTitle || '',
-    examPreparation: userData?.membershipDetails?.examPreparation || '',
-    examinationDate: userData?.membershipDetails?.examinationDate || '',
-    selfiePhoto: userData?.membershipDetails?.selfiePhoto || null
+    visitedBefore: user?.membershipDetails?.visitedBefore || '',
+    fatherName: user?.membershipDetails?.fatherName || '',
+    parentContactNumber: user?.membershipDetails?.parentContactNumber || '',
+    educationalBackground: user?.membershipDetails?.educationalBackground || '',
+    currentOccupation: user?.membershipDetails?.currentOccupation || '',
+    currentAddress: user?.membershipDetails?.currentAddress || '',
+    jobTitle: user?.membershipDetails?.jobTitle || '',
+    examPreparation: user?.membershipDetails?.examPreparation || '',
+    examinationDate: user?.membershipDetails?.examinationDate || '',
+    selfiePhoto: user?.membershipDetails?.selfiePhoto || null
   });
 
   const [errors, setErrors] = useState({});
@@ -36,7 +41,7 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
       try {
         setTourDataChecked(true);
         // Try to fetch tour data - the function will handle finding the email
-        await fetchAndPopulateTourData(userData?.email);
+        await fetchAndPopulateTourData(user?.email);
       } catch (error) {
         console.error('Error auto-checking tour data:', error);
       }
@@ -69,8 +74,8 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
       });
 
       // If user selects "yes" for visited before, try to fetch and populate tour data
-      if (name === 'visitedBefore' && value === 'yes' && userData?.email) {
-        await fetchAndPopulateTourData(userData.email);
+      if (name === 'visitedBefore' && value === 'yes' && user?.email) {
+        await fetchAndPopulateTourData(user.email);
       }
     }
     
@@ -255,19 +260,16 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
           const response = await apiService.updateMembershipDetails(formData);
           
           if (response.success) {
-            // Pass updated user data to next screen
-            onContinue({
-              ...userData,
-              ...response.user,
-              membershipDetails: formData
-            });
+            // Update user data and navigate to booking
+            updateUser(response.user);
+            navigate('/booking');
           } else {
             setErrors({ submit: response.message || 'Failed to save membership details' });
           }
         } else {
           // For now, just continue without saving to DB (demo mode)
           onContinue({
-            ...userData,
+            ...user,
             membershipDetails: formData
           });
         }
@@ -288,7 +290,7 @@ export default function MembershipDetailsScreen({ userData, onBack, onContinue }
       transition={{ duration: 0.5, ease: "easeOut" }}
     >
       <motion.button 
-        onClick={onBack}
+        onClick={() => navigate(-1)}
         className="back-button"
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}

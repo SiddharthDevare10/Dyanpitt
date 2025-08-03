@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 const User = require('../models/User');
 const Member = require('../models/Member');
@@ -19,8 +20,10 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '_' + Math.round(Math.random() * 1E9);
-    cb(null, 'selfie_' + uniqueSuffix + path.extname(file.originalname));
+    const timestamp = Date.now();
+    const uuid = crypto.randomBytes(8).toString('hex'); // 16 char unique string
+    const ext = path.extname(file.originalname);
+    cb(null, `selfie_${timestamp}_${uuid}${ext}`);
   }
 });
 

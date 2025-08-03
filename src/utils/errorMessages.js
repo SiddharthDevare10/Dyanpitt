@@ -33,12 +33,12 @@ export const ERROR_MESSAGES = {
   NAME_INVALID_CHARS: 'Full name can only contain letters, spaces, hyphens, apostrophes, and periods',
   NAME_INCOMPLETE: 'Please enter your first and last name',
 
-  // Phone validation
+  // Phone validation (India +91 format)
   PHONE_REQUIRED: 'Phone number is required',
-  PHONE_TOO_SHORT: 'Phone number must be at least 10 digits long',
-  PHONE_TOO_LONG: 'Phone number is too long (maximum 15 digits)',
+  PHONE_TOO_SHORT: 'Phone number must be exactly 10 digits long',
+  PHONE_TOO_LONG: 'Phone number must be exactly 10 digits long',
   PHONE_INVALID_FORMAT: 'Phone number must contain only numbers (0-9)',
-  PHONE_STARTS_WITH_ZERO: 'Phone number should not start with 0 (country code is already selected)',
+  PHONE_INVALID_START: 'Phone number must start with 6, 7, 8, or 9 (valid Indian mobile numbers)',
   PHONE_EXISTS: 'This phone number is already registered with another account. Please use a different phone number.',
 
   // Date of birth validation
@@ -70,11 +70,19 @@ export const ERROR_MESSAGES = {
   REGISTRATION_SUCCESS: 'Account created successfully! Welcome to Dyanpitt!',
   LOGIN_SUCCESS: 'Login successful! Welcome back!',
 
-  // API specific errors
+  // API specific errors (standardized format)
   SEND_OTP_FAILED: 'Unable to send verification code. Please try again in a few moments.',
   VERIFY_OTP_FAILED: 'Unable to verify code. Please try again.',
   REGISTRATION_FAILED: 'Registration failed. Please try again.',
   LOGIN_FAILED: 'Login failed. Please check your credentials and try again.',
+  
+  // Payment errors
+  PAYMENT_FAILED: 'Payment processing failed. Please try again.',
+  PAYMENT_CANCELLED: 'Payment was cancelled. You can try again anytime.',
+  
+  // Membership errors
+  MEMBERSHIP_INCOMPLETE: 'Please complete your membership details first.',
+  BOOKING_INCOMPLETE: 'Please complete your booking details first.',
   
   // Field specific context
   FIELD_CONTEXT: {

@@ -36,11 +36,17 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
+    // In development, allow all origins for easier testing
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // In production, check allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       console.log('🚫 CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      callback(null, false); // Don't throw error, just deny
     }
   },
   credentials: true,
@@ -192,7 +198,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`   Frontend (dev):     http://localhost:5173`);
   console.log(`   Frontend (preview): http://localhost:4173`);
   console.log(`   Backend:            http://localhost:${PORT}/api`);
-  console.log(`🧹 Cleanup service started - temporary users will be cleaned up every 1 minute`);
+  console.log(`🧹 Cleanup service started - temporary users will be cleaned up every 5 minutes`);
 });
 
 // Graceful shutdown

@@ -7,7 +7,7 @@ class CleanupService {
   }
 
   // Start the cleanup service with periodic execution
-  start(intervalMinutes = 1) {
+  start(intervalMinutes = 5) {
     if (this.isRunning) {
       console.log('Cleanup service is already running');
       return;

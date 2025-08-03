@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { authenticateToken: auth } = require('../middleware/auth');
+const { authenticateToken: auth, rateLimitAuth } = require('../middleware/auth');
 const emailService = require('../services/emailService');
 const verificationService = require('../services/verificationService');
 const { uploadSingle } = require('../middleware/upload');
@@ -39,7 +39,7 @@ router.post('/check-email', [
 // @desc    Check if phone number exists
 // @access  Public
 router.post('/check-phone', [
-  body('phoneNumber').matches(/^\+\d{10,15}$/)
+  body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format with valid Indian mobile number')
 ], async (req, res) => {
   try {
     const { phoneNumber } = req.body;
@@ -61,7 +61,7 @@ router.post('/check-phone', [
 // @route   POST /api/auth/send-otp
 // @desc    Send OTP for email verification
 // @access  Public
-router.post('/send-otp', [
+router.post('/send-otp', rateLimitAuth(3, 10 * 60 * 1000), [
   body('email').isEmail().normalizeEmail()
 ], async (req, res) => {
   try {
@@ -91,11 +91,13 @@ router.post('/send-otp', [
     if (!tempUser) {
       // Create temporary user WITHOUT email and Dyanpitt ID to avoid wastage
       // We'll generate these only after successful registration completion
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
       tempUser = new User({
-        email: `temp_${Date.now()}@temp.local`, // Temporary email to avoid conflicts
-        dyanpittId: `temp_${Date.now()}`, // Temporary ID
+        email: `temp_${timestamp}_${randomSuffix}@temp.local`, // Unique temporary email
+        dyanpittId: `temp_${timestamp}_${randomSuffix}`, // Unique temporary ID
         fullName: 'Temporary',
-        phoneNumber: `temp_${Date.now()}`,
+        phoneNumber: `temp_${timestamp}_${randomSuffix}`,
         dateOfBirth: new Date(),
         gender: 'other',
         password: 'temporary',
@@ -109,7 +111,7 @@ router.post('/send-otp', [
     // Save temp user first
     await tempUser.save();
 
-    // Schedule cleanup for this temporary user (15 minutes from now)
+    // Schedule cleanup for this temporary user (35 minutes from now)
     await tempUser.scheduleCleanup();
 
     // Generate and send OTP using verification service
@@ -155,13 +157,16 @@ router.post('/verify-otp', [
     }
 
     const { email, otp } = req.body;
-    console.log('=== OTP VERIFICATION DEBUG ===');
-    console.log('Raw request body:', req.body);
-    console.log('Email (raw):', email);
-    console.log('OTP (raw):', otp);
-    console.log('OTP type:', typeof otp);
-    console.log('OTP length:', otp ? otp.length : 'undefined');
-    console.log('All stored OTPs:', verificationService.getStoredOTPs());
+    // Debug logging (development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('=== OTP VERIFICATION DEBUG ===');
+      console.log('Raw request body:', req.body);
+      console.log('Email (raw):', email);
+      console.log('OTP (raw):', otp);
+      console.log('OTP type:', typeof otp);
+      console.log('OTP length:', otp ? otp.length : 'undefined');
+      console.log('All stored OTPs:', verificationService.getStoredOTPs());
+    }
 
     // Verify OTP using verification service
     if (!verificationService.verifyOTP(email, otp)) {
@@ -172,7 +177,9 @@ router.post('/verify-otp', [
       });
     }
 
-    console.log('OTP verified successfully');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('OTP verified successfully');
+    }
     
     // Find temp user by pending email and mark as verified
     const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
@@ -184,9 +191,16 @@ router.post('/verify-otp', [
       });
     }
 
-    // Mark as verified
+    // Mark as verified and extend cleanup time for profile completion
     tempUser.isEmailVerified = true;
+    
+    // Generate persistent verification token for profile completion (1 hour grace period)
+    const verificationToken = tempUser.generateEmailVerificationToken();
+    
     await tempUser.save();
+    
+    // Extend cleanup time to 2 hours after email verification (industry standard)
+    await tempUser.scheduleCleanup(120); // 2 hours
 
     res.json({
       success: true,
@@ -208,7 +222,7 @@ router.post('/verify-otp', [
 router.post('/register', uploadSingle('avatar'), [
   body('email').isEmail().normalizeEmail(),
   body('fullName').trim().isLength({ min: 2 }),
-  body('phoneNumber').isLength({ min: 10, max: 15 }),
+  body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format with valid Indian mobile number'),
   body('dateOfBirth').isISO8601(),
   body('gender').isIn(['male', 'female', 'other', 'prefer-not-to-say']),
   body('password').isLength({ min: 6 })
@@ -241,7 +255,60 @@ router.post('/register', uploadSingle('avatar'), [
     }
 
     // Find verified temp user by pending email
-    const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: true });
+    let tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: true });
+    
+    // VERIFICATION RECOVERY: If temp user not found, check if email was recently verified
+    if (!tempUser) {
+      console.log('Temp user not found, checking verification recovery options...');
+      
+      // First, check if there's a user with valid persistent verification token
+      const tokenVerifiedUser = await User.findOne({ 
+        pendingEmail: email, 
+        emailVerificationToken: { $exists: true, $ne: null },
+        emailVerificationExpiry: { $gt: new Date() }
+      });
+      
+      if (tokenVerifiedUser) {
+        console.log('Found user with valid persistent verification token');
+        tempUser = tokenVerifiedUser;
+      } else {
+        // Check if there's an unverified temp user that we can recover
+        const unverifiedTempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
+        
+        // Check if OTP verification service still has valid verification for this email
+        const hasValidOTP = verificationService.hasOTP && verificationService.hasOTP(email);
+        
+        if (unverifiedTempUser && hasValidOTP) {
+          console.log('Found recovery path: unverified temp user with valid OTP');
+          // Mark as verified and use this user
+          unverifiedTempUser.isEmailVerified = true;
+          const verificationToken = unverifiedTempUser.generateEmailVerificationToken();
+          await unverifiedTempUser.save();
+          tempUser = unverifiedTempUser;
+        } else {
+          // Create a new verified temp user if verification service confirms email was verified
+          console.log('Creating new verified temp user for recovery');
+          const recoveryTimestamp = Date.now();
+          const recoverySuffix = Math.random().toString(36).substring(2, 8);
+          tempUser = new User({
+            email: `temp_recovery_${recoveryTimestamp}_${recoverySuffix}@temp.local`,
+            dyanpittId: `temp_recovery_${recoveryTimestamp}_${recoverySuffix}`,
+            fullName: 'Temporary Recovery',
+            phoneNumber: `temp_recovery_${recoveryTimestamp}_${recoverySuffix}`,
+            dateOfBirth: new Date(),
+            gender: 'other',
+            password: 'temporary',
+            registrationMonth: '000000',
+            registrationNumber: 0,
+            isEmailVerified: true,
+            pendingEmail: email
+          });
+          const verificationToken = tempUser.generateEmailVerificationToken();
+          await tempUser.save();
+          console.log('Created recovery temp user for email:', email);
+        }
+      }
+    }
     
     // Check for phone number conflicts before proceeding
     const phoneUser = await User.findOne({ phoneNumber });
@@ -259,24 +326,20 @@ router.post('/register', uploadSingle('avatar'), [
       }
     }
 
-    // Debug logging
-    console.log('Registration Debug:');
-    console.log('Looking for email:', email);
-    console.log('Found tempUser:', tempUser ? 'YES' : 'NO');
+    // Debug logging (development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Registration Debug:');
+      console.log('Looking for email:', email);
+      console.log('Found tempUser:', tempUser ? 'YES' : 'NO');
+    }
     
     if (!tempUser) {
-      // Additional debug - check if there's any user with this pending email
-      const anyTempUser = await User.findOne({ pendingEmail: email });
-      console.log('Any user with pendingEmail:', anyTempUser ? 'YES' : 'NO');
-      if (anyTempUser) {
-        console.log('User isEmailVerified:', anyTempUser.isEmailVerified);
-        console.log('User OTP:', anyTempUser.otp);
-        console.log('User OTP Expiry:', anyTempUser.otpExpiry);
-      }
-      
+      // Enhanced error message with recovery instructions
       return res.status(400).json({
         success: false,
-        message: 'Email not verified. Please verify your email first.'
+        message: 'Email verification expired or not found. Please verify your email again.',
+        code: 'EMAIL_VERIFICATION_EXPIRED',
+        instructions: 'Go back to the registration page and request a new verification code.'
       });
     }
 
@@ -298,6 +361,10 @@ router.post('/register', uploadSingle('avatar'), [
     // Cancel cleanup since registration is now complete
     await tempUser.cancelCleanup();
     
+    // Clear email verification token since registration is complete
+    tempUser.emailVerificationToken = null;
+    tempUser.emailVerificationExpiry = null;
+    
     await tempUser.save();
 
     // Send intermediate welcome email (without Dyanpitt ID)
@@ -312,7 +379,7 @@ router.post('/register', uploadSingle('avatar'), [
     const token = jwt.sign(
       { userId: tempUser._id },
       process.env.JWT_SECRET || 'fallback-secret',
-      { expiresIn: '7d' }
+      { expiresIn: '15m' } // Industry standard: 15 minutes
     );
 
     res.status(201).json({
@@ -338,7 +405,7 @@ router.post('/register', uploadSingle('avatar'), [
 // @route   POST /api/auth/login
 // @desc    Login user with email or Dyanpitt ID
 // @access  Public
-router.post('/login', [
+router.post('/login', rateLimitAuth(5, 15 * 60 * 1000), [
   body('email').optional().isEmail().normalizeEmail(),
   body('dyanpittId').optional().matches(/^@DA\d{9}$/),
   body('password').exists()
@@ -404,7 +471,7 @@ router.post('/login', [
     await user.updateLastLogin();
 
     // Generate JWT token
-    const expiresIn = rememberMe ? '30d' : '7d';
+    const expiresIn = rememberMe ? '30d' : '15m'; // Industry standard: 15 minutes, 30 days for remember me
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'fallback-secret',
@@ -464,7 +531,7 @@ router.get('/me', auth, async (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @desc    Send password reset OTP
 // @access  Public
-router.post('/forgot-password', [
+router.post('/forgot-password', rateLimitAuth(3, 10 * 60 * 1000), [
   body('email').isEmail().normalizeEmail()
 ], async (req, res) => {
   try {
@@ -479,10 +546,14 @@ router.post('/forgot-password', [
     }
 
     // Generate and send OTP for password reset using verification service
-    console.log('Sending password reset OTP to:', email);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Sending password reset OTP to:', email);
+    }
     const emailResult = await verificationService.sendPasswordResetOTP(email, user.fullName);
-    console.log('Email result:', emailResult);
-    console.log('OTPs after sending:', verificationService.getStoredOTPs());
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Email result:', emailResult);
+      console.log('OTPs after sending:', verificationService.getStoredOTPs());
+    }
     
     if (!emailResult.success) {
       return res.status(500).json({
@@ -944,11 +1015,22 @@ router.post('/complete-payment', auth, async (req, res) => {
         // Send welcome email with Dnyanpitt ID
         await emailService.sendWelcomeEmail(user.email, user.fullName, dyanpittIdData.dyanpittId);
         
-        // Update any existing member records with the new Dnyanpitt ID
+        // Update any existing member and booking records with the new Dnyanpitt ID
         const Member = require('../models/Member');
+        const Booking = require('../models/Booking');
+        
+        // Update member record
         const existingMember = await Member.findByUser(user);
         if (existingMember) {
           await existingMember.updateDyanpittIdReference(dyanpittIdData.dyanpittId);
+          console.log('Updated member record with Dnyanpitt ID:', dyanpittIdData.dyanpittId);
+        }
+        
+        // Update booking record
+        const existingBooking = await Booking.findByUser(user);
+        if (existingBooking) {
+          await existingBooking.updateDyanpittIdReference(dyanpittIdData.dyanpittId);
+          console.log('Updated booking record with Dnyanpitt ID:', dyanpittIdData.dyanpittId);
         }
         
       } catch (error) {
@@ -1030,8 +1112,15 @@ router.post('/upload-avatar', auth, uploadSingle('avatar'), async (req, res) => 
 
 // @route   POST /api/auth/cleanup-temp-users
 // @desc    Manually trigger cleanup of temporary users (admin endpoint)
-// @access  Public (in production, this should be protected)
+// @access  Protected (development only)
 router.post('/cleanup-temp-users', async (req, res) => {
+  // SECURITY: Only allow in development environment
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({
+      success: false,
+      message: 'Endpoint not found'
+    });
+  }
   try {
     console.log('Manual cleanup triggered via API');
     const deletedCount = await cleanupService.manualCleanup();
@@ -1054,8 +1143,15 @@ router.post('/cleanup-temp-users', async (req, res) => {
 
 // @route   POST /api/auth/cleanup-incomplete-registrations
 // @desc    Manually trigger cleanup of incomplete registrations (10-day period)
-// @access  Public (in production, this should be protected)
+// @access  Protected (development only)
 router.post('/cleanup-incomplete-registrations', async (req, res) => {
+  // SECURITY: Only allow in development environment
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({
+      success: false,
+      message: 'Endpoint not found'
+    });
+  }
   try {
     console.log('Manual cleanup of incomplete registrations triggered via API');
     const deletedCount = await User.cleanupIncompleteRegistrations();
@@ -1078,8 +1174,16 @@ router.post('/cleanup-incomplete-registrations', async (req, res) => {
 
 // @route   GET /api/auth/debug-otp/:email
 // @desc    Debug endpoint to get OTP for testing (development only)
-// @access  Public (remove in production)
+// @access  Public (SECURED - only in development)
 router.get('/debug-otp/:email', (req, res) => {
+  // SECURITY: Only allow in development environment
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({
+      success: false,
+      message: 'Endpoint not found'
+    });
+  }
+  
   try {
     const { email } = req.params;
     const storedOTPs = verificationService.getStoredOTPs();
@@ -1090,7 +1194,8 @@ router.get('/debug-otp/:email', (req, res) => {
       email,
       otp: otpForEmail,
       allStoredOTPs: storedOTPs,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      warning: 'DEBUG ENDPOINT - Development only'
     });
   } catch (error) {
     res.status(500).json({
