@@ -9,6 +9,7 @@ export const useAppNavigation = () => {
   const navigateToForgotPassword = () => navigate('/forgot-password');
   const navigateToLanding = () => navigate('/');
   const navigateToTour = () => navigate('/tour');
+  const navigateToVisitorPass = () => navigate('/visitor-pass');
   const navigateToDashboard = () => navigate('/dashboard');
   const navigateToMembership = () => navigate('/membership');
   const navigateToBooking = () => navigate('/booking');
@@ -24,6 +25,7 @@ export const useAppNavigation = () => {
     navigateToForgotPassword,
     navigateToLanding,
     navigateToTour,
+    navigateToVisitorPass,
     navigateToDashboard,
     navigateToMembership,
     navigateToBooking,

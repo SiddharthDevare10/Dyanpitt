@@ -48,7 +48,7 @@ export default function CongratulationsScreen({ email }) {
             onClick={handleContinue}
             className="login-button"
           >
-            Continue
+            Continue 
           </button>
         </div>
       </div>

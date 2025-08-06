@@ -12,6 +12,7 @@ import ForgotPasswordScreen from './screens/shared/ForgotPasswordScreen.jsx';
 // User screens
 import LandingScreen from './screens/user/LandingScreen.jsx';
 import TourRequestScreen from './screens/user/TourRequestScreen.jsx';
+import VisitorPassScreen from './screens/user/VisitorPassScreen.jsx';
 import CongratulationsScreen from './screens/user/CongratulationsScreen.jsx';
 import MembershipDetailsScreen from './screens/user/MembershipDetailsScreen.jsx';
 import BookingScreen from './screens/user/BookingScreen.jsx';
@@ -21,6 +22,8 @@ import DashboardScreen from './screens/user/DashboardScreen.jsx';
 // Admin screens
 import AdminDashboardScreen from './screens/admin/AdminDashboardScreen.jsx';
 import UserManagementScreen from './screens/admin/UserManagementScreen.jsx';
+import QRScannerScreen from './screens/admin/QRScannerScreen.jsx';
+import TourManagementScreen from './screens/admin/TourManagementScreen.jsx';
 
 export default function App() {
   return (
@@ -69,6 +72,15 @@ export default function App() {
             element={
               <ProtectedRoute requireAuth={false}>
                 <TourRequestScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/visitor-pass" 
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <VisitorPassScreen />
               </ProtectedRoute>
             } 
           />
@@ -129,6 +141,24 @@ export default function App() {
             element={
               <ProtectedRoute requireAuth={true} requireAdmin={true}>
                 <UserManagementScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/tour-management" 
+            element={
+              <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                <TourManagementScreen />
+              </ProtectedRoute>
+            } 
+          />
+
+          <Route 
+            path="/admin/qr-scanner" 
+            element={
+              <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                <QRScannerScreen />
               </ProtectedRoute>
             } 
           />

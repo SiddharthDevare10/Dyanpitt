@@ -112,11 +112,25 @@ router.post('/request', validateTourRequest, async (req, res) => {
       success: true,
       message: 'Tour request submitted successfully',
       data: {
-        id: tourRequest._id,
+        _id: tourRequest._id,
         email: tourRequest.email,
+        fullName: tourRequest.fullName,
+        phoneNumber: tourRequest.phoneNumber,
+        gender: tourRequest.gender,
         tourDate: tourRequest.tourDate,
         tourTime: tourRequest.tourTime,
-        tourStatus: tourRequest.tourStatus
+        tourStatus: tourRequest.tourStatus,
+        educationalBackground: tourRequest.educationalBackground,
+        currentOccupation: tourRequest.currentOccupation,
+        jobTitle: tourRequest.jobTitle,
+        examPreparation: tourRequest.examPreparation,
+        examinationDate: tourRequest.examinationDate,
+        studyRoomDuration: tourRequest.studyRoomDuration,
+        howDidYouKnow: tourRequest.howDidYouKnow,
+        previousStudyRoomExperience: tourRequest.previousStudyRoomExperience,
+        studyRoomComparison: tourRequest.studyRoomComparison,
+        startDate: tourRequest.startDate,
+        createdAt: tourRequest.createdAt
       }
     });
 
@@ -245,6 +259,87 @@ router.put('/requests/:id/status', async (req, res) => {
 
   } catch (error) {
     console.error('Error updating tour request status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// POST /api/tour/scan-qr - Scan QR code and complete tour (admin only)
+router.post('/scan-qr', async (req, res) => {
+  try {
+    const { qrData } = req.body;
+
+    if (!qrData) {
+      return res.status(400).json({
+        success: false,
+        message: 'QR data is required'
+      });
+    }
+
+    // Parse QR data
+    let parsedData;
+    try {
+      parsedData = JSON.parse(qrData);
+    } catch (parseError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid QR code format'
+      });
+    }
+
+    // Validate QR data structure
+    if (parsedData.type !== 'VISITOR_PASS' || !parsedData.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid visitor pass QR code'
+      });
+    }
+
+    // Find and update tour request
+    const tourRequest = await TourRequest.findById(parsedData.id);
+
+    if (!tourRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tour request not found'
+      });
+    }
+
+    // Check if tour is already completed
+    if (tourRequest.tourStatus === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Tour has already been completed',
+        data: tourRequest
+      });
+    }
+
+    // Update tour status to completed
+    tourRequest.tourStatus = 'completed';
+    tourRequest.isCompleted = true;
+    tourRequest.adminNotes = (tourRequest.adminNotes || '') + `\nCompleted via QR scan on ${new Date().toISOString()}`;
+    
+    await tourRequest.save();
+
+    // Send feedback email
+    try {
+      const emailService = require('../services/emailService');
+      await emailService.sendFeedbackEmail(tourRequest.email, tourRequest.fullName);
+    } catch (emailError) {
+      console.error('Error sending feedback email:', emailError);
+      // Don't fail the request if email fails
+    }
+
+    res.json({
+      success: true,
+      message: 'Tour completed successfully. Feedback email sent to visitor.',
+      data: tourRequest
+    });
+
+  } catch (error) {
+    console.error('Error processing QR scan:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'

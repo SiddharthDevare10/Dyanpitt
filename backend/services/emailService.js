@@ -325,6 +325,110 @@ class EmailService {
       };
     }
   }
+
+  /**
+   * Send feedback email after tour completion
+   * @param {string} email - Recipient email
+   * @param {string} fullName - User's full name
+   * @returns {object} Result object
+   */
+  async sendFeedbackEmail(email, fullName) {
+    if (this.mode === 'console') {
+      return this.sendFeedbackEmailConsole(email, fullName);
+    }
+    return this.sendFeedbackEmailSMTP(email, fullName);
+  }
+
+  async sendFeedbackEmailConsole(email, fullName) {
+    try {
+      console.log('\n' + '='.repeat(60));
+      console.log('TOUR FEEDBACK REQUEST');
+      console.log('='.repeat(60));
+      console.log(`Email: ${email}`);
+      console.log(`Name: ${fullName}`);
+      console.log(`Message: Tour completed - Feedback requested`);
+      console.log('='.repeat(60) + '\n');
+      
+      return { 
+        success: true, 
+        messageId: 'console-feedback-' + Date.now(),
+        isConsoleMode: true 
+      };
+    } catch (error) {
+      console.error('Error displaying feedback request:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async sendFeedbackEmailSMTP(email, fullName) {
+    try {
+      const mailOptions = {
+        from: `"${process.env.APP_NAME || 'Dnyanpeeth Abhyasika'}" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+        to: email,
+        subject: 'Thank you for visiting Dnyanpeeth Abhyasika - Share your feedback',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+            <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #1a365d; margin: 0; font-size: 28px;">Dnyanpeeth Abhyasika</h1>
+                <p style="color: #666; margin: 5px 0 0 0; font-size: 16px;">Thank you for visiting us!</p>
+              </div>
+              
+              <div style="margin-bottom: 30px;">
+                <h2 style="color: #1a365d; margin-bottom: 15px;">Dear ${fullName},</h2>
+                <p style="color: #333; line-height: 1.6; margin-bottom: 15px;">
+                  Thank you for taking the time to visit Dnyanpeeth Abhyasika today. We hope you found our facilities and environment conducive to your study goals.
+                </p>
+                <p style="color: #333; line-height: 1.6; margin-bottom: 15px;">
+                  Your feedback is invaluable to us as we continuously strive to improve our services and create the best possible study environment for our members.
+                </p>
+              </div>
+
+              <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+                <h3 style="color: #1a365d; margin-top: 0; margin-bottom: 15px;">Please share your feedback:</h3>
+                <ul style="color: #333; line-height: 1.8; margin: 0; padding-left: 20px;">
+                  <li>How was your overall experience during the tour?</li>
+                  <li>What did you like most about our facilities?</li>
+                  <li>Are there any areas where we can improve?</li>
+                  <li>Would you recommend Dnyanpeeth Abhyasika to others?</li>
+                  <li>Any additional comments or suggestions?</li>
+                </ul>
+              </div>
+
+              <div style="text-align: center; margin-bottom: 30px;">
+                <a href="mailto:feedback@dnyanpeethabhyasika.com?subject=Feedback%20after%20Tour%20Visit&body=Dear%20Dnyanpeeth%20Abhyasika%20Team,%0A%0AThank%20you%20for%20the%20tour.%20Here%20is%20my%20feedback:%0A%0A1.%20Overall%20experience:%0A%0A2.%20What%20I%20liked%20most:%0A%0A3.%20Areas%20for%20improvement:%0A%0A4.%20Would%20I%20recommend:%0A%0A5.%20Additional%20comments:%0A%0ABest%20regards,%0A${fullName}" 
+                   style="display: inline-block; background-color: #1a365d; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+                  Share Your Feedback
+                </a>
+              </div>
+
+              <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; text-align: center;">
+                <p style="color: #666; font-size: 14px; margin: 0;">
+                  If you have any questions or would like to proceed with membership, please contact us:
+                </p>
+                <p style="color: #1a365d; font-weight: bold; margin: 10px 0 0 0;">
+                  📞 Phone: +91-XXXXXXXXXX | 📧 Email: info@dnyanpeethabhyasika.com
+                </p>
+              </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+              <p style="color: #666; font-size: 12px; margin: 0;">
+                This email was sent because you completed a tour at Dnyanpeeth Abhyasika.
+              </p>
+            </div>
+          </div>
+        `
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Feedback email sent successfully to:', email);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      console.error('Error sending feedback email:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = new EmailService();

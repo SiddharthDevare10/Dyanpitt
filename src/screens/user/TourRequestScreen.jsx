@@ -210,12 +210,12 @@ export default function TourRequestScreen() {
 
       console.log('Tour request submitted successfully:', result);
       
-      // Show success message
-      alert('Tour request submitted successfully! We will contact you soon to confirm your tour.');
-      
-      if (onSubmit) {
-        onSubmit(result.data);
-      }
+      // Navigate to visitor pass screen with tour data
+      navigate('/visitor-pass', { 
+        state: { 
+          tourData: result.data 
+        } 
+      });
     } catch (error) {
       console.error('Error submitting tour request:', error);
       
