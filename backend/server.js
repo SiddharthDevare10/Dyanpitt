@@ -1,8 +1,11 @@
 const express = require('express');
 const passport = require('passport');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const cleanupService = require('./services/cleanupService');
 require('dotenv').config();
 
@@ -73,13 +76,38 @@ app.use((req, res, next) => {
 
 // Handle preflight requests explicitly
 app.options('*', (req, res) => {
-  console.log('🔄 Preflight request for:', req.url);
-  res.header('Access-Control-Allow-Origin', req.get('Origin') || '*');
+  const origin = req.get('Origin');
+  const isDev = process.env.NODE_ENV === 'development';
+  const isAllowed = isDev || !origin || allowedOrigins.includes(origin);
+  
+  console.log('🔄 Preflight request for:', req.url, 'Origin:', origin, 'Allowed:', isAllowed);
+  if (origin && isAllowed) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
   res.sendStatus(200);
 });
+
+// Security middleware (enabled by default)
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      baseUri: ["'self'"],
+      frameAncestors: ["'none'"],
+      objectSrc: ["'none'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'", process.env.FRONTEND_URL || 'http://localhost:5173'],
+      upgradeInsecureRequests: []
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -97,11 +125,13 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   },
-  // Use a proper session store in production
-  ...(process.env.NODE_ENV === 'production' && {
-    // Note: For production, consider using connect-mongo or similar
-    // This is a temporary fix to reduce the warning
-  })
+  store: process.env.NODE_ENV === 'production' && process.env.MONGODB_URI
+    ? MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI,
+        collectionName: 'sessions',
+        ttl: 24 * 60 * 60, // 1 day
+      })
+    : undefined,
 }));
 
 // Passport middleware
@@ -111,13 +141,19 @@ app.use(passport.session());
 // Connect to MongoDB
 connectDB();
 
-// Start cleanup service for temporary users (runs every 1 minute)
-cleanupService.start(1);
+// Start cleanup service for temporary users (runs every 5 minutes)
+cleanupService.start(5);
+
+// Basic rate limiting for API routes (tune as needed)
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, standardHeaders: true, legacyHeaders: false });
+app.use('/api', limiter);
+
+// Stricter rate limit for auth routes
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false });
+app.use('/api/auth', authLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/member', require('./routes/member'));
-app.use('/api/booking', require('./routes/booking'));
 app.use('/api/tour', require('./routes/tour'));
 app.use('/api/cleanup', require('./routes/cleanup'));
 

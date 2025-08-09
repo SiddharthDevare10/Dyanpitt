@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import MinimalCalendar from './MinimalCalendar';
 

@@ -1,4 +1,4 @@
-// Pricing data extracted from CSV
+// Pricing data extracted from CSV (shared between frontend and backend)
 export const pricingData = {
   // 1 day pricing
   "1 Day": {

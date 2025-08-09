@@ -4,13 +4,57 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
-const { authenticateToken: auth, rateLimitAuth } = require('../middleware/auth');
+const { authenticateToken: auth } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+const fs = require('fs');
+const path = require('path');
 const emailService = require('../services/emailService');
 const verificationService = require('../services/verificationService');
-const { uploadSingle } = require('../middleware/upload');
+const { uploadSingle, uploadMemorySingle, saveBufferToUploads } = require('../middleware/upload');
 const cleanupService = require('../services/cleanupService');
 
 const router = express.Router();
+
+// Rate limiters with custom keys (IP + identifier)
+const otpLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000, // 30 minutes
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, _res) => `${req.ip}|${(req.body && req.body.email) || ''}`
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 30 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, _res) => `${req.ip}|${(req.body && req.body.email) || ''}`
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req, _res) => {
+    const id = (req.body && (req.body.email || req.body.dyanpittId)) || 'unknown';
+    return `${req.ip}|${id}`;
+  }
+});
+
+function deleteUploadedFile(file) {
+  if (!file) return;
+  try {
+    const filePath = file.path || path.join(__dirname, '..', 'uploads', file.filename);
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log('Deleted uploaded file due to validation failure:', filePath);
+    }
+  } catch (err) {
+    console.error('Failed to delete uploaded file:', err.message);
+  }
+}
 
 // @route   POST /api/auth/check-email
 // @desc    Check if email exists
@@ -61,7 +105,7 @@ router.post('/check-phone', [
 // @route   POST /api/auth/send-otp
 // @desc    Send OTP for email verification
 // @access  Public
-router.post('/send-otp', rateLimitAuth(3, 10 * 60 * 1000), [
+router.post('/send-otp', otpLimiter, [
   body('email').isEmail().normalizeEmail()
 ], async (req, res) => {
   try {
@@ -219,7 +263,7 @@ router.post('/verify-otp', [
 // @route   POST /api/auth/register
 // @desc    Complete user registration
 // @access  Public
-router.post('/register', uploadSingle('avatar'), [
+router.post('/register', uploadMemorySingle('avatar'), [
   body('email').isEmail().normalizeEmail(),
   body('fullName').trim().isLength({ min: 2 }),
   body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format with valid Indian mobile number'),
@@ -239,15 +283,13 @@ router.post('/register', uploadSingle('avatar'), [
 
     const { email, fullName, phoneNumber, dateOfBirth, gender, password } = req.body;
 
-    // Handle uploaded avatar
+    // Handle uploaded avatar (memory upload)
     let avatarUrl = null;
-    if (req.file) {
-      avatarUrl = `/uploads/${req.file.filename}`;
-    }
 
     // Check if phone number already exists
     const existingPhone = await User.findOne({ phoneNumber });
     if (existingPhone) {
+      deleteUploadedFile(req.file);
       return res.status(400).json({
         success: false,
         message: 'Phone number already registered'
@@ -315,6 +357,7 @@ router.post('/register', uploadSingle('avatar'), [
     if (phoneUser && phoneUser.pendingEmail !== email) {
       // If phone belongs to a different user
       if (phoneUser.isEmailVerified && phoneUser.profileCompleted) {
+        deleteUploadedFile(req.file);
         return res.status(400).json({
           success: false,
           message: 'Phone number is already in use by another account'
@@ -335,12 +378,19 @@ router.post('/register', uploadSingle('avatar'), [
     
     if (!tempUser) {
       // Enhanced error message with recovery instructions
+      deleteUploadedFile(req.file);
       return res.status(400).json({
         success: false,
         message: 'Email verification expired or not found. Please verify your email again.',
         code: 'EMAIL_VERIFICATION_EXPIRED',
         instructions: 'Go back to the registration page and request a new verification code.'
       });
+    }
+
+    // If avatar is uploaded, persist it now (after validation passes)
+    if (req.file && req.file.buffer) {
+      const savedFilename = await saveBufferToUploads(req.file, tempUser._id);
+      avatarUrl = `/uploads/${savedFilename}`;
     }
 
     // Update user with complete information (NO Dyanpitt ID generation yet)
@@ -394,6 +444,7 @@ router.post('/register', uploadSingle('avatar'), [
     });
 
   } catch (error) {
+    deleteUploadedFile(req.file);
     console.error('Registration error:', error);
     res.status(500).json({
       success: false,
@@ -405,7 +456,7 @@ router.post('/register', uploadSingle('avatar'), [
 // @route   POST /api/auth/login
 // @desc    Login user with email or Dyanpitt ID
 // @access  Public
-router.post('/login', rateLimitAuth(5, 15 * 60 * 1000), [
+router.post('/login', loginLimiter, [
   body('email').optional().isEmail().normalizeEmail(),
   body('dyanpittId').optional().matches(/^@DA\d{9}$/),
   body('password').exists()
@@ -531,7 +582,7 @@ router.get('/me', auth, async (req, res) => {
 // @route   POST /api/auth/forgot-password
 // @desc    Send password reset OTP
 // @access  Public
-router.post('/forgot-password', rateLimitAuth(3, 10 * 60 * 1000), [
+router.post('/forgot-password', forgotLimiter, [
   body('email').isEmail().normalizeEmail()
 ], async (req, res) => {
   try {
@@ -830,58 +881,8 @@ router.post('/update-booking', auth, async (req, res) => {
       });
     }
 
-    // Import pricing data from CSV structure
-    const pricingData = {
-      "1 Day": {
-        "Dyandhara Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 79,
-          "Day Batch (7:00 AM - 10:00 PM)": 99,
-          "24 Hours Batch": 149
-        },
-        "Dyanpurn Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 149,
-          "Day Batch (7:00 AM - 10:00 PM)": 199,
-          "24 Hours Batch": 299
-        }
-      },
-      "8 Days": {
-        "Dyandhara Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 299,
-          "Day Batch (7:00 AM - 10:00 PM)": 399,
-          "24 Hours Batch": 599
-        },
-        "Dyanpurn Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 349,
-          "Day Batch (7:00 AM - 10:00 PM)": 499,
-          "24 Hours Batch": 699
-        }
-      },
-      "15 Days": {
-        "Dyandhara Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 599,
-          "Day Batch (7:00 AM - 10:00 PM)": 699,
-          "24 Hours Batch": 999
-        },
-        "Dyanpurn Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 849,
-          "Day Batch (7:00 AM - 10:00 PM)": 1199,
-          "24 Hours Batch": 1799
-        }
-      },
-      "1 Month": {
-        "Dyandhara Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 799,
-          "Day Batch (7:00 AM - 10:00 PM)": 999,
-          "24 Hours Batch": 1499
-        },
-        "Dyanpurn Kaksh": {
-          "Night Batch (10:00 PM - 7:00 AM)": 1399,
-          "Day Batch (7:00 AM - 10:00 PM)": 1999,
-          "24 Hours Batch": 2999
-        }
-      }
-      // Add more months as needed
-    };
+    // Import pricing data (shared with frontend)
+    const { pricingData } = require('../../src/data/pricing.js');
 
     const durationMultipliers = {
       // Daily options
@@ -1015,23 +1016,8 @@ router.post('/complete-payment', auth, async (req, res) => {
         // Send welcome email with Dnyanpitt ID
         await emailService.sendWelcomeEmail(user.email, user.fullName, dyanpittIdData.dyanpittId);
         
-        // Update any existing member and booking records with the new Dnyanpitt ID
-        const Member = require('../models/Member');
-        const Booking = require('../models/Booking');
-        
-        // Update member record
-        const existingMember = await Member.findByUser(user);
-        if (existingMember) {
-          await existingMember.updateDyanpittIdReference(dyanpittIdData.dyanpittId);
-          console.log('Updated member record with Dnyanpitt ID:', dyanpittIdData.dyanpittId);
-        }
-        
-        // Update booking record
-        const existingBooking = await Booking.findByUser(user);
-        if (existingBooking) {
-          await existingBooking.updateDyanpittIdReference(dyanpittIdData.dyanpittId);
-          console.log('Updated booking record with Dnyanpitt ID:', dyanpittIdData.dyanpittId);
-        }
+        // Member and booking data is now stored in User model directly
+        // No separate Member/Booking records to update
         
       } catch (error) {
         console.error('Error generating Dnyanpitt ID:', error);

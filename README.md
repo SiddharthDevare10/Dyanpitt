@@ -4,6 +4,10 @@ Simple React + Node.js application with clean development workflow.
 
 ## 🔧 Development
 
+Prerequisite: Node.js 20.19+
+- Use nvm: `nvm install` then `nvm use` (project contains .nvmrc)
+- Verify: `node -v` should print v20.19.0 or newer 20.x
+
 ### **Start Development**
 ```bash
 # Start both frontend and backend
@@ -40,6 +44,8 @@ dyanpitt-app/
 ```
 
 ## 🚀 Deployment
+
+See CSP_VERCEL_GUIDE.md for setting a secure Content Security Policy (CSP) on your frontend host in production.
 
 When ready to deploy:
 1. Build works locally: `npm run build`

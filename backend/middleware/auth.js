@@ -72,6 +72,8 @@ const requireAdmin = (req, res, next) => {
 };
 
 // Rate limiting middleware for auth routes
+// Industry-standard rate limiting decorator for sensitive endpoints
+// Defaults: 5 attempts per 15 minutes
 const rateLimitAuth = (maxAttempts = 5, windowMs = 15 * 60 * 1000) => {
   const attempts = new Map();
 

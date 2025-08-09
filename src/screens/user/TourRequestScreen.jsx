@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from '../../components/DatePicker';
 import CustomDropdown from '../../components/CustomDropdown';
@@ -194,7 +194,7 @@ export default function TourRequestScreen() {
       };
 
       // Submit to backend API
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/request`, {
+      const response = await apiService.request('/tour/request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -202,10 +202,10 @@ export default function TourRequestScreen() {
         body: JSON.stringify(tourRequestData)
       });
 
-      const result = await response.json();
+      const result = response; // apiService.request returns parsed JSON
 
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to submit tour request');
+      if (!result || !result.success) {
+        throw new Error(result?.message || 'Failed to submit tour request');
       }
 
       console.log('Tour request submitted successfully:', result);

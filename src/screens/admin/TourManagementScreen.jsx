@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import apiService from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function TourManagementScreen() {
@@ -16,17 +17,7 @@ export default function TourManagementScreen() {
   const fetchTours = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch tours');
-      }
-
-      const result = await response.json();
+      const result = await apiService.request('/tour/requests');
       setTours(result.data || []);
     } catch (error) {
       console.error('Error fetching tours:', error);
@@ -38,18 +29,13 @@ export default function TourManagementScreen() {
 
   const updateTourStatus = async (tourId, newStatus) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests/${tourId}/status`, {
+      const result = await apiService.request(`/tour/requests/${tourId}/status`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status: newStatus })
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update tour status');
-      }
 
       // Refresh tours list
       fetchTours();

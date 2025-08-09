@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import apiService from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function QRScannerScreen() {
@@ -52,20 +53,10 @@ export default function QRScannerScreen() {
       }
 
       // Send to backend for processing
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/scan-qr`, {
+      const result = await apiService.request('/tour/scan-qr', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
         body: JSON.stringify({ qrData: manualQRData })
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to process QR code');
-      }
 
       setScanResult(result);
       setManualQRData('');

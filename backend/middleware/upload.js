@@ -141,8 +141,47 @@ const uploadMultiple = (fieldName, maxCount = 5) => {
   };
 };
 
+const memoryStorage = multer.memoryStorage();
+
+const uploadMemory = multer({
+  storage: memoryStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  }
+});
+
+const uploadMemorySingle = (fieldName) => {
+  return (req, res, next) => {
+    uploadMemory.single(fieldName)(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ success: false, message: 'File too large. Maximum size is 5MB.' });
+        }
+        return res.status(400).json({ success: false, message: `Upload error: ${err.message}` });
+      } else if (err) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+      next();
+    });
+  };
+};
+
+async function saveBufferToUploads(file, userId = 'anonymous') {
+  const timestamp = Date.now();
+  const uuid = crypto.randomBytes(8).toString('hex');
+  const ext = path.extname(file.originalname || '') || '';
+  const name = path.basename(file.originalname || 'upload', ext).replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `${userId}_${timestamp}_${uuid}_${name}${ext}`;
+  const targetPath = path.join(uploadsDir, filename);
+  await fs.promises.writeFile(targetPath, file.buffer);
+  return filename;
+}
+
 module.exports = {
   upload,
   uploadSingle,
-  uploadMultiple
+  uploadMultiple,
+  uploadMemorySingle,
+  saveBufferToUploads
 };

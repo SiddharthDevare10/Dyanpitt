@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DatePicker from '../../components/DatePicker';
 import { Eye, EyeOff, Check, Calendar } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
@@ -102,14 +102,13 @@ export default function RegisterScreen() {
       }
       
       // Fetch tour requests for this email
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests/${encodeURIComponent(email)}`);
-      
-      if (!response.ok) {
+      let result;
+      try {
+        result = await apiService.request(`/tour/requests/${encodeURIComponent(email)}`);
+      } catch (e) {
         console.log('No tour data found for this email:', email);
         return;
       }
-
-      const result = await response.json();
       
       if (result.success && result.data && result.data.length > 0) {
         // Get the most recent tour request

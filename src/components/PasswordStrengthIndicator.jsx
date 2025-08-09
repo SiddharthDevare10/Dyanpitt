@@ -1,5 +1,3 @@
-import React from 'react';
-
 const PasswordStrengthIndicator = ({ password }) => {
   const calculateStrength = (password) => {
     if (!password) return { score: 0, label: '', color: '#e5e7eb' };

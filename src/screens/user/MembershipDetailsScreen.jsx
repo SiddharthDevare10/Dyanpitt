@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -133,14 +133,19 @@ export default function MembershipDetailsScreen() {
       }
       
       // Fetch tour requests for this email
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/requests/${encodeURIComponent(userEmail)}`);
+      let result; 
+      try { 
+        result = await apiService.request(`/tour/requests/${encodeURIComponent(userEmail)}`); 
+      } catch (e) { 
+        console.log('No tour data found for this email:', userEmail); 
+        return; 
+      }
       
-      if (!response.ok) {
+      // apiService.request returned parsed JSON
+      if (!result || !result.success) {
         console.log('No tour data found for this email:', userEmail);
         return;
       }
-
-      const result = await response.json();
       
       if (result.success && result.data && result.data.length > 0) {
         // Get the most recent tour request

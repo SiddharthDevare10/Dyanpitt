@@ -8,5 +8,8 @@ export default defineConfig({
     host: '0.0.0.0', // Allow external connections
     port: 5173,
     strictPort: true
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom']
   }
 })
