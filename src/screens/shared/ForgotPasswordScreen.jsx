@@ -290,6 +290,18 @@ export default function ForgotPasswordScreen() {
   const renderEmailStep = () => (
     <div className="main-container">
       <div className="header-section">
+        <div className="logo-container" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <img 
+            src="/Logo.png" 
+            alt="Logo" 
+            style={{ 
+              width: '150px', 
+              height: '150px', 
+              objectFit: 'contain',
+              borderRadius: '50%'
+            }} 
+          />
+        </div>
         <h1 className="main-title">Reset your Password</h1>
         <p className="main-subtitle">Enter your email address and we'll send you a verification code</p>
       </div>
@@ -321,7 +333,7 @@ export default function ForgotPasswordScreen() {
 
       <button 
         onClick={handleSendOtp} 
-        className={`login-button ${isLoading ? 'loading' : ''}`}
+        className="login-button"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -389,7 +401,7 @@ export default function ForgotPasswordScreen() {
 
       <button 
         onClick={handleVerifyOtp} 
-        className={`login-button ${isLoading ? 'loading' : ''}`}
+        className="login-button"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -501,7 +513,7 @@ export default function ForgotPasswordScreen() {
 
       <button 
         onClick={handleResetPassword} 
-        className={`login-button ${isLoading ? 'loading' : ''}`}
+        className="login-button"
         disabled={isLoading}
       >
         {isLoading ? (

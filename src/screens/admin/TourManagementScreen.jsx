@@ -29,7 +29,7 @@ export default function TourManagementScreen() {
 
   const updateTourStatus = async (tourId, newStatus) => {
     try {
-      const result = await apiService.request(`/tour/requests/${tourId}/status`, {
+      await apiService.request(`/tour/requests/${tourId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -73,8 +73,7 @@ export default function TourManagementScreen() {
   if (loading) {
     return (
       <div className="main-container">
-        <div className="loading-container">
-          <div className="spinner"></div>
+        <div className="simple-loading">
           <p>Loading tours...</p>
         </div>
       </div>

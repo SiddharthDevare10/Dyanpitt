@@ -282,7 +282,7 @@ router.post('/scan-qr', async (req, res) => {
     let parsedData;
     try {
       parsedData = JSON.parse(qrData);
-    } catch (parseError) {
+    } catch {
       return res.status(400).json({
         success: false,
         message: 'Invalid QR code format'

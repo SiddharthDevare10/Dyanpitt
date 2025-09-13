@@ -56,7 +56,6 @@ body {
   height: 4px;
   flex: 1;
   border-radius: 2px;
-  transition: background-color 0.3s ease;
 }
 
 .strength-bar-segment.inactive {
@@ -265,11 +264,6 @@ body {
    LOGIN SCREEN STYLES
    ======================================== */
 
-/* Login Screen Container */
-.login-screen-container {
-  /* Inherits from main-container */
-}
-
 /* Login Screen Header */
 .login-screen-header {
   margin-bottom: 20px;
@@ -336,7 +330,6 @@ body {
   border-radius: 12px;
   font-size: 16px;
   background-color: #ffffff;
-  transition: border-color 0.2s ease;
 }
 
 .login-screen-form-input:focus {
@@ -361,7 +354,6 @@ body {
   position: absolute;
   right: 16px;
   top: 50%;
-  transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
@@ -418,22 +410,16 @@ body {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .login-screen-submit-button:hover {
   background-color: #374151;
-  transform: translateY(-2px);
-}
-
-.login-screen-submit-button:active {
-  transform: translateY(0);
 }
 
 .login-screen-submit-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  
 }
 
 .login-screen-submit-button.loading {
@@ -465,14 +451,10 @@ body {
   border: 2px solid transparent;
   border-top: 2px solid #ffffff;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
   margin-right: 8px;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+
 
 /* Main Container */
 .main-container {
@@ -491,49 +473,13 @@ body {
 }
 
 /* Screen transition animations */
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-@keyframes fadeInDown {
-  0% {
-    opacity: 0;
-    transform: translateY(-30px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-@keyframes slideInRight {
-  0% {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
-@keyframes slideInLeft {
-  0% {
-    opacity: 0;
-    transform: translateX(-50px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
+
+
+
+
 
 /* Header */
 .header-section {
@@ -579,22 +525,17 @@ body {
 
 .back-button:hover {
   background-color: #5A5A5A;
-  transform: scale(1.05);
-}
-
-.back-button:active {
-  transform: scale(0.95);
 }
 
 .back-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  
 }
 
 .back-button:disabled:hover {
   background-color: #5B5B5B;
-  transform: none;
+  
 }
 
 .back-button svg {
@@ -606,7 +547,6 @@ body {
 /* Input Groups */
 .input-group {
   margin-bottom: 30px;
-  animation: slideInRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 
@@ -634,25 +574,8 @@ body {
   justify-content: center;
   color: white;
   font-size: 36px;
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 600;  text-transform: uppercase;
   position: relative;
-}
-
-.input-group:nth-child(2) {
-  animation-delay: 0.1s;
-}
-
-.input-group:nth-child(3) {
-  animation-delay: 0.2s;
-}
-
-.input-group:nth-child(4) {
-  animation-delay: 0.3s;
-}
-
-.input-group:nth-child(5) {
-  animation-delay: 0.4s;
 }
 
 /* Specific overrides for login screen spacing */
@@ -684,7 +607,6 @@ body {
   font-weight: 400;
   color: #000000;
   background-color: #ffffff;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .form-input:focus {
@@ -736,28 +658,21 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  animation: fadeInUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s both;
 }
 
 .login-button:hover {
   background-color: #5A5A5A;
-  transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
-.login-button:active {
-  transform: translateY(0);
 }
 
 .login-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  
 }
 
 .login-button.loading {
@@ -771,13 +686,9 @@ body {
   border: 2px solid transparent;
   border-top: 2px solid #ffffff;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+
 
 /* Google Button */
 .google-button {
@@ -790,12 +701,10 @@ body {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  animation: fadeInUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.6s both;
 }
 
 .google-button:hover {
@@ -825,14 +734,12 @@ body {
   position: absolute;
   right: 12px;
   top: 50%;
-  transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
   color: #6b7280;
   padding: 4px;
   border-radius: 4px;
-  transition: color 0.2s ease;
 }
 
 .password-toggle:hover {
@@ -886,7 +793,7 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  
   color: #ffffff;
   font-size: 10px;
   font-weight: bold;
@@ -909,7 +816,6 @@ body {
   font-weight: 400;
   cursor: pointer;
   text-decoration: underline;
-  transition: opacity 0.2s ease;
 }
 
 .forgot-password:hover {
@@ -961,7 +867,6 @@ body {
   font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
-  transition: opacity 0.2s ease;
 }
 
 .signup-button:hover {
@@ -995,7 +900,6 @@ body {
   background-size: 12px;
   padding-right: 28px;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .country-code-select:focus {
@@ -1028,7 +932,6 @@ body {
   position: absolute;
   right: 12px;
   top: 50%;
-  transform: translateY(-50%);
   background-color: #f0fdf4;
   border-radius: 50%;
   padding: 2px;
@@ -1201,8 +1104,7 @@ body {
 }
 
 .custom-calendar .react-calendar__month-view__weekdays {
-  text-align: center;
-  text-transform: uppercase;
+  text-align: center;  text-transform: uppercase;
   font-weight: 600;
   font-size: 12px;
   color: #6b7280;
@@ -1289,7 +1191,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
 }
 
 .nav-button:hover {
@@ -1332,7 +1233,6 @@ body {
   cursor: pointer;
   padding: 6px 12px;
   border-radius: 6px;
-  transition: all 0.2s ease;
   position: relative;
 }
 
@@ -1342,14 +1242,12 @@ body {
   font-size: 10px;
   margin-left: 6px;
   color: #6b7280;
-  transition: transform 0.2s ease;
 }
 
 .month-selector:hover,
 .year-selector:hover {
   background-color: #f3f4f6;
   border-color: #5B5B5B;
-  transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -1376,8 +1274,7 @@ body {
   font-size: 12px;
   font-weight: 600;
   color: #6b7280;
-  padding: 8px 4px;
-  text-transform: uppercase;
+  padding: 8px 4px;  text-transform: uppercase;
 }
 
 .calendar-grid {
@@ -1395,7 +1292,6 @@ body {
   font-weight: 400;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
   color: #374151;
   position: relative;
 }
@@ -1449,7 +1345,6 @@ body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .confirm-button:hover {
@@ -1471,7 +1366,6 @@ body {
   position: absolute;
   top: 60px;
   left: 50%;
-  transform: translateX(-50%);
   background: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -1513,7 +1407,6 @@ body {
   color: #374151;
   cursor: pointer;
   border-radius: 6px;
-  transition: all 0.2s ease;
   text-align: center;
   min-width: 60px;
   width: 100%;
@@ -1594,7 +1487,6 @@ body {
   
   .picker-dropdown {
     left: 50%;
-    transform: translateX(-50%);
   }
 }
 
@@ -1633,7 +1525,7 @@ body {
     max-width: calc(100vw - 40px);
     left: 20px;
     right: 20px;
-    transform: none;
+    
   }
   
   .picker-item {
@@ -1673,6 +1565,426 @@ body {
   }
 }
 
+
+/* ========================================
+   CUSTOM CLOCK COMPONENT - UNIQUE DESIGN
+   ======================================== */
+/* Clock Input Field - Match form-input exactly */
+.custom-clock-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #000000;
+  background-color: #ffffff;
+  font-family: 'Poppins', sans-serif;
+  outline: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.custom-clock-input:hover {
+  border-color: #000000;
+}
+
+.custom-clock-input.clock-selected {
+  border-color: #000000;
+}
+
+.custom-clock-input.clock-error {
+  border-color: #ff4757;
+}
+
+.custom-clock-placeholder {
+  flex: 1;
+  font-size: 13px;
+  color: #000000;
+  font-weight: 400;
+}
+
+.custom-clock-value {
+  flex: 1;
+  font-size: 14px;
+  color: #000000;
+  font-weight: 400;
+}
+
+.custom-clock-chevron {
+  font-size: 14px;
+  color: #666666;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* Custom Clock Modal - More Subtle Design */
+.custom-time-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.custom-time-modal {
+  background: #ffffff;
+  border-radius: 8px;
+  max-width: 450px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e5e5;
+  overflow: hidden;
+}
+
+.custom-time-header {
+  padding: 24px 24px 20px;
+  text-align: center;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.custom-time-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333333;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+.custom-time-subtitle {
+  font-size: 14px;
+  color: #666666;
+  margin: 6px 0 0 0;
+  font-weight: 400;
+  font-family: 'Poppins', sans-serif;
+}
+
+.custom-time-body {
+  padding: 24px;
+  background: #ffffff;
+}
+
+/* Custom Time Picker Layout */
+.custom-time-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Separate Labels Box */
+.custom-time-labels-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 450px;
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.custom-label-item {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+  min-width: 80px;
+}
+
+.custom-label-colon {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666666;
+  font-family: 'Poppins', sans-serif;
+  margin: 0 4px;
+}
+
+.custom-time-selectors {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 450px;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+/* Custom Time Control Units */
+.custom-time-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.custom-period-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+.custom-unit-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  padding: 12px 8px;
+  min-width: 80px;
+}
+
+.custom-increment-btn,
+.custom-decrement-btn {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #555555;
+  font-weight: 600;
+  margin: 6px 0;
+}
+
+.custom-increment-btn:hover,
+.custom-decrement-btn:hover {
+  background: #eeeeee;
+  border-color: #cccccc;
+  color: #333333;
+}
+
+.custom-increment-btn:active,
+.custom-decrement-btn:active {
+  transform: scale(0.95);
+}
+
+.custom-time-display {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333333;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+  min-width: 50px;
+  line-height: 1;
+}
+
+/* Custom Time Separator */
+.custom-time-colon {
+  font-size: 24px;
+  font-weight: 600;
+  color: #666666;
+  font-family: 'Poppins', sans-serif;
+  margin: 0 4px;
+  margin-bottom: 20px;
+  align-self: center;
+}
+
+/* Custom Period Control */
+.custom-period-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.custom-period-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  padding: 12px 8px;
+  min-width: 80px;
+}
+
+.custom-period-increment-btn,
+.custom-period-decrement-btn {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #555555;
+  font-weight: 600;
+  margin: 8px 0;
+}
+
+.custom-period-increment-btn:hover,
+.custom-period-decrement-btn:hover {
+  background: #eeeeee;
+  border-color: #cccccc;
+  color: #333333;
+}
+
+.custom-period-increment-btn:active,
+.custom-period-decrement-btn:active {
+  transform: scale(0.95);
+}
+
+.custom-period-display {
+  font-size: 24px;
+  font-weight: 600;
+  color: #333333;
+  font-family: 'Poppins', sans-serif;
+  text-align: center;
+  min-width: 50px;
+  line-height: 1;
+}
+
+/* Custom Arrow Icons */
+.custom-arrow-up {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid currentColor;
+}
+
+.custom-arrow-down {
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 8px solid currentColor;
+}
+
+/* Custom Confirm Button */
+.custom-time-confirm {
+  background: #5B5B5B;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 120px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.custom-time-confirm:hover {
+  background: #6B6B6B;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-time-confirm:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.custom-time-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Custom Clock Mobile Responsive */
+@media (max-width: 768px) {
+  .custom-time-modal {
+    margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
+  
+  .custom-time-header {
+    padding: 20px 20px 16px;
+  }
+  
+  .custom-time-title {
+    font-size: 18px;
+  }
+  
+  .custom-time-subtitle {
+    font-size: 13px;
+  }
+  
+  .custom-time-body {
+    padding: 20px;
+  }
+  
+  .custom-time-selectors {
+    flex-direction: row;
+    gap: 8px;
+    max-width: 100%;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0;
+  }
+  
+  .custom-time-colon {
+    font-size: 18px;
+    margin: 0 2px;
+    margin-bottom: 15px;
+  }
+  
+  .custom-time-unit,
+  .custom-period-unit {
+    flex: 1;
+    align-items: center;
+  }
+  
+  .custom-unit-container,
+  .custom-period-container {
+    min-width: 65px;
+    padding: 10px 6px;
+  }
+  
+  .custom-increment-btn,
+  .custom-decrement-btn {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .custom-time-display {
+    font-size: 20px;
+    min-width: 45px;
+  }
+  
+  .custom-period-increment-btn,
+  .custom-period-decrement-btn {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .custom-period-display {
+    font-size: 20px;
+    min-width: 35px;
+  }
+  
+  .custom-time-confirm {
+    width: 100%;
+    min-width: auto;
+    padding: 14px 24px;
+    font-size: 14px;
+  }
+}
+
+
 /* Mobile-specific date input fixes */
 @media (max-width: 768px) {
   .form-input[type="date"],
@@ -1690,7 +2002,6 @@ body {
     position: absolute;
     right: 12px;
     top: 50%;
-    transform: translateY(-50%);
     width: 24px;
     height: 24px;
     cursor: pointer;
@@ -1802,7 +2113,6 @@ body {
   border: 1px solid #5B5B5B;
   border-radius: 50%;
   position: relative;
-  transition: all 0.2s;
   background: transparent;
   flex-shrink: 0;
 }
@@ -1849,7 +2159,6 @@ body {
   color: #000000;
   background-color: #ffffff;
   cursor: pointer;
-  transition: all 0.2s ease;
   text-align: center;
 }
 
@@ -1942,7 +2251,6 @@ select.form-input option:checked {
   position: relative;
   width: 100%;
   /* Ensure dropdown pushes content down smoothly */
-  transition: all 0.2s ease-out;
 }
 
 .custom-dropdown {
@@ -1958,7 +2266,6 @@ select.form-input option:checked {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.2s ease;
   position: relative;
 }
 
@@ -1990,14 +2297,9 @@ select.form-input option:checked {
 
 .custom-dropdown-arrow {
   margin-left: 8px;
-  transition: transform 0.2s ease;
   color: #6b7280;
   display: flex;
   align-items: center;
-}
-
-.custom-dropdown.open .custom-dropdown-arrow {
-  transform: rotate(180deg);
 }
 
 .custom-dropdown-options {
@@ -2009,22 +2311,10 @@ select.form-input option:checked {
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  animation: slideDown 0.2s ease-out;
   /* Use relative positioning to push content down instead of overlapping */
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-    max-height: 0;
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-    max-height: 500px;
-  }
-}
+
 
 .custom-dropdown-option {
   padding: 12px 16px;
@@ -2032,7 +2322,6 @@ select.form-input option:checked {
   font-weight: 400;
   color: #000000;
   cursor: pointer;
-  transition: all 0.2s ease;
   border-bottom: 1px solid #f3f4f6;
   /* Ensure text is readable and properly spaced */
   line-height: 1.4;
@@ -2070,7 +2359,6 @@ select.form-input option:checked {
   height: 8px;
   flex: 1;
   border-radius: 4px;
-  transition: all 0.2s ease;
 }
 
 .strength-bar-segment.active {
@@ -2144,7 +2432,6 @@ select.form-input option:checked {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
 }
 
 .logout-button:hover {
@@ -2278,7 +2565,6 @@ select.form-input option:checked {
   border: 3px solid #f3f3f3;
   border-top: 3px solid #000000;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
 .loading-text {
@@ -2287,10 +2573,7 @@ select.form-input option:checked {
   font-size: 14px;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+
 
 /* Booking & Payment Screen Styles */
 .price-display {
@@ -2449,7 +2732,6 @@ select.form-input option:checked {
   border: 2px solid #e9ecef;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
   background: #ffffff;
 }
 
@@ -2501,7 +2783,6 @@ select.form-input option:checked {
   border: 2px solid #cccccc;
   border-radius: 50%;
   position: relative;
-  transition: all 0.2s;
 }
 
 .payment-radio .radio-custom.checked {
@@ -2530,7 +2811,6 @@ select.form-input option:checked {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
   margin-top: 10px;
 }
 
@@ -2556,7 +2836,6 @@ select.form-input option:checked {
   border: 2px solid #ffffff40;
   border-top: 2px solid #ffffff;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
 /* Membership Features Styles */
@@ -2673,8 +2952,7 @@ select.form-input option:checked {
 .tier-name {
   font-size: 14px;
   font-weight: 600;
-  color: #000000;
-  text-transform: uppercase;
+  color: #000000;  text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
@@ -2997,7 +3275,6 @@ select.form-input option:checked {
   cursor: pointer;
   padding: 8px;
   border-radius: 6px;
-  transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3063,13 +3340,11 @@ select.form-input option:checked {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
   margin-bottom: 24px;
 }
 
 .continue-button:hover {
   background-color: #5A5A5A;
-  transform: translateY(-1px);
 }
 
 .login-info {
@@ -3164,7 +3439,6 @@ select.form-input option:checked {
   cursor: pointer;
   padding: 6px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3190,12 +3464,10 @@ select.form-input option:checked {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .simple-continue-button:hover {
   background-color: #5A5A5A;
-  transform: translateY(-1px);
 }
 
 /* Dashboard Profile Picture Upload Styles */
@@ -3236,8 +3508,7 @@ select.form-input option:checked {
   justify-content: center;
   color: white;
   font-size: 36px;
-  font-weight: 600;
-  text-transform: uppercase;
+  font-weight: 600;  text-transform: uppercase;
   position: relative;
 }
 
@@ -3427,7 +3698,6 @@ select.form-input option:checked {
   color: #333;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3435,7 +3705,6 @@ select.form-input option:checked {
 }
 
 .seat:hover:not(:disabled) {
-  transform: scale(1.1);
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
@@ -3453,7 +3722,6 @@ select.form-input option:checked {
   background-color: #2196f3;
   border-color: #1976d2;
   color: white;
-  transform: scale(1.1);
   box-shadow: 0 2px 8px rgba(33, 150, 243, 0.4);
 }
 
@@ -3466,7 +3734,7 @@ select.form-input option:checked {
 }
 
 .seat.occupied:hover {
-  transform: none;
+  
   box-shadow: none;
 }
 
@@ -3558,23 +3826,15 @@ select.form-input option:checked {
   justify-content: center;
   z-index: 9999;
   padding: 30px;
-  animation: fadeIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
+
 
 .seat-modal {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  
   background: #ffffff;
   border-radius: 12px;
   max-width: calc(100vw - 60px);
@@ -3583,20 +3843,10 @@ select.form-input option:checked {
   height: auto;
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  animation: modalPopUp 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 
-@keyframes modalPopUp {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.7);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
+
 
 .seat-modal-header {
   display: flex;
@@ -3620,7 +3870,6 @@ select.form-input option:checked {
   padding: 4px;
   border-radius: 4px;
   color: #5B5B5B;
-  transition: all 0.2s ease;
 }
 
 .modal-close-button:hover {
@@ -3734,7 +3983,6 @@ select.form-input option:checked {
   color: #000000;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3770,7 +4018,7 @@ select.form-input option:checked {
 
 
 .seat-modal .seat.zero-value-seat:hover {
-  transform: none;
+  
   box-shadow: none;
   border-color: transparent;
   background-color: transparent;
@@ -3782,7 +4030,6 @@ select.form-input option:checked {
 }
 
 .seat-modal .seat:hover:not(:disabled) {
-  transform: scale(1.1);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
@@ -3800,7 +4047,6 @@ select.form-input option:checked {
   background-color: #d8ffc1;
   border-color: #22c55e;
   color: #000000;
-  transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
 }
 
@@ -3813,7 +4059,7 @@ select.form-input option:checked {
 }
 
 .seat-modal .seat.occupied:hover {
-  transform: none;
+  
   box-shadow: none;
 }
 
@@ -3898,7 +4144,6 @@ select.form-input option:checked {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .modal-cancel-button:hover {
@@ -3916,23 +4161,21 @@ select.form-input option:checked {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .modal-confirm-button:hover:not(:disabled) {
   background-color: #5A5A5A;
-  transform: translateY(-1px);
 }
 
 .modal-confirm-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  transform: none;
+  
 }
 
 .modal-confirm-button:disabled:hover {
   background-color: #5B5B5B;
-  transform: none;
+  
 }
 
 /* Responsive modal styles */
@@ -4016,7 +4259,6 @@ select.form-input option:checked {
   align-items: center;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .seat-selection-button:hover {
@@ -4034,11 +4276,6 @@ select.form-input option:checked {
   color: #5B5B5B;
   font-size: 16px;
   font-weight: 600;
-  transition: transform 0.2s ease;
-}
-
-.seat-selection-button:hover .seat-button-arrow {
-  transform: translateX(2px);
 }
 
 /* Walking space between seats */
@@ -4112,7 +4349,6 @@ select.form-input option:checked {
 .seat-modal .seat.gold-tier.available:hover {
   background: linear-gradient(135deg, #fff4cc, #fff8e1);
   border-color: #ffed4e;
-  transform: scale(1.08);
   box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
 }
 
@@ -4120,7 +4356,6 @@ select.form-input option:checked {
   background-color: #d8ffc1;
   border-color: #22c55e;
   color: #000000;
-  transform: scale(1.08);
   box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
 }
 
@@ -4134,7 +4369,6 @@ select.form-input option:checked {
 .seat-modal .seat.silver-tier.available:hover {
   background: linear-gradient(135deg, #f0f0f0, #f5f5f5);
   border-color: #a8a8a8;
-  transform: scale(1.08);
   box-shadow: 0 4px 12px rgba(192, 192, 192, 0.3);
 }
 
@@ -4142,7 +4376,6 @@ select.form-input option:checked {
   background-color: #d8ffc1;
   border-color: #22c55e;
   color: #000000;
-  transform: scale(1.08);
   box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
 }
 
@@ -4170,7 +4403,6 @@ select.form-input option:checked {
   background-color: #f5f5f5;
   border-color: #e91e63;
   color: #ad1457;
-  transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
 }
 
@@ -4178,7 +4410,6 @@ select.form-input option:checked {
   background-color: #d8ffc1;
   border-color: #22c55e;
   color: #000000;
-  transform: scale(1.05);
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
 }
 
@@ -4200,7 +4431,7 @@ select.form-input option:checked {
 }
 
 .seat-modal .seat.gender-restricted:hover {
-  transform: none;
+  
   box-shadow: none;
 }
 
@@ -4236,7 +4467,6 @@ select.form-input option:checked {
   color: #000000;
   background-color: #ffffff;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .section-dropdown:focus {
@@ -4304,7 +4534,6 @@ select.form-input option:checked {
   max-width: 390px;
   width: 100%;
   text-align: center;
-  animation: fadeInUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .landing-header {
@@ -4338,7 +4567,6 @@ select.form-input option:checked {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   border: 2px solid transparent;
 }
 
@@ -4350,7 +4578,6 @@ select.form-input option:checked {
 
 .tour-button:hover {
   background-color: #e9ecef;
-  transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
@@ -4363,7 +4590,6 @@ select.form-input option:checked {
 .landing-signin-button:hover {
   background-color: #5B5B5B;
   color: #ffffff;
-  transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(91, 91, 91, 0.2);
 }
 
@@ -4375,12 +4601,7 @@ select.form-input option:checked {
 
 .landing-signup-button:hover {
   background-color: #4a4a4a;
-  transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(91, 91, 91, 0.3);
-}
-
-.landing-button:active {
-  transform: translateY(0);
 }
 
 
@@ -4391,10 +4612,6 @@ select.form-input option:checked {
    ======================================== */
 
 /* Admin Dashboard */
-.admin-dashboard-container {
-  /* Inherits from main-container */
-}
-
 .admin-dashboard-content {
   display: flex;
   flex-direction: column;
@@ -4444,19 +4661,13 @@ select.form-input option:checked {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .admin-action-button:hover {
   background-color: #374151;
-  transform: translateY(-2px);
 }
 
 /* User Management */
-.user-management-container {
-  /* Inherits from main-container */
-}
-
 .user-management-content {
   display: flex;
   flex-direction: column;
@@ -4521,7 +4732,6 @@ select.form-input option:checked {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .action-button.view {
@@ -4540,7 +4750,6 @@ select.form-input option:checked {
 }
 
 .action-button:hover {
-  transform: translateY(-1px);
   opacity: 0.9;
 }
 
@@ -4707,20 +4916,18 @@ select.form-input option:checked {
   justify-content: center;
   gap: 10px;
   width: 100%;
-  transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .download-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
 }
 
 .download-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
+  
 }
 
 .important-notes {
@@ -4835,12 +5042,10 @@ select.form-input option:checked {
   justify-content: center;
   gap: 10px;
   margin: 0 auto 15px auto;
-  transition: all 0.2s;
 }
 
 .upload-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-1px);
 }
 
 .upload-description {
@@ -4907,18 +5112,16 @@ select.form-input option:checked {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: all 0.2s;
 }
 
 .scan-button:hover:not(:disabled) {
   background: linear-gradient(135deg, #059669, #047857);
-  transform: translateY(-1px);
 }
 
 .scan-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
+  
 }
 
 .error-result, .success-result {
@@ -5005,7 +5208,6 @@ select.form-input option:checked {
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .scan-another-button {
@@ -5078,12 +5280,10 @@ select.form-input option:checked {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s;
 }
 
 .qr-scanner-button:hover, .refresh-button:hover {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-1px);
 }
 
 .tour-controls {
@@ -5168,7 +5368,6 @@ select.form-input option:checked {
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s;
 }
 
 .confirm-button {
@@ -5246,7 +5445,6 @@ select.form-input option:checked {
   font-size: 16px;
   font-weight: 600;
   color: #374151;
-  transition: all 0.2s;
   text-align: left;
   justify-content: flex-start;
 }
@@ -5255,7 +5453,6 @@ select.form-input option:checked {
   border-color: #3b82f6;
   background: #f8fafc;
   color: #3b82f6;
-  transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
 }
 
@@ -5308,7 +5505,6 @@ select.form-input option:checked {
   position: absolute;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.1);
-  animation: float 6s ease-in-out infinite;
 }
 
 .visitor-pass-congratulations .congratulations-circle-1 {
@@ -5316,7 +5512,6 @@ select.form-input option:checked {
   height: 80px;
   top: 10%;
   left: 10%;
-  animation-delay: 0s;
 }
 
 .visitor-pass-congratulations .congratulations-circle-2 {
@@ -5324,7 +5519,6 @@ select.form-input option:checked {
   height: 120px;
   top: 60%;
   right: 10%;
-  animation-delay: 2s;
 }
 
 .visitor-pass-congratulations .congratulations-circle-3 {
@@ -5332,14 +5526,12 @@ select.form-input option:checked {
   height: 60px;
   bottom: 20%;
   left: 20%;
-  animation-delay: 4s;
 }
 
 .visitor-pass-congratulations .congratulations-triangle {
   position: absolute;
   width: 0;
   height: 0;
-  animation: rotate 8s linear infinite;
 }
 
 .visitor-pass-congratulations .congratulations-triangle-1 {
@@ -5356,7 +5548,6 @@ select.form-input option:checked {
   border-bottom: 26px solid rgba(255, 255, 255, 0.1);
   bottom: 30%;
   right: 30%;
-  animation-delay: 3s;
 }
 
 .visitor-pass-congratulations .congratulations-content {
@@ -5385,7 +5576,6 @@ select.form-input option:checked {
   background: linear-gradient(135deg, #10b981, #059669);
   border-radius: 50%;
   box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
-  animation: checkmarkPulse 2s ease-in-out infinite;
 }
 
 .visitor-pass-congratulations .congratulations-title {
@@ -5410,7 +5600,6 @@ select.form-input option:checked {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   overflow: hidden;
   margin-bottom: 30px;
-  animation: slideUp 0.8s ease-out;
 }
 
 .visitor-pass-header {
@@ -5585,20 +5774,18 @@ select.form-input option:checked {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
 }
 
 .visitor-pass-download-btn:hover:not(:disabled) {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
 }
 
 .visitor-pass-download-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  transform: none;
+  
 }
 
 /* Instructions */
@@ -5608,7 +5795,6 @@ select.form-input option:checked {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   margin-bottom: 30px;
-  animation: slideUp 0.8s ease-out 0.2s both;
 }
 
 .instructions-header {
@@ -5670,7 +5856,6 @@ select.form-input option:checked {
 /* Footer */
 .visitor-pass-footer {
   text-align: center;
-  animation: slideUp 0.8s ease-out 0.4s both;
 }
 
 .visitor-pass-home-btn {
@@ -5685,42 +5870,22 @@ select.form-input option:checked {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  transition: all 0.3s ease;
   backdrop-filter: blur(10px);
 }
 
 .visitor-pass-home-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
 }
 
 /* Animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
 
-@keyframes rotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
 
-@keyframes checkmarkPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+
+
+
+
 
 /* Mobile-First Responsive Design */
 @media (max-width: 480px) {
@@ -5955,11 +6120,6 @@ select.form-input option:checked {
     overflow-wrap: break-word;
   }
   
-  /* Optimize animations for mobile performance */
-  .visitor-pass-congratulations .congratulations-triangle {
-    animation-duration: 12s;
-  }
-  
   /* Better spacing for mobile scrolling */
   .visitor-pass-congratulations .congratulations-header {
     margin-bottom: 25px;
@@ -6002,31 +6162,9 @@ select.form-input option:checked {
   .visitor-info-item:last-child {
     margin-bottom: 0;
   }
-  
-  /* Mobile-friendly animations */
-  .visitor-pass-card {
-    animation: mobileSlideUp 0.6s ease-out;
-  }
-  
-  .visitor-pass-instructions {
-    animation: mobileSlideUp 0.6s ease-out 0.1s both;
-  }
-  
-  .visitor-pass-footer {
-    animation: mobileSlideUp 0.6s ease-out 0.2s both;
-  }
 }
 
-@keyframes mobileSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+
 
 /* Landscape mobile optimization */
 @media (max-width: 768px) and (orientation: landscape) {
@@ -6197,13 +6335,11 @@ select.form-input option:checked {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
   z-index: 10;
 }
 
 .close-button:hover {
   background-color: #4a4a4a;
-  transform: scale(1.05);
 }
 
 /* Download Section inside visitor details */

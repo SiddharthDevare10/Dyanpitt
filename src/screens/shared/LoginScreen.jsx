@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-// eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
@@ -31,7 +29,7 @@ export default function LoginScreen() {
       // Redirect to dashboard after OAuth
       navigate('/dashboard');
     }
-  }, []);
+  }, [navigate]);
 
   // Validation functions
   const validateEmailOrId = (emailOrId) => {
@@ -207,13 +205,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <motion.div 
-      className="main-container login-screen-container"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-    >
+    <div className="main-container login-screen-container">
       {/* Back Button */}
       <Link to="/" className="back-button">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -222,28 +214,33 @@ export default function LoginScreen() {
         ← Back
       </Link>
       {/* Header */}
-      <motion.div 
-        className="header-section login-screen-header"
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-      >
+      <div className="header-section login-screen-header">
+        <div className="logo-container" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <img 
+            src="/Logo.png" 
+            alt="Logo" 
+            style={{ 
+              width: '150px', 
+              height: '150px', 
+              objectFit: 'contain',
+              borderRadius: '50%'
+            }} 
+          />
+        </div>
         <h1 className="main-title login-screen-title">Welcome Back</h1>
         {/* Don't have an account? Sign up */}
         <div className="login-dont-have-account">
           <p>
             Don't have an account?{' '}
-            <motion.button 
+            <button 
               onClick={handleSignUp} 
               disabled={isLoading}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
             >
               Sign up
-            </motion.button>
+            </button>
           </p>
         </div>
-      </motion.div>
+      </div>
 
       {/* General Error Message */}
       {errors.general && (
@@ -273,7 +270,7 @@ export default function LoginScreen() {
       </div>
 
       {/* Password Input */}
-      <div className="input-group login-screen-input-group">
+      <div className="input-group login-screen-input-group" style={{ marginTop: '1px' }}>
         <label className="input-label login-screen-input-label">Password</label>
         <div className="password-wrapper login-screen-password-wrapper">
           <input
@@ -324,27 +321,15 @@ export default function LoginScreen() {
       </div>
 
       {/* Login Button */}
-      <motion.button 
+      <button 
         onClick={handleLogin} 
-        className={`login-button login-screen-submit-button ${isLoading ? 'loading' : ''}`}
+        className="login-button login-screen-submit-button"
         disabled={isLoading}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        whileHover={{ scale: 1.02, y: -2 }}
-        whileTap={{ scale: 0.98 }}
       >
-        {isLoading ? (
-          <>
-            <div className="spinner login-screen-spinner"></div>
-            Signing In...
-          </>
-        ) : (
-          'Sign In'
-        )}
-      </motion.button>
+        {isLoading ? 'Signing In...' : 'Sign In'}
+      </button>
 
-    </motion.div>
+    </div>
   );
 }
 

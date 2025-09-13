@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-// eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import CustomDropdown from '../../components/CustomDropdown';
@@ -48,7 +46,7 @@ export default function MembershipDetailsScreen() {
     };
 
     checkForTourData();
-  }, [tourDataChecked]); // Removed userData?.email dependency to run on mount
+  }, [tourDataChecked, user?.email]); // Include user?.email dependency
 
   const handleInputChange = async (e) => {
     const { name, value, type, files } = e.target;
@@ -109,7 +107,7 @@ export default function MembershipDetailsScreen() {
           try {
             const parsedData = JSON.parse(localUserData);
             userEmail = parsedData.email;
-          } catch (e) {
+          } catch {
             console.log('Could not parse localStorage userData');
           }
         }
@@ -121,7 +119,7 @@ export default function MembershipDetailsScreen() {
             if (currentUserResponse.success && currentUserResponse.user?.email) {
               userEmail = currentUserResponse.user.email;
             }
-          } catch (e) {
+          } catch {
             console.log('Could not get current user email from API');
           }
         }
@@ -136,7 +134,7 @@ export default function MembershipDetailsScreen() {
       let result; 
       try { 
         result = await apiService.request(`/tour/requests/${encodeURIComponent(userEmail)}`); 
-      } catch (e) { 
+      } catch { 
         console.log('No tour data found for this email:', userEmail); 
         return; 
       }
@@ -266,17 +264,25 @@ export default function MembershipDetailsScreen() {
           
           if (response.success) {
             // Update user data and navigate to booking
-            updateUser(response.user);
+            const updatedUser = { 
+              ...response.user, 
+              membershipCompleted: true,
+              membershipDetails: formData 
+            };
+            updateUser(updatedUser);
             navigate('/booking');
           } else {
             setErrors({ submit: response.message || 'Failed to save membership details' });
           }
         } else {
-          // For now, just continue without saving to DB (demo mode)
-          onContinue({
-            ...user,
-            membershipDetails: formData
-          });
+          // For demo mode, update user state locally and continue
+          const updatedUser = { 
+            ...user, 
+            membershipCompleted: true,
+            membershipDetails: formData 
+          };
+          updateUser(updatedUser);
+          navigate('/booking');
         }
       } catch (error) {
         setErrors({ submit: error.message || 'Failed to save membership details. Please try again.' });
@@ -287,46 +293,26 @@ export default function MembershipDetailsScreen() {
   };
 
   return (
-    <motion.div 
-      className="main-container membership-details-adjustment"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-    >
-      <motion.button 
+    <div className="main-container membership-details-adjustment">
+      <button 
         onClick={() => navigate(-1)}
         className="back-button"
-        initial={{ opacity: 0, x: -50 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
       >
         <ArrowLeft size={20} color="white" />
-      </motion.button>
-      <motion.div 
+      </button>
+      <div 
         className="header-section"
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
       >
         <h1 className="main-title">Membership Details</h1>
         <p className="main-subtitle">Fill in your details to complete registration</p>
-      </motion.div>
+      </div>
 
-      <motion.form 
+      <form 
         onSubmit={handleSubmit}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.3 }}
       >
         {/* Have you visited before */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
         >
           <label className="membership-input-label">
             Have you visited Dnyanpeeth Abhyasika before and filled out our form?
@@ -360,46 +346,30 @@ export default function MembershipDetailsScreen() {
           </div>
           
           {/* Tour Data Indicator */}
-          <AnimatePresence>
-            {showTourIndicator && (
-              <motion.div 
-                className="tour-data-indicator"
-                initial={{ opacity: 0, y: -10, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                transition={{ duration: 0.4 }}
-                className="membership-details-tour-indicator"
+          {showTourIndicator && (
+              <div 
+                className="tour-data-indicator membership-details-tour-indicator"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M9 12l2 2 4-4"/>
                   <circle cx="12" cy="12" r="9"/>
                 </svg>
                 Great! We found you visited Dyanpitt for a tour and pre-populated some fields from the Tour Details.
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
 
-          <AnimatePresence>
-            {errors.visitedBefore && (
-              <motion.span 
-                className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                {errors.visitedBefore}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.div>
+          {errors.visitedBefore && (
+            <span 
+              className="error-message"
+            >
+              {errors.visitedBefore}
+            </span>
+          )}
+        </div>
 
         {/* Father's Name */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
         >
           <label className="membership-input-label">
             What is your father's name?
@@ -415,27 +385,18 @@ export default function MembershipDetailsScreen() {
             onChange={handleInputChange}
             className={`form-input ${errors.fatherName ? 'input-error' : ''}`}
           />
-          <AnimatePresence>
-            {errors.fatherName && (
-              <motion.span 
+          {errors.fatherName && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.fatherName}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Parent's Contact Number */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
         >
           <label className="membership-input-label">
             Parent's contact number?
@@ -451,27 +412,18 @@ export default function MembershipDetailsScreen() {
             onChange={handleInputChange}
             className={`form-input ${errors.parentContactNumber ? 'input-error' : ''}`}
           />
-          <AnimatePresence>
-            {errors.parentContactNumber && (
-              <motion.span 
+          {errors.parentContactNumber && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.parentContactNumber}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Current Address */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.7 }}
         >
           <label className="membership-input-label">
             What is your current address?
@@ -487,27 +439,18 @@ export default function MembershipDetailsScreen() {
             className={`form-input ${errors.currentAddress ? 'input-error' : ''}`}
             rows="3"
           />
-          <AnimatePresence>
-            {errors.currentAddress && (
-              <motion.span 
+          {errors.currentAddress && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.currentAddress}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Educational Background */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
         >
           <label className="membership-input-label">
             What is your educational background?
@@ -531,27 +474,18 @@ export default function MembershipDetailsScreen() {
             className="form-input"
             error={errors.educationalBackground}
           />
-          <AnimatePresence>
-            {errors.educationalBackground && (
-              <motion.span 
+          {errors.educationalBackground && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.educationalBackground}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Current Occupation */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.9 }}
         >
           <label className="membership-input-label">
             What is your current occupation?
@@ -575,27 +509,18 @@ export default function MembershipDetailsScreen() {
             className="form-input"
             error={errors.currentOccupation}
           />
-          <AnimatePresence>
-            {errors.currentOccupation && (
-              <motion.span 
+          {errors.currentOccupation && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.currentOccupation}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Job Title */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 1.0 }}
         >
           <label className="membership-input-label">
             What is your job title?
@@ -621,27 +546,18 @@ export default function MembershipDetailsScreen() {
               (formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student') ? 'disabled' : ''
             }`}
           />
-          <AnimatePresence>
-            {errors.jobTitle && (
-              <motion.span 
+          {errors.jobTitle && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.jobTitle}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Exam Preparation */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 1.1 }}
         >
           <label className="membership-input-label">
             What specific exam are you preparing for by using the study room facilities?
@@ -683,27 +599,18 @@ export default function MembershipDetailsScreen() {
             className="form-input"
             error={errors.examPreparation}
           />
-          <AnimatePresence>
-            {errors.examPreparation && (
-              <motion.span 
+          {errors.examPreparation && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.examPreparation}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Examination Date */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 1.2 }}
         >
           <label className="membership-input-label">
             What is the tentative date of your examination?
@@ -720,28 +627,18 @@ export default function MembershipDetailsScreen() {
             min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
             placeholder="e.g., August 15, 2024"
           />
-          <AnimatePresence>
-            {errors.examinationDate && (
-              <motion.span 
+          {errors.examinationDate && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.examinationDate}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
-
+        </div>
 
         {/* Selfie Photo Upload */}
-        <motion.div 
+        <div 
           className="input-group"
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 1.4 }}
         >
           <label className="membership-input-label">
             Please upload a selfie photo here. *
@@ -775,50 +672,33 @@ export default function MembershipDetailsScreen() {
               </div>
             )}
           </div>
-          <AnimatePresence>
-            {errors.selfiePhoto && (
-              <motion.span 
+          {errors.selfiePhoto && (
+              <span 
                 className="error-message"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
               >
                 {errors.selfiePhoto}
-              </motion.span>
+              </span>
             )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
         
         {/* Submit Error */}
-        <AnimatePresence>
-          {errors.submit && (
-            <motion.div 
+        {errors.submit && (
+            <div 
               className="error-message"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
             >
               {errors.submit}
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
         
         {/* Submit Button */}
-        <motion.button 
+        <button 
           type="submit" 
           className="login-button" 
           disabled={isLoading}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
-          whileHover={{ scale: 1.02, y: -2 }}
-          whileTap={{ scale: 0.98 }}
         >
           {isLoading ? 'Saving...' : 'Continue'}
-        </motion.button>
-      </motion.form>
-    </motion.div>
+        </button>
+      </form>
+    </div>
   );
 }

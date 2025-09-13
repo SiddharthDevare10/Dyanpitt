@@ -1,7 +1,7 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
+// const bcrypt = require('bcryptjs'); - Currently unused
 const jwt = require('jsonwebtoken');
-const passport = require('passport');
+// const passport = require('passport'); - Currently unused
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { authenticateToken: auth } = require('../middleware/auth');
@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const emailService = require('../services/emailService');
 const verificationService = require('../services/verificationService');
-const { uploadSingle, uploadMemorySingle, saveBufferToUploads } = require('../middleware/upload');
+const { uploadSingle, uploadMemorySingle, uploadWithProcessing, saveBufferToUploads } = require('../middleware/upload');
 const cleanupService = require('../services/cleanupService');
 
 const router = express.Router();
@@ -239,7 +239,7 @@ router.post('/verify-otp', [
     tempUser.isEmailVerified = true;
     
     // Generate persistent verification token for profile completion (1 hour grace period)
-    const verificationToken = tempUser.generateEmailVerificationToken();
+    tempUser.generateEmailVerificationToken();
     
     await tempUser.save();
     
@@ -263,7 +263,12 @@ router.post('/verify-otp', [
 // @route   POST /api/auth/register
 // @desc    Complete user registration
 // @access  Public
-router.post('/register', uploadMemorySingle('avatar'), [
+router.post('/register', uploadWithProcessing('avatar', { 
+  createThumbnails: true, 
+  maxWidth: 800, 
+  maxHeight: 800, 
+  quality: 85 
+}), [
   body('email').isEmail().normalizeEmail(),
   body('fullName').trim().isLength({ min: 2 }),
   body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format with valid Indian mobile number'),
@@ -283,13 +288,14 @@ router.post('/register', uploadMemorySingle('avatar'), [
 
     const { email, fullName, phoneNumber, dateOfBirth, gender, password } = req.body;
 
-    // Handle uploaded avatar (memory upload)
+    // Handle uploaded avatar (processed upload)
     let avatarUrl = null;
+    let thumbnailUrl = null;
 
     // Check if phone number already exists
     const existingPhone = await User.findOne({ phoneNumber });
     if (existingPhone) {
-      deleteUploadedFile(req.file);
+      // No need to delete files as they're processed and saved automatically
       return res.status(400).json({
         success: false,
         message: 'Phone number already registered'
@@ -324,7 +330,7 @@ router.post('/register', uploadMemorySingle('avatar'), [
           console.log('Found recovery path: unverified temp user with valid OTP');
           // Mark as verified and use this user
           unverifiedTempUser.isEmailVerified = true;
-          const verificationToken = unverifiedTempUser.generateEmailVerificationToken();
+          unverifiedTempUser.generateEmailVerificationToken();
           await unverifiedTempUser.save();
           tempUser = unverifiedTempUser;
         } else {
@@ -345,7 +351,7 @@ router.post('/register', uploadMemorySingle('avatar'), [
             isEmailVerified: true,
             pendingEmail: email
           });
-          const verificationToken = tempUser.generateEmailVerificationToken();
+          tempUser.generateEmailVerificationToken();
           await tempUser.save();
           console.log('Created recovery temp user for email:', email);
         }
@@ -387,10 +393,12 @@ router.post('/register', uploadMemorySingle('avatar'), [
       });
     }
 
-    // If avatar is uploaded, persist it now (after validation passes)
-    if (req.file && req.file.buffer) {
-      const savedFilename = await saveBufferToUploads(req.file, tempUser._id);
-      avatarUrl = `/uploads/${savedFilename}`;
+    // If avatar is uploaded and processed, use the processed URLs
+    if (req.processedFile) {
+      avatarUrl = req.processedFile.main.url;
+      thumbnailUrl = req.processedFile.thumbnail?.url;
+      
+      console.log(`Avatar processed: ${req.processedFile.compression.compressionRatio} compression, Original: ${(req.processedFile.original.size / 1024).toFixed(2)}KB, Compressed: ${(req.processedFile.main.size / 1024).toFixed(2)}KB`);
     }
 
     // Update user with complete information (NO Dyanpitt ID generation yet)
@@ -406,6 +414,9 @@ router.post('/register', uploadMemorySingle('avatar'), [
     // Don't set dyanpittId, registrationMonth, registrationNumber - they're optional now
     if (avatarUrl) {
       tempUser.avatar = avatarUrl; // Store avatar URL in database
+      if (thumbnailUrl) {
+        tempUser.avatarThumbnail = thumbnailUrl; // Store thumbnail URL
+      }
     }
     
     // Cancel cleanup since registration is now complete
@@ -745,17 +756,25 @@ router.post('/logout', auth, (req, res) => {
 });
 
 // Update membership details
-router.post('/update-membership', auth, uploadSingle('selfiePhoto'), async (req, res) => {
+router.post('/update-membership', auth, uploadWithProcessing('selfiePhoto', { 
+  createThumbnails: true, 
+  maxWidth: 600, 
+  maxHeight: 600, 
+  quality: 90 
+}), async (req, res) => {
   try {
     const membershipDetails = req.body;
     
     // Handle uploaded selfie photo
-    if (req.file) {
-      membershipDetails.selfiePhotoUrl = `/uploads/${req.file.filename}`;
+    if (req.processedFile) {
+      membershipDetails.selfiePhotoUrl = req.processedFile.main.url;
+      membershipDetails.selfiePhotoThumbnail = req.processedFile.thumbnail?.url;
+      
+      console.log(`Selfie processed: ${req.processedFile.compression.compressionRatio} compression achieved`);
     }
     
     // Validate required fields
-    const requiredFields = ['visitedBefore', 'fatherName', 'parentContactNumber', 'educationalBackground', 'currentOccupation', 'currentAddress', 'examPreparation', 'examinationDate', 'studyRoomDuration'];
+    const requiredFields = ['visitedBefore', 'fatherName', 'parentContactNumber', 'educationalBackground', 'currentOccupation', 'currentAddress', 'examPreparation', 'examinationDate'];
     
     for (const field of requiredFields) {
       if (!membershipDetails[field]) {
@@ -767,7 +786,7 @@ router.post('/update-membership', auth, uploadSingle('selfiePhoto'), async (req,
     }
     
     // Validate selfie photo upload
-    if (!membershipDetails.selfiePhotoUrl && !req.file) {
+    if (!membershipDetails.selfiePhotoUrl && !req.processedFile) {
       return res.status(400).json({
         success: false,
         message: 'Selfie photo is required'
@@ -884,26 +903,26 @@ router.post('/update-booking', auth, async (req, res) => {
     // Import pricing data (shared with frontend)
     const { pricingData } = require('../../src/data/pricing.js');
 
-    const durationMultipliers = {
-      // Daily options
-      '1 Day': 0.05,
-      '8 Days': 0.35,
-      '12 Days': 0.5,
-      
-      // Monthly options
-      '1 Month': 1,
-      '2 Months': 2,
-      '3 Months': 2.85,    // 5% discount
-      '4 Months': 4,
-      '5 Months': 5,
-      '6 Months': 5.64,    // 6% discount
-      '7 Months': 7,
-      '8 Months': 8,
-      '9 Months': 8.37,    // 7% discount
-      '10 Months': 9.2,    // 8% discount
-      '11 Months': 9.9,    // 10% discount
-      '12 Months': 10.2    // 15% discount
-    };
+    // const durationMultipliers = {
+      // // Daily options
+      // '1 Day': 0.05,
+      // '8 Days': 0.35,
+      // '12 Days': 0.5,
+      // 
+      // // Monthly options
+      // '1 Month': 1,
+      // '2 Months': 2,
+      // '3 Months': 2.85,    // 5% discount
+      // '4 Months': 4,
+      // '5 Months': 5,
+      // '6 Months': 5.64,    // 6% discount
+      // '7 Months': 7,
+      // '8 Months': 8,
+      // '9 Months': 8.37,    // 7% discount
+      // '10 Months': 9.2,    // 8% discount
+      // '11 Months': 9.9,    // 10% discount
+      // '12 Months': 10.2    // 15% discount
+    // };
 
     // Calculate total amount
     let totalAmount = 0;
@@ -1055,21 +1074,32 @@ router.post('/complete-payment', auth, async (req, res) => {
 // @route   POST /api/auth/upload-avatar
 // @desc    Upload user avatar
 // @access  Private
-router.post('/upload-avatar', auth, uploadSingle('avatar'), async (req, res) => {
+router.post('/upload-avatar', auth, uploadWithProcessing('avatar', { 
+  createThumbnails: true, 
+  maxWidth: 800, 
+  maxHeight: 800, 
+  quality: 85 
+}), async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.processedFile) {
       return res.status(400).json({
         success: false,
         message: 'No avatar file uploaded'
       });
     }
 
-    const avatarUrl = `/uploads/${req.file.filename}`;
+    const avatarUrl = req.processedFile.main.url;
+    const thumbnailUrl = req.processedFile.thumbnail?.url;
     
     // Update user avatar in database
+    const updateData = { avatar: avatarUrl };
+    if (thumbnailUrl) {
+      updateData.avatarThumbnail = thumbnailUrl;
+    }
+    
     const user = await User.findByIdAndUpdate(
       req.user.userId,
-      { avatar: avatarUrl },
+      updateData,
       { new: true, runValidators: true }
     ).select('-password');
 
@@ -1080,11 +1110,15 @@ router.post('/upload-avatar', auth, uploadSingle('avatar'), async (req, res) => 
       });
     }
 
+    console.log(`Avatar updated: ${req.processedFile.compression.compressionRatio} compression achieved`);
+
     res.json({
       success: true,
-      message: 'Avatar uploaded successfully',
+      message: 'Avatar uploaded and processed successfully',
       user: user.getPublicProfile(),
-      avatarUrl
+      avatarUrl,
+      thumbnailUrl,
+      compressionInfo: req.processedFile.compression
     });
 
   } catch (error) {

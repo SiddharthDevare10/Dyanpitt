@@ -7,11 +7,11 @@ import SeatSelectionModal from '../../components/SeatSelectionModal';
 import DatePicker from '../../components/DatePicker';
 import apiService from '../../services/api';
 import { getPrice } from '../../data/pricing';
-import { calculateTotalDiscount, qualifiesForFemaleDiscount, calculateTotalPriceWithFees, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../../data/discounts';
+import { qualifiesForFemaleDiscount, calculateTotalPriceWithFees, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../../data/discounts';
 
 export default function BookingScreen() {
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     timeSlot: user?.bookingDetails?.timeSlot || '',
@@ -115,21 +115,25 @@ export default function BookingScreen() {
           
           if (response.success) {
             // Pass updated user data and payment amount to payment screen
-            onContinue({
-              ...user,
-              ...response.user,
-              bookingDetails: formData,
-              paymentAmount: response.paymentAmount
+            navigate('/payment', {
+              state: {
+                ...user,
+                ...response.user,
+                bookingDetails: formData,
+                paymentAmount: response.paymentAmount
+              }
             });
           } else {
             setErrors({ submit: response.message || 'Failed to save booking details' });
           }
         } else {
           // For now, just continue without saving to DB (demo mode)
-          onContinue({
-            ...user,
-            bookingDetails: formData,
-            paymentAmount: calculateTotalPrice()
+          navigate('/payment', {
+            state: {
+              ...user,
+              bookingDetails: formData,
+              paymentAmount: calculateTotalPrice()
+            }
           });
         }
       } catch {
@@ -142,11 +146,11 @@ export default function BookingScreen() {
 
   // Time slots based on membership type
   const getTimeSlots = () => {
-    if (formData.membershipType === 'Calista Garden') {
+    if (formData.membershipType === 'Dyanasmi Kaksh') {
       return [
         { 
-          value: 'Calista Garden (7:00 AM - 7:00 PM)', 
-          label: 'Calista Garden (7:00 AM - 7:00 PM) - 12 Hours' 
+          value: 'Dyanasmi Kaksh (7:00 AM - 7:00 PM)', 
+          label: 'Dyanasmi Kaksh (7:00 AM - 7:00 PM) - 12 Hours' 
         }
       ];
     }
@@ -170,29 +174,29 @@ export default function BookingScreen() {
   // Membership types based on CSV data - filter out male-only options for female users
   const getAllMembershipTypes = () => [
     { 
-      value: 'Dyandhara Kaksh', 
-      label: 'Dyandhara Kaksh (ज्ञानधारा कक्ष) ★',
-      stars: '★',
+      value: 'Dyandhara', 
+      label: 'Dyandhara Kaksh (ज्ञानधारा कक्ष)',
+      stars: '',
       tier: 'Basic',
       features: ['Study room access', 'Basic seating', 'WiFi access', 'Reading materials', 'Affordable pricing'],
       maleOnly: true
     },
     { 
-      value: 'Dyanpurn Kaksh', 
-      label: 'Dyanpurn Kaksh (ज्ञानपूर्ण कक्ष) ★★',
-      stars: '★★',
+      value: 'Dyanpurn', 
+      label: 'Dyanpurn Kaksh (ज्ञानपूर्ण कक्ष)',
+      stars: '',
       tier: 'Premium',
       features: ['Priority seating', 'AC rooms', 'Locker facility', 'Extended hours', 'Study materials', 'Premium amenities']
     },
     { 
-      value: 'Calista Garden', 
-      label: 'Calista Garden (कॅलिस्ट गार्डन) ★★★',
-      stars: '★★★',
+      value: 'Dyanasmi Kaksh', 
+      label: 'Dyanasmi Kaksh (ज्ञानास्मी कक्ष)',
+      stars: '',
       tier: 'Garden',
       features: ['Garden view seating', 'Peaceful environment', 'Natural lighting', 'Premium ambiance', 'Exclusive access'],
       isSpecial: true,
       specialPrice: 399,
-      specialTimeSlot: 'Calista Garden (7:00 AM - 7:00 PM)'
+      specialTimeSlot: 'Dyanasmi Kaksh (7:00 AM - 7:00 PM)'
     }
   ];
 
@@ -206,8 +210,8 @@ export default function BookingScreen() {
 
   // Membership durations based on membership type
   const getMembershipDurations = () => {
-    if (formData.membershipType === 'Calista Garden') {
-      // Only monthly options for Calista Garden
+    if (formData.membershipType === 'Dyanasmi Kaksh') {
+      // Only monthly options for Dyanasmi Kaksh
       return [
         { value: '1 Month', label: '1 Month' },
         { value: '2 Months', label: '2 Months' },
@@ -275,7 +279,7 @@ export default function BookingScreen() {
       if (seatNum === 5) return 'gold';
       if ([24, 25, 26, 27, 28, 29, 32, 33].includes(seatNum)) return 'silver';
       return 'standard';
-    } else if (formData.membershipType === 'Calista Garden') {
+    } else if (formData.membershipType === 'Dyanasmi Kaksh') {
       if (seatNum === 5) return 'gold';
       if ([24, 25, 26, 27, 28, 29, 32, 33].includes(seatNum)) return 'silver';
       return 'standard';
@@ -312,8 +316,8 @@ export default function BookingScreen() {
     const lastPackageDate = user?.lastPackageDate;
     const seatTier = getSeatTier(formData.preferredSeat);
     
-    // Special pricing for Calista Garden
-    if (formData.membershipType === 'Calista Garden') {
+    // Special pricing for Dyanasmi Kaksh
+    if (formData.membershipType === 'Dyanasmi Kaksh') {
       const monthsMap = {
         '1 Month': 1, '2 Months': 2, '3 Months': 3, '4 Months': 4,
         '5 Months': 5, '6 Months': 6, '7 Months': 7, '8 Months': 8,
@@ -325,7 +329,7 @@ export default function BookingScreen() {
       // Apply seat tier pricing
       originalPrice = applySeatTierPricing(originalPrice, seatTier);
       
-      // Apply female discount for Calista Garden if applicable
+      // Apply female discount for Dyanasmi Kaksh if applicable
       let finalPrice = originalPrice;
       if (isFemale && qualifiesForFemaleDiscount(formData.membershipDuration)) {
         finalPrice = Math.round(originalPrice * 0.9); // 10% female discount
@@ -419,14 +423,14 @@ export default function BookingScreen() {
             value={formData.membershipDuration}
             onChange={handleInputChange}
             options={getMembershipDurations()}
-            placeholder={formData.membershipType === 'Calista Garden' ? 'Choose monthly duration' : 'Choose duration'}
+            placeholder={formData.membershipType === 'Dyanasmi Kaksh' ? 'Choose monthly duration' : 'Choose duration'}
             className="form-input"
             error={errors.membershipDuration}
           />
           {errors.membershipDuration && <span className="error-message">{errors.membershipDuration}</span>}
-          {formData.membershipType === 'Calista Garden' && (
+          {formData.membershipType === 'Dyanasmi Kaksh' && (
             <div className="calista-note">
-              <p>* Calista Garden membership is available in monthly durations only</p>
+              <p>* Dyanasmi Kaksh membership is available in monthly durations only</p>
             </div>
           )}
         </div>

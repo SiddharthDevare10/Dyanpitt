@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 const UserManagementScreen = () => {
   const navigate = useNavigate();
-  const [users, setUsers] = useState([]);
+  const [users] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   return (

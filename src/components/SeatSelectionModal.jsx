@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import CustomDropdown from './CustomDropdown';
 
@@ -231,18 +231,9 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                     return <div key={`${row.row}-fake-${index}`} className="fake-seat"></div>;
                   }
                   
-                  // Handle seats with value 0 (invisible but maintain layout)
+                  // Handle seats with value 0 (hidden but maintain layout spacing)
                   if (seatNum === 0) {
-                    return (
-                      <button
-                        key={`${row.row}-zero-${index}`}
-                        className="seat zero-value-seat"
-                        disabled={true}
-                        className="seat-modal-seat-disabled"
-                      >
-                        <span className="seat-number">{seatNum}</span>
-                      </button>
-                    );
+                    return <div key={`${row.row}-zero-${index}`} className="empty-space"></div>;
                   }
 
                   const seatId = `${selectedSection}${seatNum}`;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import DatePicker from '../../components/DatePicker';
 import { Eye, EyeOff, Check, Calendar } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+// import { useAuth } from '../../contexts/AuthContext.jsx'; - Currently unused
 import CongratulationsScreen from '../user/CongratulationsScreen';
 import PasswordStrengthIndicator from '../../components/PasswordStrengthIndicator';
 import CustomDropdown from '../../components/CustomDropdown';
@@ -10,7 +10,7 @@ import apiService from '../../services/api';
 
 export default function RegisterScreen() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  // const { user } = useAuth(); - Currently unused
   
   // Registration steps: 'email', 'otp', 'profile', 'congratulations'
   const [currentStep, setCurrentStep] = useState('email');
@@ -92,7 +92,7 @@ export default function RegisterScreen() {
       console.log('OAuth registration successful');
       navigate('/dashboard');
     }
-  }, []);
+  }, [navigate]);
 
   const fetchAndPopulateTourData = async (email) => {
     try {
@@ -105,7 +105,7 @@ export default function RegisterScreen() {
       let result;
       try {
         result = await apiService.request(`/tour/requests/${encodeURIComponent(email)}`);
-      } catch (e) {
+      } catch {
         console.log('No tour data found for this email:', email);
         return;
       }
@@ -615,12 +615,8 @@ export default function RegisterScreen() {
         // Clear form data from sessionStorage since registration is complete
         sessionStorage.removeItem('registrationFormData');
         
-        // Store user data for navigation
-        const userData = {
-          ...formData,
-          userId: response.user._id,
-          token: response.token
-        };
+        // Don't auto-login for security reasons
+        // User should manually log in after registration
         
         // Show congratulations screen instead of alert
         setCurrentStep('congratulations');
@@ -660,6 +656,18 @@ export default function RegisterScreen() {
         ← Back
       </Link>
       <div className="header-section">
+        <div className="logo-container" style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <img 
+            src="/Logo.png" 
+            alt="Logo" 
+            style={{ 
+              width: '150px', 
+              height: '150px', 
+              objectFit: 'contain',
+              borderRadius: '50%'
+            }} 
+          />
+        </div>
         <h1 className="main-title">Create your Account</h1>
       </div>
 
@@ -690,7 +698,7 @@ export default function RegisterScreen() {
 
       <button 
         onClick={handleSendOtp} 
-        className={`login-button ${isLoading ? 'loading' : ''}`}
+        className="login-button"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -759,7 +767,7 @@ export default function RegisterScreen() {
 
       <button 
         onClick={handleVerifyOtp} 
-        className={`login-button ${isLoading ? 'loading' : ''}`}
+        className="login-button"
         disabled={isLoading}
       >
         {isLoading ? (
@@ -1037,7 +1045,7 @@ export default function RegisterScreen() {
 
       <button 
         onClick={handleRegister} 
-        className={`login-button ${isLoading ? 'loading' : ''}`}
+        className="login-button"
         disabled={isLoading}
       >
         {isLoading ? (

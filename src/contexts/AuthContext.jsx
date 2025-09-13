@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api.js';
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -16,12 +17,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Initialize auth state
-  useEffect(() => {
-    initializeAuth();
-  }, []);
-
-  const initializeAuth = async () => {
+  const initializeAuth = useCallback(async () => {
     try {
       // Check if we have a token
       if (!apiService.isAuthenticated()) {
@@ -55,21 +51,22 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Initialize auth state
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   const login = async (loginData) => {
-    try {
-      const response = await apiService.login(loginData);
-      if (response.success && response.user) {
-        setUser(response.user);
-        setIsAuthenticated(true);
-        localStorage.setItem('userData', JSON.stringify(response.user));
-        return response;
-      }
+    const response = await apiService.login(loginData);
+    if (response.success && response.user) {
+      setUser(response.user);
+      setIsAuthenticated(true);
+      localStorage.setItem('userData', JSON.stringify(response.user));
       return response;
-    } catch (error) {
-      throw error;
     }
+    return response;
   };
 
   const logout = async () => {

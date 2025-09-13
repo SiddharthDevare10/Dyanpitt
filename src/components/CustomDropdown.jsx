@@ -118,11 +118,16 @@ export default function CustomDropdown({
           {options.map((option) => (
             <div
               key={option.value}
-              className={`custom-dropdown-option ${value === option.value ? 'selected' : ''}`}
+              className={`custom-dropdown-option ${value === option.value ? 'selected' : ''} ${option.description ? 'has-description' : ''}`}
               onClick={(e) => handleSelect(option.value, e)}
               onMouseDown={(e) => e.preventDefault()} // Prevent focus issues
             >
-              {option.label}
+              <div className="option-content">
+                <div className="option-label">{option.label}</div>
+                {option.description && (
+                  <div className="option-description">{option.description}</div>
+                )}
+              </div>
             </div>
           ))}
         </div>

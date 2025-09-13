@@ -83,9 +83,8 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <div className="main-container">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p className="loading-text">Loading...</p>
+        <div className="simple-loading">
+          <p>Loading...</p>
         </div>
       </div>
     );

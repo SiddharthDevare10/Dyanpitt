@@ -1,14 +1,124 @@
 import { useState, useRef, useEffect } from 'react';
+import QrScanner from 'qr-scanner';
 import apiService from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function QRScannerScreen() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const qrScannerRef = useRef(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState('');
   const [manualQRData, setManualQRData] = useState('');
+  const [cameraPermission, setCameraPermission] = useState('prompt'); // 'granted', 'denied', 'prompt'
+
+  // Initialize camera scanner
+  const startCameraScanner = async () => {
+    try {
+      setError('');
+      setIsScanning(true);
+
+      // Check if QR scanner is supported
+      if (!QrScanner.hasCamera()) {
+        throw new Error('No camera found on this device');
+      }
+
+      // Request camera permission
+      const hasPermission = await QrScanner.hasCamera();
+      if (!hasPermission) {
+        setCameraPermission('denied');
+        throw new Error('Camera permission denied');
+      }
+
+      setCameraPermission('granted');
+
+      // Initialize QR scanner
+      qrScannerRef.current = new QrScanner(
+        videoRef.current,
+        (result) => {
+          console.log('QR Code detected:', result.data);
+          handleQRScanResult(result.data);
+        },
+        {
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+          preferredCamera: 'environment', // Use back camera on mobile
+        }
+      );
+
+      await qrScannerRef.current.start();
+      setIsCameraActive(true);
+      setIsScanning(false);
+    } catch (error) {
+      console.error('Error starting camera:', error);
+      setError(error.message);
+      setIsScanning(false);
+      setIsCameraActive(false);
+      if (error.name === 'NotAllowedError') {
+        setCameraPermission('denied');
+      }
+    }
+  };
+
+  // Stop camera scanner
+  const stopCameraScanner = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  // Handle QR scan result
+  const handleQRScanResult = async (qrData) => {
+    try {
+      setIsScanning(true);
+      stopCameraScanner(); // Stop camera when QR is detected
+
+      // Validate QR data format
+      let parsedData;
+      try {
+        parsedData = JSON.parse(qrData);
+      } catch {
+        throw new Error('Invalid QR code format. Please check the data.');
+      }
+
+      if (parsedData.type !== 'VISITOR_PASS' || !parsedData.id) {
+        throw new Error('Invalid visitor pass QR code');
+      }
+
+      // Send to backend for processing
+      const result = await apiService.request('/tour/scan-qr', {
+        method: 'POST',
+        body: JSON.stringify({ qrData })
+      });
+
+      setScanResult(result);
+    } catch (error) {
+      console.error('Error processing QR scan:', error);
+      setError(error.message);
+      // Restart camera on error
+      setTimeout(() => {
+        if (!scanResult) {
+          startCameraScanner();
+        }
+      }, 2000);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopCameraScanner();
+    };
+  }, []);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
@@ -22,7 +132,7 @@ export default function QRScannerScreen() {
       // For now, we'll implement manual QR data entry
       // In a real implementation, you'd use a QR code reading library like jsQR
       alert('Please use the manual QR data entry below for now. In production, this would automatically read the QR code from the image.');
-    } catch (error) {
+    } catch {
       setError('Failed to read QR code from image');
     } finally {
       setIsScanning(false);
@@ -44,7 +154,7 @@ export default function QRScannerScreen() {
       let parsedData;
       try {
         parsedData = JSON.parse(manualQRData);
-      } catch (parseError) {
+      } catch {
         throw new Error('Invalid QR code format. Please check the data.');
       }
 
@@ -76,6 +186,7 @@ export default function QRScannerScreen() {
     setScanResult(null);
     setError('');
     setManualQRData('');
+    stopCameraScanner();
   };
 
   return (
@@ -94,9 +205,78 @@ export default function QRScannerScreen() {
       <div className="qr-scanner-content">
         {!scanResult && (
           <>
+            {/* Camera Scanner Method */}
+            <div className="scanner-method camera-method">
+              <h3>📱 Live Camera Scanner</h3>
+              
+              {!isCameraActive && (
+                <div className="camera-controls">
+                  <button 
+                    onClick={startCameraScanner}
+                    className="camera-button"
+                    disabled={isScanning}
+                  >
+                    {isScanning ? (
+                      <>
+                        <div className="spinner small"></div>
+                        Starting Camera...
+                      </>
+                    ) : (
+                      <>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 22 21 22H3C2.46957 22 1.96086 21.7893 1.58579 21.4142C1.21071 21.0391 1 20.5304 1 20V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 4H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <circle cx="12" cy="13" r="4" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                        Start Camera Scanner
+                      </>
+                    )}
+                  </button>
+                  
+                  {cameraPermission === 'denied' && (
+                    <div className="permission-warning">
+                      <p>⚠️ Camera permission is required to scan QR codes.</p>
+                      <p>Please allow camera access and try again.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isCameraActive && (
+                <div className="camera-scanner">
+                  <div className="camera-container">
+                    <video ref={videoRef} className="camera-video" />
+                    <div className="scanner-overlay">
+                      <div className="scanner-frame">
+                        <div className="corner top-left"></div>
+                        <div className="corner top-right"></div>
+                        <div className="corner bottom-left"></div>
+                        <div className="corner bottom-right"></div>
+                      </div>
+                      <p className="scanner-instructions">
+                        Point the camera at the QR code
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="camera-controls">
+                    <button 
+                      onClick={stopCameraScanner}
+                      className="stop-camera-button"
+                    >
+                      Stop Camera
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="scanner-divider">
+              <span>Alternative Methods</span>
+            </div>
+
             {/* File Upload Method */}
             <div className="scanner-method">
-              <h3>Method 1: Upload QR Code Image</h3>
+              <h3>📷 Upload QR Code Image</h3>
               <div className="file-upload-section">
                 <input
                   type="file"
@@ -123,13 +303,9 @@ export default function QRScannerScreen() {
               </div>
             </div>
 
-            <div className="scanner-divider">
-              <span>OR</span>
-            </div>
-
             {/* Manual Entry Method */}
             <div className="scanner-method">
-              <h3>Method 2: Manual QR Data Entry</h3>
+              <h3>✏️ Manual QR Data Entry</h3>
               <div className="manual-entry-section">
                 <label className="input-label">
                   Paste QR Code Data:
@@ -231,8 +407,9 @@ export default function QRScannerScreen() {
         <div className="scanner-instructions">
           <h4>📋 Instructions:</h4>
           <ul>
+            <li><strong>Recommended:</strong> Use the live camera scanner for instant QR code detection</li>
             <li>Ask the visitor to show their digital visitor pass</li>
-            <li>Either upload a photo of the QR code or copy the QR data</li>
+            <li>Point the camera at the QR code or use alternative methods</li>
             <li>The system will automatically mark the tour as completed</li>
             <li>A feedback email will be sent to the visitor</li>
           </ul>

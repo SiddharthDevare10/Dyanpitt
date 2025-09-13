@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import QRCode from 'qrcode';
 
 export default function VisitorPassScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const canvasRef = useRef(null);
+  // const canvasRef = useRef(null); - Currently unused
   
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [tourData, setTourData] = useState(null);
@@ -67,40 +67,95 @@ export default function VisitorPassScreen() {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      // Set canvas size to match container proportions
+      // Set canvas size for a professional pass design
       canvas.width = 600;
-      canvas.height = 700;
+      canvas.height = 800;
       
-      // Background - match visitor details container
-      ctx.fillStyle = '#f8f9fa';
+      // Clean white background - minimalist approach
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Add border radius effect with clipping
-      ctx.beginPath();
-      ctx.roundRect(0, 0, canvas.width, canvas.height, 12);
-      ctx.clip();
+      // Subtle border - matching app's minimal design
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      
+      // Header section with minimal black background
+      const headerHeight = 100;
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, headerHeight);
       
       // Container padding
       const padding = 30;
-      const contentWidth = canvas.width - (padding * 2);
+      let yPos = 40;
       
-      // Header - Visitor Information
-      ctx.fillStyle = '#333333';
-      ctx.font = 'bold 18px Arial';
-      ctx.textAlign = 'center';
-      let yPos = padding + 30;
-      ctx.fillText('Visitor Information', canvas.width / 2, yPos);
+      // Load and draw logo
+      const logoImg = new Image();
+      logoImg.crossOrigin = 'anonymous';
       
-      // QR Code section
-      const qrImg = new Image();
-      qrImg.onload = () => {
-        yPos += 40;
-        const qrSize = 160;
-        const qrX = (canvas.width - qrSize) / 2;
-        ctx.drawImage(qrImg, qrX, yPos, qrSize, qrSize);
+      const drawPassContent = () => {
+        // Logo in header (white version for black background)
+        const logoSize = 50;
+        const logoX = padding;
+        ctx.drawImage(logoImg, logoX, yPos + 5, logoSize, logoSize);
         
-        // Details section - match exact container layout
-        yPos += qrSize + 40;
+        // Company name next to logo - clean typography
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '600 22px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('DYANPITT', logoX + logoSize + 15, yPos + 25);
+        
+        // Subtitle - minimal
+        ctx.font = '400 14px Inter, sans-serif';
+        ctx.fillText('Study Room', logoX + logoSize + 15, yPos + 45);
+        
+        // Pass title on right side - clean and minimal
+        ctx.font = '500 18px Inter, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('VISITOR PASS', canvas.width - padding, yPos + 35);
+        
+        yPos = headerHeight + 30;
+        
+        // Minimal status indicator - no background, just text
+        ctx.fillStyle = '#000000';
+        ctx.font = '500 14px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Status: Confirmed', padding, yPos);
+        
+        // QR Code section - minimal styling
+        const qrImg = new Image();
+        qrImg.onload = () => {
+          yPos += 40;
+          
+          // QR Code - clean, no container background
+          const qrSize = 160;
+          const qrX = (canvas.width - qrSize) / 2;
+          ctx.drawImage(qrImg, qrX, yPos, qrSize, qrSize);
+          
+          // QR Code label - minimal
+          yPos += qrSize + 20;
+          ctx.fillStyle = '#6b7280';
+          ctx.font = '400 12px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Present this QR code at reception', canvas.width / 2, yPos);
+          
+          // Details section
+          yPos += 40;
+        
+        // Details section - minimal, matching app's visitor-details style
+        const detailsStartY = yPos;
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(padding, detailsStartY, canvas.width - (padding * 2), 220);
+        
+        yPos += 25;
+        
+        // Details header - minimal
+        ctx.fillStyle = '#333333';
+        ctx.font = '600 16px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Visitor Information', canvas.width / 2, yPos);
+        
+        yPos += 30;
         
         const details = [
           { label: 'Name:', value: tourData.fullName || 'N/A' },
@@ -112,59 +167,69 @@ export default function VisitorPassScreen() {
         ];
         
         details.forEach((detail, index) => {
-          // Draw detail row with border line (except last)
+          // Subtle border lines like the app
           if (index < details.length - 1) {
             ctx.strokeStyle = '#e9ecef';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(padding, yPos + 25);
-            ctx.lineTo(canvas.width - padding, yPos + 25);
+            ctx.moveTo(padding + 20, yPos + 15);
+            ctx.lineTo(canvas.width - padding - 20, yPos + 15);
             ctx.stroke();
           }
           
-          // Label
+          // Label - matching app's detail-label style
           ctx.fillStyle = '#666666';
-          ctx.font = '15px Arial';
+          ctx.font = '500 14px Inter, sans-serif';
           ctx.textAlign = 'left';
-          ctx.fillText(detail.label, padding, yPos);
+          ctx.fillText(detail.label, padding + 20, yPos);
           
-          // Value
+          // Value - matching app's detail-value style
           ctx.fillStyle = '#333333';
-          ctx.font = '16px Arial';
+          ctx.font = '500 14px Inter, sans-serif';
           ctx.textAlign = 'right';
-          ctx.fillText(detail.value, canvas.width - padding, yPos);
+          ctx.fillText(detail.value, canvas.width - padding - 20, yPos);
           
-          yPos += 35;
+          yPos += 30;
         });
         
-        // Download section separator line
-        yPos += 10;
-        ctx.strokeStyle = '#e9ecef';
+        // Footer section - minimal
+        yPos += 40;
+        
+        // Important notes - minimal gray section
+        ctx.fillStyle = '#f8f9fa';
+        ctx.fillRect(padding, yPos, canvas.width - (padding * 2), 70);
+        ctx.strokeStyle = '#e5e7eb';
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(padding, yPos);
-        ctx.lineTo(canvas.width - padding, yPos);
-        ctx.stroke();
+        ctx.strokeRect(padding, yPos, canvas.width - (padding * 2), 70);
         
-        // Download section text
-        yPos += 30;
+        yPos += 20;
         ctx.fillStyle = '#333333';
-        ctx.font = '14px Arial';
+        ctx.font = '500 14px Inter, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Digital Visitor Pass', canvas.width / 2, yPos);
+        ctx.fillText('Important Instructions', canvas.width / 2, yPos);
         
-        // Footer timestamp
-        yPos += 30;
-        ctx.fillStyle = '#999999';
-        ctx.font = '12px Arial';
+        yPos += 18;
+        ctx.fillStyle = '#666666';
+        ctx.font = '400 11px Inter, sans-serif';
+        ctx.fillText('Present this pass at reception • Arrive 10 minutes early', canvas.width / 2, yPos);
+        yPos += 12;
+        ctx.fillText('Valid only for the specified date and time', canvas.width / 2, yPos);
+        
+        // Footer with generation info - minimal
+        yPos += 40;
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '400 10px Inter, sans-serif';
+        ctx.textAlign = 'center';
         ctx.fillText('Generated: ' + new Date().toLocaleString(), canvas.width / 2, yPos);
+        yPos += 12;
+        ctx.fillText('Dyanpitt Study Room • Digital Visitor Pass', canvas.width / 2, yPos);
         
         // Download the canvas as image
         canvas.toBlob((blob) => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `visitor-pass-${(tourData.fullName || 'visitor').replace(/\s+/g, '-')}.png`;
+          a.download = `dyanpitt-visitor-pass-${(tourData.fullName || 'visitor').replace(/\s+/g, '-')}.png`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -174,6 +239,15 @@ export default function VisitorPassScreen() {
       };
       
       qrImg.src = qrCodeDataUrl;
+    };
+    
+    // Load logo and start drawing
+    logoImg.onload = drawPassContent;
+    logoImg.onerror = () => {
+      console.warn('Logo failed to load, proceeding without logo');
+      drawPassContent();
+    };
+    logoImg.src = '/Logo.png';
     } catch (error) {
       console.error('Error downloading pass:', error);
       setIsDownloading(false);
@@ -187,44 +261,44 @@ export default function VisitorPassScreen() {
   if (!tourData) {
     return (
       <div className="main-container">
-        <div className="loading-container">
-          <div className="spinner"></div>
+        <div className="simple-loading">
           <p>Loading visitor pass...</p>
         </div>
       </div>
     );
   }
 
+  const handleBackToMain = () => {
+    navigate('/');
+  };
+
   return (
     <div className="congratulations-container">
-      {/* Close Button */}
-      <button onClick={handleBack} className="close-button">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 6L6 18M6 6L18 18" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      </button>
-
       {/* Main Content */}
       <div className="congratulations-content">
-        {/* Success Header - Match Congratulations Design */}
-        <div className="success-icon">
-          <div className="success-circle">
-            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 12L11 14L15 10" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-        </div>
-
-        <div className="congratulations-header">
-          <h1 className="congratulations-title">Tour Request Confirmed!</h1>
-          <p className="congratulations-subtitle">
-            Your digital visitor pass is ready.
-          </p>
+        {/* Logo */}
+        <div className="visitor-pass-logo">
+          <img src="/Logo.png" alt="Dyanpitt Logo" className="logo-image" />
         </div>
 
         {/* Visitor Details with QR Code */}
         <div className="visitor-details">
-          <h3>Visitor Details</h3>
+          {/* Success Header and confirmation inside container */}
+          <div className="success-icon">
+            <div className="success-circle">
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 12L11 14L15 10" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          <div className="congratulations-header">
+            <h1 className="congratulations-title">Tour Request Confirmed!</h1>
+            <p className="congratulations-subtitle">
+              Your digital visitor pass is ready.
+            </p>
+          </div>
+
           <div className="qr-code-container">
             {qrCodeDataUrl && (
               <img 
@@ -267,6 +341,14 @@ export default function VisitorPassScreen() {
               className="login-button"
             >
               {isDownloading ? 'Generating...' : 'Download Pass'}
+            </button>
+            
+            {/* Back to Main Button */}
+            <button 
+              onClick={handleBackToMain}
+              className="login-button back-to-main-button"
+            >
+              Back to Main
             </button>
           </div>
         </div>

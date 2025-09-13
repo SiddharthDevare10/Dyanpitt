@@ -78,6 +78,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  avatarThumbnail: {
+    type: String,
+    default: null
+  },
   
   // Account Status
   isActive: {
@@ -158,6 +162,9 @@ const userSchema = new mongoose.Schema({
       enum: ['Less than a month', '1 Month', '2 Month', '3 Month', '4 Month', '5 Month', '6 Month', 'More Than 6 Months', '1 Year', 'More Than 1 Year']
     },
     selfiePhotoUrl: {
+      type: String
+    },
+    selfiePhotoThumbnail: {
       type: String
     }
   },
@@ -327,7 +334,7 @@ userSchema.statics.generateDyanpittId = async function() {
             isActive: false // Mark as inactive system user
           });
           nextNumber = 1;
-        } catch (error) {
+        } catch {
           // Counter might have been created by another process, try again
           attempts++;
           continue;
@@ -466,6 +473,7 @@ userSchema.methods.getPublicProfile = function() {
     dateOfBirth: this.dateOfBirth,
     gender: this.gender,
     avatar: this.avatar,
+    avatarThumbnail: this.avatarThumbnail,
     isEmailVerified: this.isEmailVerified,
     lastLogin: this.lastLogin,
     createdAt: this.createdAt,

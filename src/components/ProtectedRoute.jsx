@@ -40,15 +40,22 @@ const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false, re
     return <Navigate to="/login" replace />;
   }
 
+  // If user is admin and accessing admin routes, allow access regardless of completion status
+  if (requireAdmin && user && (user.role === 'admin' || user.role === 'super_admin')) {
+    return children;
+  }
+
   // If user is authenticated but trying to access auth pages, redirect appropriately
   if (!requireAuth && isAuthenticated && user) {
-    // Determine where to redirect based on user completion status
+    // Admin users should always go to admin dashboard
+    if (user.role === 'admin' || user.role === 'super_admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    }
+    // Regular users follow the completion flow
     if (!user.membershipCompleted) {
       return <Navigate to="/membership" replace />;
     } else if (!user.bookingCompleted) {
       return <Navigate to="/booking" replace />;
-    } else if (user.role === 'admin' || user.role === 'super_admin') {
-      return <Navigate to="/admin-dashboard" replace />;
     } else {
       return <Navigate to="/dashboard" replace />;
     }

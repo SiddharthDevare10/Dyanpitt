@@ -33,6 +33,12 @@ class ApiService {
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     
+    console.log('=== API SERVICE REQUEST ===');
+    console.log('Base URL:', this.baseURL);
+    console.log('Endpoint:', endpoint);
+    console.log('Full URL:', url);
+    console.log('Method:', options.method || 'GET');
+    
     const config = {
       headers: this.getAuthHeaders(),
       timeout: 30000, // 30 second timeout
@@ -53,9 +59,21 @@ class ApiService {
       
       if (!response.ok) {
         let errorMessage;
+        let errorData;
         try {
-          const data = await response.json();
-          errorMessage = data.message || `HTTP error! status: ${response.status}`;
+          errorData = await response.json();
+          console.log('=== API ERROR RESPONSE ===');
+          console.log('Status:', response.status);
+          console.log('Error data:', errorData);
+          
+          // If it's a validation error, include the validation details
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            console.log('Validation errors:', errorData.errors);
+            const validationMessages = errorData.errors.map(err => `${err.path || err.param}: ${err.msg}`).join(', ');
+            errorMessage = `${errorData.message || 'Validation failed'}: ${validationMessages}`;
+          } else {
+            errorMessage = errorData.message || `HTTP error! status: ${response.status}`;
+          }
         } catch {
           errorMessage = `HTTP error! status: ${response.status}`;
         }
@@ -196,7 +214,7 @@ class ApiService {
   }
 
   // Note: Email checking is now handled by send-otp endpoint
-  async checkEmailExists(email) {
+  async checkEmailExists() {
     // In the new system, we don't need a separate check-email endpoint
     // The send-otp endpoint will return an error if email already exists
     return { exists: false }; // Always return false, let send-otp handle validation
@@ -276,7 +294,7 @@ class ApiService {
 
     // Use custom request for FormData (no Content-Type header)
     const token = this.getToken();
-    const url = `${this.baseURL}/member/details`;
+    const url = `${this.baseURL}/auth/update-membership`;
     
     const config = {
       method: 'POST',
@@ -323,15 +341,15 @@ class ApiService {
 
   // Update booking details
   async updateBookingDetails(bookingDetails) {
-    return this.request('/booking/create', {
+    return this.request('/auth/update-booking', {
       method: 'POST',
-      body: JSON.stringify(bookingDetails)
+      body: JSON.stringify({ bookingDetails })
     });
   }
 
   // Complete payment
   async completePayment(paymentId, paymentStatus) {
-    return this.request('/booking/payment', {
+    return this.request('/auth/complete-payment', {
       method: 'POST',
       body: JSON.stringify({ paymentId, paymentStatus })
     });

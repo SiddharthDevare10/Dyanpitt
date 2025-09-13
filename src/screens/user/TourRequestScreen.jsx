@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import apiService from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from '../../components/DatePicker';
 import CustomDropdown from '../../components/CustomDropdown';
+import CustomTimePicker from '../../components/CustomTimePicker';
 
 export default function TourRequestScreen() {
   const navigate = useNavigate();
@@ -34,7 +36,16 @@ export default function TourRequestScreen() {
   const [errors, setErrors] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [isAgreed, setIsAgreed] = useState(false);
-
+  
+  // Handle time change from CustomTimePicker
+  const handleTimeChange = (timeValue) => {
+    setFormData(prev => ({ ...prev, tourTime: timeValue }));
+    
+    // Clear error when time is selected
+    if (errors.tourTime) {
+      setErrors(prev => ({ ...prev, tourTime: '' }));
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -160,10 +171,15 @@ export default function TourRequestScreen() {
   };
 
   const handleFinalSubmit = async () => {
+    console.log('🚀 handleFinalSubmit called!');
+    
     if (!isAgreed) {
       alert('Please agree to the terms and conditions to proceed.');
       return;
     }
+
+    console.log('=== STARTING TOUR REQUEST SUBMISSION ===');
+    console.log('Form data before processing:', formData);
 
     setIsLoading(true);
     
@@ -193,7 +209,21 @@ export default function TourRequestScreen() {
         submissionType: 'tour_request'
       };
 
+      // Debug logging
+      console.log('=== TOUR REQUEST DEBUG ===');
+      console.log('Request URL:', 'http://localhost:5000/api/tour/request');
+      console.log('Request data:', JSON.stringify(tourRequestData, null, 2));
+      console.log('Tour date validation:');
+      console.log('- Selected date:', tourRequestData.tourDate);
+      console.log('- Date object:', new Date(tourRequestData.tourDate));
+      console.log('- Tomorrow:', new Date(Date.now() + 24 * 60 * 60 * 1000));
+      console.log('- Is future date:', new Date(tourRequestData.tourDate) > new Date());
+      
       // Submit to backend API
+      console.log('=== ABOUT TO MAKE API CALL ===');
+      console.log('Endpoint:', '/tour/request');
+      console.log('Full URL will be:', 'http://localhost:5000/api/tour/request');
+      
       const response = await apiService.request('/tour/request', {
         method: 'POST',
         headers: {
@@ -217,15 +247,20 @@ export default function TourRequestScreen() {
         } 
       });
     } catch (error) {
-      console.error('Error submitting tour request:', error);
+      console.error('=== TOUR REQUEST ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       
       // Show user-friendly error message
       if (error.message.includes('already have a pending')) {
         alert('You already have a pending tour request. Please wait for confirmation or contact us.');
       } else if (error.message.includes('already have a tour request for this date')) {
         alert('You already have a tour request for this date. Please choose a different date.');
+      } else if (error.message.includes('Tour date must be at least tomorrow')) {
+        alert('Please select a tour date that is at least tomorrow. Today\'s date is not allowed.');
       } else {
-        alert('Failed to submit tour request. Please try again or contact support.');
+        alert(`Failed to submit tour request: ${error.message}. Please try again or contact support.`);
       }
     } finally {
       setIsLoading(false);
@@ -350,36 +385,14 @@ export default function TourRequestScreen() {
         </div>
 
         {/* Tour Time */}
-        <div className="input-group">
-          <label className="input-label tour-input-label">
-            Preferred Tour Time
-            <div className="tour-marathi-text">टूरची प्राधान्य वेळ</div>
-          </label>
-          <CustomDropdown
-            name="tourTime"
-            value={formData.tourTime}
-            onChange={handleInputChange}
-            options={[
-              { value: "9:00 AM - 10:00 AM", label: "9:00 AM - 10:00 AM" },
-              { value: "10:00 AM - 11:00 AM", label: "10:00 AM - 11:00 AM" },
-              { value: "11:00 AM - 12:00 PM", label: "11:00 AM - 12:00 PM" },
-              { value: "12:00 PM - 1:00 PM", label: "12:00 PM - 1:00 PM" },
-              { value: "1:00 PM - 2:00 PM", label: "1:00 PM - 2:00 PM" },
-              { value: "2:00 PM - 3:00 PM", label: "2:00 PM - 3:00 PM" },
-              { value: "3:00 PM - 4:00 PM", label: "3:00 PM - 4:00 PM" },
-              { value: "4:00 PM - 5:00 PM", label: "4:00 PM - 5:00 PM" },
-              { value: "5:00 PM - 6:00 PM", label: "5:00 PM - 6:00 PM" },
-              { value: "6:00 PM - 7:00 PM", label: "6:00 PM - 7:00 PM" },
-              { value: "7:00 PM - 8:00 PM", label: "7:00 PM - 8:00 PM" },
-              { value: "8:00 PM - 9:00 PM", label: "8:00 PM - 9:00 PM" }
-            ]}
-            placeholder="Select preferred time slot"
-            className="form-input"
-            error={errors.tourTime}
-            disabled={isLoading}
-          />
-          {errors.tourTime && <div className="error-message">{errors.tourTime}</div>}
-        </div>
+        <CustomTimePicker
+          value={formData.tourTime}
+          onChange={handleTimeChange}
+          label="Preferred Tour Time"
+          labelHindi="टूरची प्राधान्य वेळ"
+          placeholder="Select your preferred time slot"
+          error={errors.tourTime}
+        />
 
         {/* Educational Background */}
         <div className="input-group">
@@ -692,7 +705,7 @@ export default function TourRequestScreen() {
             
             <div className="modal-footer tour-request-modal-footer">
               <button 
-                className={`login-button tour-request-modal-submit-button ${isLoading ? 'loading' : ''}`}
+                className="login-button tour-request-modal-submit-button"
                 onClick={handleFinalSubmit}
                 disabled={!isAgreed || isLoading}
               >

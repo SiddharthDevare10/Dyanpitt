@@ -112,8 +112,27 @@ app.use(helmet({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (uploaded images)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve static files (uploaded images) with caching headers
+app.use('/uploads', (req, res, next) => {
+  // Set caching headers for images
+  res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year
+  res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString());
+  
+  // Add security headers for images
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  next();
+}, express.static(path.join(__dirname, 'uploads'), {
+  maxAge: '1y', // 1 year cache
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, path) => {
+    // Additional headers for specific file types
+    if (path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.png') || path.endsWith('.webp')) {
+      res.setHeader('Content-Type', 'image/' + path.split('.').pop());
+    }
+  }
+}));
 
 // Session configuration
 app.use(session({
