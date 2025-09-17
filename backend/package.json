@@ -7,12 +7,12 @@
     "node": ">=20.19 <23"
   },
   "scripts": {
-    "start": "NODE_ENV=production node server.js",
-    "start:prod": "NODE_ENV=production node server.js",
-    "start:staging": "NODE_ENV=staging node server.js",
-    "dev": "NODE_ENV=development nodemon server.js",
-    "dev:debug": "NODE_ENV=development DEBUG=* nodemon server.js",
-    "test": "NODE_ENV=test node server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
+    "start:staging": "cross-env NODE_ENV=staging node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "dev:debug": "cross-env NODE_ENV=development DEBUG=* nodemon server.js",
+    "test": "cross-env NODE_ENV=test node server.js",
     "lint": "echo 'Add ESLint for backend later'",
     "clean": "rm -rf node_modules uploads/temp_* uploads/anonymous_*",
     "db:seed": "node scripts/seed.js",
@@ -35,6 +35,7 @@
     "sharp": "^0.34.3"
   },
   "devDependencies": {
+    "cross-env": "^10.0.0",
     "nodemon": "^3.0.2"
   },
   "keywords": [
