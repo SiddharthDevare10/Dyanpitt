@@ -43,24 +43,15 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
 
   // Define seat layouts for different venues
   const getSeatLayout = () => {
-    if (venue === 'Calista Garden') {
-      // Calista Garden layout with gender-specific seating
-      return [
-        { row: 'E', seats: [30, 31, 32, 33, 'aisle', 24, 25, 26, 27, 28, 29] }, // Row E (back)
-        { row: 'D', seats: [37, 36, 35, 34, 'aisle', 23, 22, 21, 20, 19, 18] }, // Row D
-        { row: 'C', seats: [38, 39, 40, 41, 'aisle', 12, 13, 14, 15, 16, 17] }, // Row C
-        { row: 'B', seats: [45, 44, 43, 42, 'aisle', 11, 10, 9, 8, 7, 6] },     // Row B
-        { row: 'A', seats: [46, 47, 48, 49, 'aisle', 1, 2, 3, 4, 5] }           // Row A (front)
-      ];
-    } else if (venue === 'Dyanpurn Kaksh') {
+    if (venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn') {
       // Dyanpurn Kaksh layout - Section based
       if (selectedSection === 'A') {
         return [
           { row: '5', seats: [54, 55, 56] },                // Row 5: 3 seats (top row)
-          { row: '4', seats: [53, 0, 57] },            // Row 4: 2 seats with aisle
-          { row: '3', seats: [52, 0, 58] },            // Row 3: 2 seats with aisle
-          { row: '2', seats: [51, 0, 59] },            // Row 2: 2 seats with aisle
-          { row: '1', seats: [50, 0, 0] }             // Row 1: 2 seats with aisle
+          { row: '4', seats: [53, 0, 57] },            // Row 4: seat 53, zero, seat 57
+          { row: '3', seats: [52, 0, 58] },            // Row 3: seat 52, zero, seat 58
+          { row: '2', seats: [51, 0, 59] },            // Row 2: seat 51, zero, seat 59
+          { row: '1', seats: [50, 0, 0] }             // Row 1: seat 50, two zeros
         ];
       } else if (selectedSection === 'B') {
         return [
@@ -78,14 +69,41 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
         ];
       }
       return [];
+    } else if (venue === 'Dyanasmi Kaksh') {
+      // Dyanasmi Kaksh layout - Section based (separate from Dyanpurn)
+      if (selectedSection === 'A') {
+        return [
+          { row: '5', seats: [0, 0, 0,'entry'] },
+          { row: '4', seats: [81, 0, 0, 74] },               // Row 4: 2 seats with space in between
+          { row: '3', seats: [80, 0, 0, 75] },
+          { row: '2', seats: [79, 0, 0, 0] },               // Row 3: 2 seats with space in between              // Row 2: 3 seats
+          { row: '1', seats: [0, 78, 77, 76] },                  // Row 1: 3 seats
+        ];
+      } else if (selectedSection === 'B') {
+        return [
+          { row: '5', seats: [87, 86, 85] }, 
+          { row: '4', seats: [88, 0, 0, 84] },                  // Row 4: 3 seats (top row) - col1: 5, col2: 6, col3: 7
+          { row: '3', seats: [89, 0, 0, 83] },             // Row 3: 2 seats with fake box - col1: 3, col2: fake, col3: 4
+          { row: '2', seats: [90, 0, 0, 82] },        // Row 2: seat 1 aligned with seat 5 (col1)
+          { row: '1', seats: [0, 91, 92, 'entry'] }         // Row 1: seat 2 aligned with seat 6 (col2)
+        ];
+      } else if (selectedSection === 'C') {
+        return [
+          { row: '4', seats: [0, 0, 0,'entry'] },                  // Row 4: 3 seats (top row) - col1: 5, col2: 6, col3: 7
+          { row: '3', seats: [0, 0, 0, 93] },             // Row 3: 2 seats with fake box - col1: 3, col2: fake, col3: 4
+          { row: '2', seats: [0, 0, 0, 0] },        // Row 2: seat 1 aligned with seat 5 (col1)
+          { row: '1', seats: [0, 95, 94, 0] }         // Row 1: seat 2 aligned with seat 6 (col2)
+        ];
+      }
+      return [];
     } else {
       // Dyandhara Kaksh layout (original)
       return [
-        { row: 'E', seats: [30, 31, 32, 33, 24, 25, 26, 27, 28, 29] }, // Row E has 10 seats (back)
-        { row: 'D', seats: [37, 36, 35, 34, 23, 22, 21, 20, 19, 18] }, // Row D has 10 seats
-        { row: 'C', seats: [38, 39, 40, 41, 12, 13, 14, 15, 16, 17] }, // Row C has 10 seats
-        { row: 'B', seats: [45, 44, 43, 42, 11, 10, 9, 8, 7, 6] }, // Row B has 10 seats
-        { row: 'A', seats: [46, 47, 48, 49, 1, 2, 3, 4, 5] }      // Row A has 9 seats (front)
+        { row: 'E', seats: [30, 31, 32, 33, 'aisle', 24, 25, 26, 27, 28, 29] }, // Row E has 10 seats (back)
+        { row: 'D', seats: [37, 36, 35, 34, 'aisle', 23, 22, 21, 20, 19, 18] }, // Row D has 10 seats
+        { row: 'C', seats: [38, 39, 40, 41, 'aisle', 12, 13, 14, 15, 16, 17] }, // Row C has 10 seats
+        { row: 'B', seats: [45, 44, 43, 42, 'aisle', 11, 10, 9, 8, 7, 6] }, // Row B has 10 seats
+        { row: 'A', seats: [46, 47, 48, 49, 'entry', 1, 2, 3, 4, 5, 0] }     // Row A has 9 seats (front) + 1 hidden + entry
       ];
     }
   };
@@ -98,12 +116,21 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
       if (seatNum === 5) return 'gold';
       if ([24, 25, 26, 27, 28, 29, 32, 33].includes(seatNum)) return 'silver';
       return 'standard';
-    } else if (venue === 'Calista Garden') {
-      if (seatNum === 5) return 'gold';
-      if ([24, 25, 26, 27, 28, 29, 32, 33].includes(seatNum)) return 'silver';
-      return 'standard';
-    } else if (venue === 'Dyanpurn Kaksh') {
+    } else if (venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn') {
       // Seat tiers for Dyanpurn Kaksh
+      if (selectedSection === 'A') {
+        // Section A: seats 54, 55, 56 are silver
+        if ([54, 55, 56].includes(seatNum)) return 'silver';
+      } else if (selectedSection === 'B') {
+        // Section B: seats 63, 64, 65 are silver
+        if ([63, 64, 65].includes(seatNum)) return 'silver';
+      } else if (selectedSection === 'C') {
+        // Section C: seat 69 is gold
+        if (seatNum === 69) return 'gold';
+      }
+      return 'standard';
+    } else if (venue === 'Dyanasmi Kaksh') {
+      // Seat tiers for Dyanasmi Kaksh (separate from Dyanpurn)
       if (selectedSection === 'A') {
         // Section A: seats 54, 55, 56 are silver
         if ([54, 55, 56].includes(seatNum)) return 'silver';
@@ -119,13 +146,6 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
     return 'standard';
   };
 
-  // Check if seat is for females (left side of aisle in Calista Garden)
-  const isFemaleOnlySeat = (seatNum) => {
-    if (venue !== 'Calista Garden') return false;
-    // In Calista Garden, seats to the left of aisle (higher numbers) are female-only
-    const femaleSeats = [30, 31, 32, 33, 37, 36, 35, 34, 38, 39, 40, 41, 45, 44, 43, 42, 46, 47, 48, 49];
-    return femaleSeats.includes(seatNum);
-  };
 
   // All seats are available for now
   const occupiedSeats = [];
@@ -135,24 +155,8 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
       return; // Can't select occupied seats
     }
     
-    // Extract seat number from seatId (e.g., "A5" -> 5, "A1" -> 1)
-    const seatNum = parseInt(seatId.match(/\d+$/)[0]);
-    
-    // Check gender restrictions for Calista Garden
-    if (venue === 'Calista Garden') {
-      const isFemaleOnly = isFemaleOnlySeat(seatNum);
-      if (isFemaleOnly && userData?.gender !== 'female') {
-        // Male user trying to select female-only seat
-        return;
-      }
-      if (!isFemaleOnly && userData?.gender === 'female') {
-        // Female user trying to select male seat - allow but show warning
-        // For now, we'll allow it
-      }
-    }
-    
-    // Check gender restrictions for Dyanpurn Kaksh
-    if (venue === 'Dyanpurn Kaksh') {
+    // Check gender restrictions for Dyanpurn Kaksh and Dyanasmi Kaksh
+    if (venue === 'Dyanpurn Kaksh' || venue === 'Dyanasmi Kaksh') {
       if (selectedSection === 'A' && userData?.gender !== 'female') {
         // Male user trying to select female-only Section A
         return;
@@ -176,43 +180,46 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="seat-modal" onClick={(e) => e.stopPropagation()}>
+      <div className={`seat-modal ${venue === 'Dyanasmi Kaksh' ? 'dyanasmi-kaksh' : ''}`} onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="seat-modal-header">
-          <h2>Select Your Preferred Seat</h2>
-          <button className="modal-close-button" onClick={onClose}>
-            <X size={20} />
-          </button>
+          <h2 style={{ fontSize: '18px', textAlign: 'center', width: '100%' }}>Select Your Preferred Seat</h2>
+          {venue !== 'Dyandhara Kaksh' && (
+            <button className="modal-close-button" onClick={onClose}>
+              <X size={20} />
+            </button>
+          )}
         </div>
 
-        {/* Room Header */}
-        <div className="room-header">
-          <h3>{venue}</h3>
-        </div>
-
-        {/* Section Dropdown for Dyanpurn Kaksh */}
-        {venue === 'Dyanpurn Kaksh' && (
-          <div className="section-dropdown-container">
-            <label className="section-dropdown-label">
-              Select Section:
-            </label>
-            <CustomDropdown
-              name="section"
-              value={selectedSection}
-              onChange={(e) => setSelectedSection(e.target.value)}
-              options={[
-                { value: 'A', label: 'Section A ( Females Only ' },
-                { value: 'B', label: 'Section B ( Males Only )' },
-                { value: 'C', label: 'Section C ( Males Only )' }
-              ]}
-              placeholder="Select Section"
-            />
+        {/* Section Legend for Dyanpurn Kaksh and Dyanasmi Kaksh */}
+        {(venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh') && (
+          <div className="section-legend-container">
+            <div className="section-legend-items">
+              <div 
+                className={`section-legend-item ${selectedSection === 'A' ? 'active' : ''}`}
+                onClick={() => setSelectedSection('A')}
+              >
+                <span>Section A</span>
+              </div>
+              <div 
+                className={`section-legend-item ${selectedSection === 'B' ? 'active' : ''}`}
+                onClick={() => setSelectedSection('B')}
+              >
+                <span>Section B</span>
+              </div>
+              <div 
+                className={`section-legend-item ${selectedSection === 'C' ? 'active' : ''}`}
+                onClick={() => setSelectedSection('C')}
+              >
+                <span>Section C</span>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Interactive Seat Map */}
         <div className="seat-map">
-          {venue === 'Dyanpurn Kaksh' && (selectedSection === 'A' || selectedSection === 'B' || selectedSection === 'C') && seatLayout.map((row, rowIndex) => (
+          {(venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh') && (selectedSection === 'A' || selectedSection === 'B' || selectedSection === 'C') && seatLayout.map((row, rowIndex) => (
             <div key={`row-${rowIndex}`} className="seat-row">
               <div className="seats-container">
                 {row.seats.map((seatNum, index) => {
@@ -231,6 +238,25 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                     return <div key={`${row.row}-fake-${index}`} className="fake-seat"></div>;
                   }
                   
+                  // Handle entry point
+                  if (seatNum === 'entry') {
+                    const isRotatedEntry = venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh';
+                    // For Dyanasmi Kaksh, show entry text without box outline
+                    if (venue === 'Dyanasmi Kaksh') {
+                      return (
+                        <div key={`${row.row}-entry-${index}`} className={`entry-no-box ${isRotatedEntry ? 'rotated' : ''}`}>
+                          <div className="entry-text" style={{ fontSize: '12px', fontWeight: 'bold' }}>entry</div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div key={`${row.row}-entry-${index}`} className={`entry-indicator ${isRotatedEntry ? 'rotated' : ''}`}>
+                        <div className="entry-arrow">↑</div>
+                        <div className="entry-text">entry</div>
+                      </div>
+                    );
+                  }
+
                   // Handle seats with value 0 (hidden but maintain layout spacing)
                   if (seatNum === 0) {
                     return <div key={`${row.row}-zero-${index}`} className="empty-space"></div>;
@@ -239,15 +265,18 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                   const seatId = `${selectedSection}${seatNum}`;
                   const status = getSeatStatus(seatId);
                   const tier = getSeatTier(seatNum);
-                  const isFemaleOnlySection = selectedSection === 'A';
-                  const isGenderRestricted = isFemaleOnlySection && userData?.gender !== 'female';
+                  
+                  // Handle double-width seat 86 in Dyanasmi Kaksh
+                  const isDoubleWidth = venue === 'Dyanasmi Kaksh' && seatNum === 86;
+                  
                   return (
                     <button
                       key={`${seatId}-${index}`}
-                      className={`seat ${status} ${isFemaleOnlySection ? 'female-only' : 'male-seat'} ${tier}-tier ${isGenderRestricted ? 'gender-restricted' : ''}`}
+                      className={`seat ${status} male-seat ${tier}-tier ${isDoubleWidth ? 'double-width' : ''}`}
                       onClick={() => handleSeatClick(seatId)}
-                      disabled={status === 'occupied' || isGenderRestricted}
-                      title={`Seat ${seatId} - ${status}${isFemaleOnlySection ? ' (Female Only)' : ''}`}
+                      disabled={status === 'occupied'}
+                      title={`Seat ${seatId} - ${status}`}
+                      style={isDoubleWidth ? { width: '60px', minWidth: '60px' } : {}}
                     >
                       <span className="seat-number">{seatNum}</span>
                       {tier === 'gold' && <span className="tier-indicator gold"></span>}
@@ -258,7 +287,7 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
               </div>
             </div>
           ))}
-          {venue !== 'Dyanpurn Kaksh' && seatLayout.map((row, rowIndex) => (
+          {(venue !== 'Dyanpurn Kaksh' && venue !== 'Dyanpurn' && venue !== 'Dyanasmi Kaksh') && seatLayout.map((row, rowIndex) => (
             <div key={`row-${rowIndex}`} className="seat-row">
               <div className="seats-container">
                 {row.seats.map((seatNum, index) => {
@@ -267,26 +296,47 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                     return <div key={`${row.row}-aisle-${index}`} className="aisle-space"></div>;
                   }
 
+                  // Handle empty spaces
+                  if (seatNum === 'empty') {
+                    return <div key={`${row.row}-empty-${index}`} className="empty-space"></div>;
+                  }
+
+                  // Handle seats with value 0 (hidden but maintain layout spacing)
+                  if (seatNum === 0) {
+                    return <div key={`${row.row}-zero-${index}`} className="empty-space"></div>;
+                  }
+
+                  // Handle entry point
+                  if (seatNum === 'entry') {
+                    // For Dyanasmi Kaksh, don't show entry box
+                    if (venue === 'Dyanasmi Kaksh') {
+                      return <div key={`${row.row}-entry-${index}`} className="empty-space"></div>;
+                    }
+                    const isRotatedEntry = venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh';
+                    return (
+                      <div key={`${row.row}-entry-${index}`} className={`entry-indicator ${isRotatedEntry ? 'rotated' : ''}`}>
+                        <div className="entry-arrow">↑</div>
+                        <div className="entry-text">entry</div>
+                      </div>
+                    );
+                  }
+
                   const seatId = `${row.row}${seatNum}`;
                   const status = getSeatStatus(seatId);
                   const tier = getSeatTier(seatNum);
-                  const isFemaleOnly = isFemaleOnlySeat(seatNum);
-                  const isGenderRestricted = venue === 'Calista Garden' && isFemaleOnly && userData?.gender !== 'female';
                   
                   return (
                     <React.Fragment key={`${row.row}-${index}-fragment`}>
                       <button
-                        className={`seat ${status} ${isFemaleOnly ? 'female-only' : 'male-seat'} ${tier}-tier ${isGenderRestricted ? 'gender-restricted' : ''}`}
+                        className={`seat ${status} male-seat ${tier}-tier`}
                         onClick={() => handleSeatClick(seatId)}
-                        disabled={status === 'occupied' || isGenderRestricted}
-                        title={`Seat ${seatId} - ${status}${isFemaleOnly ? ' (Female Only)' : ''}`}
+                        disabled={status === 'occupied'}
+                        title={`Seat ${seatId} - ${status}`}
                       >
                         <span className="seat-number">{seatNum}</span>
                         {tier === 'gold' && <span className="tier-indicator gold"></span>}
                         {tier === 'silver' && <span className="tier-indicator silver"></span>}
                       </button>
-                      {/* Add walking space after 4th seat for Dyandhara Kaksh */}
-                      {venue === 'Dyandhara Kaksh' && index === 3 && <div className="walking-space"></div>}
                     </React.Fragment>
                   );
                 })}
@@ -297,16 +347,8 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
 
         {/* Seat Legend */}
         <div className="seat-legend-container">
-          {venue === 'Calista Garden' ? (
+          {venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh' ? (
             <>
-              <div className="legend-item">
-                <span className="seat-demo-circle male-available"></span>
-                <span>Male</span>
-              </div>
-              <div className="legend-item">
-                <span className="seat-demo-circle female-available"></span>
-                <span>Female</span>
-              </div>
               <div className="legend-item">
                 <span className="seat-demo-circle gold-tier-demo"></span>
                 <span>Gold Tier</span>
@@ -324,12 +366,8 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                 <span>Not Available</span>
               </div>
             </>
-          ) : venue === 'Dyanpurn Kaksh' && selectedSection === 'A' ? (
+          ) : venue === 'Dyandhara Kaksh' ? (
             <>
-              <div className="legend-item">
-                <span className="seat-demo-circle female-available"></span>
-                <span>Female</span>
-              </div>
               <div className="legend-item">
                 <span className="seat-demo-circle gold-tier-demo"></span>
                 <span>Gold Tier</span>
@@ -350,10 +388,6 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
           ) : (
             <>
               <div className="legend-item">
-                <span className="seat-demo-circle male-available"></span>
-                <span>Male</span>
-              </div>
-              <div className="legend-item">
                 <span className="seat-demo-circle gold-tier-demo"></span>
                 <span>Gold Tier</span>
               </div>
@@ -373,8 +407,8 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
           )}
         </div>
 
-        {/* Selected Seat Info */}
-        {selectedSeat && (
+        {/* Selected Seat Info - Hide for Dyandhara Kaksh */}
+        {selectedSeat && venue !== 'Dyandhara Kaksh' && (
           <div className="selected-seat-info">
             <p>Selected Seat: <strong>{selectedSeat}</strong></p>
             {(() => {

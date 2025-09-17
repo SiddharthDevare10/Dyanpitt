@@ -298,15 +298,32 @@ export default function RegisterScreen() {
       }
     } catch (error) {
       console.error('Error in handleSendOtp:', error);
+      
+      let errorMessage = 'Unable to send verification code. Please try again in a few moments.';
+      
       if (error.message && error.message.includes('already registered')) {
         setErrors({ email: 'The email already exists' });
+        setIsLoading(false);
+        return;
+      } else if (error.message && error.message.includes('already exists')) {
+        setErrors({ email: 'The email already exists' });
+        setIsLoading(false);
+        return;
       } else if (error.message && (error.message.includes('network') || error.message.includes('Network error'))) {
-        setErrors({ general: 'Network error. Please check your internet connection and try again.' });
+        errorMessage = 'Network error. Please check your internet connection and try again.';
       } else if (error.message && error.message.includes('timeout')) {
-        setErrors({ general: 'Request timed out. Please check your connection and try again.' });
-      } else {
-        setErrors({ general: error.message || 'Unable to send verification code. Please try again in a few moments.' });
+        errorMessage = 'Connection timed out. Please check your internet connection and try again.';
+      } else if (error.message && error.message.includes('Email sending timeout')) {
+        errorMessage = 'Email service is taking longer than expected. The OTP may still be sent to your email. Please check your inbox or try again in a few moments.';
+      } else if (error.message && error.message.includes('SMTP')) {
+        errorMessage = 'Email service temporarily unavailable. Please try again in a few moments.';
+      } else if (error.message && error.message.includes('EMAIL_SEND_FAILED')) {
+        errorMessage = 'Failed to send OTP email. Please check your email address and try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -814,8 +831,7 @@ export default function RegisterScreen() {
       {/* Tour Data Indicator */}
       {showTourIndicator && (
         <div 
-          className="tour-data-indicator"
-          className="register-tour-data-indicator"
+          className="tour-data-indicator register-tour-data-indicator"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M9 12l2 2 4-4"/>

@@ -59,14 +59,31 @@ export const AuthProvider = ({ children }) => {
   }, [initializeAuth]);
 
   const login = async (loginData) => {
-    const response = await apiService.login(loginData);
-    if (response.success && response.user) {
-      setUser(response.user);
-      setIsAuthenticated(true);
-      localStorage.setItem('userData', JSON.stringify(response.user));
+    try {
+      console.log('🔑 AuthContext: Starting login API call...');
+      const response = await apiService.login(loginData);
+      
+      console.log('🔑 AuthContext: API response received:', {
+        success: response.success,
+        hasUser: !!response.user,
+        hasToken: !!response.token
+      });
+      
+      if (response.success && response.user) {
+        console.log('🔑 AuthContext: Setting user state and localStorage...');
+        setUser(response.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('userData', JSON.stringify(response.user));
+        console.log('🔑 AuthContext: Login completed successfully');
+        return response;
+      }
+      
+      console.log('🔑 AuthContext: Login failed -', response.message);
       return response;
+    } catch (error) {
+      console.error('🔑 AuthContext: Login error:', error);
+      throw error;
     }
-    return response;
   };
 
   const logout = async () => {

@@ -146,6 +146,8 @@ export default function LoginScreen() {
     setErrors(prev => ({ ...prev, general: '' }));
     
     try {
+      console.log('🔐 Starting login process...');
+      
       // Determine if login is with email or Dyanpitt ID
       const isEmailLogin = email.includes('@') && !email.startsWith('@DA');
       const loginData = {
@@ -154,9 +156,29 @@ export default function LoginScreen() {
         rememberMe: rememberMe
       };
 
-      const response = await login(loginData);
+      console.log('📤 Sending login request with data:', { 
+        identifier: email, 
+        isEmailLogin, 
+        rememberMe 
+      });
+
+      // Add timeout to the login request
+      const loginPromise = login(loginData);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Login timeout - please try again')), 30000)
+      );
+
+      const response = await Promise.race([loginPromise, timeoutPromise]);
+      
+      console.log('📥 Login response received:', {
+        success: response.success,
+        hasUser: !!response.user,
+        message: response.message
+      });
       
       if (response.success && response.user) {
+        console.log('✅ Login successful, navigating...');
+        
         // Mark that user came from login, not registration
         sessionStorage.setItem('cameFromRegistration', 'false');
         
@@ -164,15 +186,20 @@ export default function LoginScreen() {
         
         // Navigate based on user role and completion status
         if (user.role === 'admin' || user.role === 'super_admin') {
+          console.log('🔧 Navigating to admin dashboard');
           navigate('/admin-dashboard');
         } else if (!user.membershipCompleted) {
+          console.log('📝 Navigating to membership completion');
           navigate('/membership');
         } else if (!user.bookingCompleted) {
+          console.log('📅 Navigating to booking completion');
           navigate('/booking');
         } else {
+          console.log('🏠 Navigating to dashboard');
           navigate('/dashboard');
         }
       } else {
+        console.log('❌ Login failed:', response.message);
         setErrors(prev => ({ 
           ...prev, 
           general: response.message || 'Login failed. Please check your credentials and try again.' 
@@ -180,11 +207,23 @@ export default function LoginScreen() {
       }
       
     } catch (error) {
+      console.error('🚨 Login error:', error);
+      
+      let errorMessage = 'Login failed. Please check your credentials and try again.';
+      if (error.message.includes('timeout')) {
+        errorMessage = 'Login is taking too long. Please check your connection and try again.';
+      } else if (error.message.includes('Network error')) {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setErrors(prev => ({ 
         ...prev, 
-        general: error.message || 'Login failed. Please check your credentials and try again.' 
+        general: errorMessage
       }));
     } finally {
+      console.log('🔄 Login process completed, resetting loading state');
       setIsLoading(false);
     }
   };

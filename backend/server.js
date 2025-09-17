@@ -1,7 +1,5 @@
 const express = require('express');
-const passport = require('passport');
-const session = require('express-session');
-const MongoStore = require('connect-mongo');
+// Session dependencies removed - using JWT authentication only
 const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
@@ -13,7 +11,7 @@ require('dotenv').config();
 const connectDB = require('./config/database');
 
 // Import configurations
-require('./config/passport');
+// Passport configuration removed - using JWT middleware directly
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -134,28 +132,10 @@ app.use('/uploads', (req, res, next) => {
   }
 }));
 
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  },
-  store: process.env.NODE_ENV === 'production' && process.env.MONGODB_URI
-    ? MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI,
-        collectionName: 'sessions',
-        ttl: 24 * 60 * 60, // 1 day
-      })
-    : undefined,
-}));
+// Session middleware removed - using JWT authentication only
 
 // Passport middleware
-app.use(passport.initialize());
-app.use(passport.session());
+// Passport session removed - using JWT authentication only
 
 // Connect to MongoDB
 connectDB();

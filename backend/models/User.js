@@ -178,14 +178,13 @@ const userSchema = new mongoose.Schema({
         'Day Batch (7:00 AM - 10:00 PM)',
         'Night Batch (10:00 PM - 7:00 AM)', 
         '24 Hours Batch',
-        'Calista Garden (7:00 AM - 7:00 PM)'
       ]
     },
     
     // Membership type
     membershipType: {
       type: String,
-      enum: ['Dyandhara Kaksh', 'Dyanpurn Kaksh', 'Calista Garden']
+      enum: ['Dyandhara Kaksh', 'Dyanpurn Kaksh', 'Dyanasmi Kaksh']
     },
     
     // Membership duration

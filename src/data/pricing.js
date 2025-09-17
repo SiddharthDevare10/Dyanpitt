@@ -11,6 +11,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 149,
       "Day Batch (7:00 AM - 10:00 PM)": 199,
       "24 Hours Batch": 299
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 149,
+      "Day Batch (7:00 AM - 10:00 PM)": 199,
+      "24 Hours Batch": 299
     }
   },
   
@@ -22,6 +27,11 @@ export const pricingData = {
       "24 Hours Batch": 599
     },
     "Dyanpurn Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 349,
+      "Day Batch (7:00 AM - 10:00 PM)": 499,
+      "24 Hours Batch": 699
+    },
+    "Dyanasmi Kaksh": {
       "Night Batch (10:00 PM - 7:00 AM)": 349,
       "Day Batch (7:00 AM - 10:00 PM)": 499,
       "24 Hours Batch": 699
@@ -39,6 +49,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 849,
       "Day Batch (7:00 AM - 10:00 PM)": 1199,
       "24 Hours Batch": 1799
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 849,
+      "Day Batch (7:00 AM - 10:00 PM)": 1199,
+      "24 Hours Batch": 1799
     }
   },
   
@@ -50,6 +65,11 @@ export const pricingData = {
       "24 Hours Batch": 1499
     },
     "Dyanpurn Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 1399,
+      "Day Batch (7:00 AM - 10:00 PM)": 1999,
+      "24 Hours Batch": 2999
+    },
+    "Dyanasmi Kaksh": {
       "Night Batch (10:00 PM - 7:00 AM)": 1399,
       "Day Batch (7:00 AM - 10:00 PM)": 1999,
       "24 Hours Batch": 2999
@@ -66,6 +86,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 2799,
       "Day Batch (7:00 AM - 10:00 PM)": 3999,
       "24 Hours Batch": 5999
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 2799,
+      "Day Batch (7:00 AM - 10:00 PM)": 3999,
+      "24 Hours Batch": 5999
     }
   },
   
@@ -76,6 +101,11 @@ export const pricingData = {
       "24 Hours Batch": 4499
     },
     "Dyanpurn Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 3499,
+      "Day Batch (7:00 AM - 10:00 PM)": 4999,
+      "24 Hours Batch": 7499
+    },
+    "Dyanasmi Kaksh": {
       "Night Batch (10:00 PM - 7:00 AM)": 3499,
       "Day Batch (7:00 AM - 10:00 PM)": 4999,
       "24 Hours Batch": 7499
@@ -92,6 +122,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 4999,
       "Day Batch (7:00 AM - 10:00 PM)": 6999,
       "24 Hours Batch": 9999
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 4999,
+      "Day Batch (7:00 AM - 10:00 PM)": 6999,
+      "24 Hours Batch": 9999
     }
   },
   
@@ -102,6 +137,11 @@ export const pricingData = {
       "24 Hours Batch": 6999
     },
     "Dyanpurn Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 5999,
+      "Day Batch (7:00 AM - 10:00 PM)": 7999,
+      "24 Hours Batch": 11499
+    },
+    "Dyanasmi Kaksh": {
       "Night Batch (10:00 PM - 7:00 AM)": 5999,
       "Day Batch (7:00 AM - 10:00 PM)": 7999,
       "24 Hours Batch": 11499
@@ -118,6 +158,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 6499,
       "Day Batch (7:00 AM - 10:00 PM)": 8999,
       "24 Hours Batch": 12999
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 6499,
+      "Day Batch (7:00 AM - 10:00 PM)": 8999,
+      "24 Hours Batch": 12999
     }
   },
   
@@ -128,6 +173,11 @@ export const pricingData = {
       "24 Hours Batch": 8999
     },
     "Dyanpurn Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 7499,
+      "Day Batch (7:00 AM - 10:00 PM)": 10499,
+      "24 Hours Batch": 14999
+    },
+    "Dyanasmi Kaksh": {
       "Night Batch (10:00 PM - 7:00 AM)": 7499,
       "Day Batch (7:00 AM - 10:00 PM)": 10499,
       "24 Hours Batch": 14999
@@ -144,6 +194,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 7499,
       "Day Batch (7:00 AM - 10:00 PM)": 10999,
       "24 Hours Batch": 15999
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 7499,
+      "Day Batch (7:00 AM - 10:00 PM)": 10999,
+      "24 Hours Batch": 15999
     }
   },
   
@@ -154,6 +209,11 @@ export const pricingData = {
       "24 Hours Batch": 10999
     },
     "Dyanpurn Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 7999,
+      "Day Batch (7:00 AM - 10:00 PM)": 11499,
+      "24 Hours Batch": 16999
+    },
+    "Dyanasmi Kaksh": {
       "Night Batch (10:00 PM - 7:00 AM)": 7999,
       "Day Batch (7:00 AM - 10:00 PM)": 11499,
       "24 Hours Batch": 16999
@@ -170,6 +230,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 8499,
       "Day Batch (7:00 AM - 10:00 PM)": 11999,
       "24 Hours Batch": 17499
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 8499,
+      "Day Batch (7:00 AM - 10:00 PM)": 11999,
+      "24 Hours Batch": 17499
     }
   },
   
@@ -183,6 +248,11 @@ export const pricingData = {
       "Night Batch (10:00 PM - 7:00 AM)": 8999,
       "Day Batch (7:00 AM - 10:00 PM)": 12499,
       "24 Hours Batch": 17999
+    },
+    "Dyanasmi Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 8999,
+      "Day Batch (7:00 AM - 10:00 PM)": 12499,
+      "24 Hours Batch": 17999
     }
   },
   
@@ -193,6 +263,11 @@ export const pricingData = {
       "24 Hours Batch": 12999
     },
     "Dyanpurn Kaksh": {
+      "Night Batch (10:00 PM - 7:00 AM)": 9499,
+      "Day Batch (7:00 AM - 10:00 PM)": 12999,
+      "24 Hours Batch": 18999
+    },
+    "Dyanasmi Kaksh": {
       "Night Batch (10:00 PM - 7:00 AM)": 9499,
       "Day Batch (7:00 AM - 10:00 PM)": 12999,
       "24 Hours Batch": 18999
@@ -212,7 +287,7 @@ export const getAvailableDurations = () => {
 
 // Get all membership types
 export const getMembershipTypes = () => {
-  return ["Dyandhara Kaksh", "Dyanpurn Kaksh"];
+  return ["Dyandhara Kaksh", "Dyanpurn Kaksh", "Dyanasmi Kaksh"];
 };
 
 // Get all time slots

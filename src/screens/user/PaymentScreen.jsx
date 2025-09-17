@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import apiService from '../../services/api';
 import { getPrice } from '../../data/pricing';
-import { calculateTotalDiscount, qualifiesForFemaleDiscount, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../../data/discounts';
+// Removed discounts import - using simple pricing
 
 export default function PaymentScreen() {
   const navigate = useNavigate();
@@ -110,10 +110,6 @@ export default function PaymentScreen() {
         if (seatNum === 5) return 'gold';
         if ([24, 25, 26, 27, 28, 29, 32, 33].includes(seatNum)) return 'silver';
         return 'standard';
-      } else if (bookingDetails?.membershipType === 'Calista Garden') {
-        if (seatNum === 5) return 'gold';
-        if ([24, 25, 26, 27, 28, 29, 32, 33].includes(seatNum)) return 'silver';
-        return 'standard';
       } else if (bookingDetails?.membershipType === 'Dyanpurn Kaksh') {
         if (sectionLetter === 'A' && [54, 55, 56].includes(seatNum)) return 'silver';
         if (sectionLetter === 'B' && [63, 64, 65].includes(seatNum)) return 'silver';
@@ -127,15 +123,8 @@ export default function PaymentScreen() {
     
     // Calculate base price
     let basePrice = 0;
-    if (bookingDetails?.membershipType === 'Calista Garden') {
-      const monthsMap = {
-        '1 Month': 1, '2 Months': 2, '3 Months': 3, '4 Months': 4,
-        '5 Months': 5, '6 Months': 6, '7 Months': 7, '8 Months': 8,
-        '9 Months': 9, '10 Months': 10, '11 Months': 11, '12 Months': 12
-      };
-      const months = monthsMap[bookingDetails?.membershipDuration] || 1;
-      basePrice = 399 * months;
-    } else {
+    // Use pricing data for all memberships
+    {
       basePrice = getPrice(bookingDetails?.membershipDuration, bookingDetails?.membershipType, bookingDetails?.timeSlot);
     }
     
@@ -150,13 +139,10 @@ export default function PaymentScreen() {
     
     const priceWithSeatTier = applySeatTierPricing(basePrice, seatTier);
     
-    // Calculate discounts
-    const totalDiscount = bookingDetails?.membershipType === 'Calista Garden'
-      ? (isFemale && qualifiesForFemaleDiscount(bookingDetails?.membershipDuration) ? 10 : 0)
-      : calculateTotalDiscount(bookingDetails?.membershipDuration, bookingDetails?.membershipType, bookingDetails?.timeSlot, isFemale);
-    
-    const discountAmount = Math.round(priceWithSeatTier * totalDiscount / 100);
-    const registrationFee = shouldApplyRegistrationFee(userRegistrationDate, lastPackageDate) ? REGISTRATION_FEE : 0;
+    // Simplified pricing without complex discount logic
+    const totalDiscount = 0;
+    const discountAmount = 0;
+    const registrationFee = 0;
     
     return {
       basePrice,

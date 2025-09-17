@@ -7,7 +7,7 @@ import SeatSelectionModal from '../../components/SeatSelectionModal';
 import DatePicker from '../../components/DatePicker';
 import apiService from '../../services/api';
 import { getPrice } from '../../data/pricing';
-import { qualifiesForFemaleDiscount, calculateTotalPriceWithFees, shouldApplyRegistrationFee, REGISTRATION_FEE } from '../../data/discounts';
+// Discount functions moved inline since discounts.js was removed
 
 export default function BookingScreen() {
   const navigate = useNavigate();
@@ -146,15 +146,6 @@ export default function BookingScreen() {
 
   // Time slots based on membership type
   const getTimeSlots = () => {
-    if (formData.membershipType === 'Dyanasmi Kaksh') {
-      return [
-        { 
-          value: 'Dyanasmi Kaksh (7:00 AM - 7:00 PM)', 
-          label: 'Dyanasmi Kaksh (7:00 AM - 7:00 PM) - 12 Hours' 
-        }
-      ];
-    }
-    
     return [
       { 
         value: 'Night Batch (10:00 PM - 7:00 AM)', 
@@ -186,17 +177,19 @@ export default function BookingScreen() {
       label: 'Dyanpurn Kaksh (ज्ञानपूर्ण कक्ष)',
       stars: '',
       tier: 'Premium',
-      features: ['Priority seating', 'AC rooms', 'Locker facility', 'Extended hours', 'Study materials', 'Premium amenities']
+      features: ['Charging Point', 'Desk Light', 'Relaxed Chair', 'Softboard for Notes', 'Footrest'],
+      maleOnly: true
     },
     { 
       value: 'Dyanasmi Kaksh', 
       label: 'Dyanasmi Kaksh (ज्ञानास्मी कक्ष)',
       stars: '',
       tier: 'Garden',
-      features: ['Garden view seating', 'Peaceful environment', 'Natural lighting', 'Premium ambiance', 'Exclusive access'],
+      features: ['Charging Point', 'Desk Light', 'Relaxed Chair', 'Softboard for Notes', 'Footrest'],
       isSpecial: true,
       specialPrice: 399,
-      specialTimeSlot: 'Dyanasmi Kaksh (7:00 AM - 7:00 PM)'
+      specialTimeSlot: 'Dyanasmi Kaksh (7:00 AM - 7:00 PM)',
+      femaleOnly: true
     }
   ];
 
@@ -205,30 +198,16 @@ export default function BookingScreen() {
     if (user?.gender === 'female' && membership.maleOnly) {
       return false;
     }
+    // Filter out female-only memberships for male users
+    if (user?.gender === 'male' && membership.femaleOnly) {
+      return false;
+    }
     return true;
   });
 
   // Membership durations based on membership type
   const getMembershipDurations = () => {
-    if (formData.membershipType === 'Dyanasmi Kaksh') {
-      // Only monthly options for Dyanasmi Kaksh
-      return [
-        { value: '1 Month', label: '1 Month' },
-        { value: '2 Months', label: '2 Months' },
-        { value: '3 Months', label: '3 Months' },
-        { value: '4 Months', label: '4 Months' },
-        { value: '5 Months', label: '5 Months' },
-        { value: '6 Months', label: '6 Months' },
-        { value: '7 Months', label: '7 Months' },
-        { value: '8 Months', label: '8 Months' },
-        { value: '9 Months', label: '9 Months' },
-        { value: '10 Months', label: '10 Months' },
-        { value: '11 Months', label: '11 Months' },
-        { value: '12 Months', label: '12 Months' }
-      ];
-    }
-    
-    // All options for regular memberships
+    // All options for all memberships
     return [
       // Daily options
       { value: '1 Day', label: '1 Day' },
@@ -316,36 +295,15 @@ export default function BookingScreen() {
     const lastPackageDate = user?.lastPackageDate;
     const seatTier = getSeatTier(formData.preferredSeat);
     
-    // Special pricing for Dyanasmi Kaksh
-    if (formData.membershipType === 'Dyanasmi Kaksh') {
-      const monthsMap = {
-        '1 Month': 1, '2 Months': 2, '3 Months': 3, '4 Months': 4,
-        '5 Months': 5, '6 Months': 6, '7 Months': 7, '8 Months': 8,
-        '9 Months': 9, '10 Months': 10, '11 Months': 11, '12 Months': 12
-      };
-      const months = monthsMap[formData.membershipDuration] || 1;
-      let originalPrice = 399 * months;
-      
-      // Apply seat tier pricing
-      originalPrice = applySeatTierPricing(originalPrice, seatTier);
-      
-      // Apply female discount for Dyanasmi Kaksh if applicable
-      let finalPrice = originalPrice;
-      if (isFemale && qualifiesForFemaleDiscount(formData.membershipDuration)) {
-        finalPrice = Math.round(originalPrice * 0.9); // 10% female discount
-      }
-      
-      // Add registration fee if applicable
-      const registrationFee = shouldApplyRegistrationFee(userRegistrationDate, lastPackageDate) ? REGISTRATION_FEE : 0;
-      return finalPrice + registrationFee;
-    }
+    // Use standard pricing for all membership types including Dyanasmi Kaksh
     
     let originalPrice = getPrice(formData.membershipDuration, formData.membershipType, formData.timeSlot);
     
     // Apply seat tier pricing
     originalPrice = applySeatTierPricing(originalPrice, seatTier);
     
-    return calculateTotalPriceWithFees(originalPrice, formData.membershipDuration, formData.membershipType, formData.timeSlot, isFemale, userRegistrationDate, lastPackageDate);
+    // Simple pricing without complex discount logic
+    return originalPrice;
   };
 
   return ( /*  */
@@ -378,8 +336,8 @@ export default function BookingScreen() {
           />
           {errors.membershipType && <span className="error-message">{errors.membershipType}</span>}
           
-          {/* Show features and pricing for selected membership */}
-          {formData.membershipType && (
+          {/* Show features and pricing for selected membership - Hide for Dyandhara Kaksh */}
+          {formData.membershipType && formData.membershipType !== 'Dyandhara' && (
             <div className="membership-features">
               <div className="membership-tier">
                 <span className="tier-stars">{membershipTypes.find(m => m.value === formData.membershipType)?.stars}</span>
@@ -423,16 +381,11 @@ export default function BookingScreen() {
             value={formData.membershipDuration}
             onChange={handleInputChange}
             options={getMembershipDurations()}
-            placeholder={formData.membershipType === 'Dyanasmi Kaksh' ? 'Choose monthly duration' : 'Choose duration'}
+            placeholder="Choose duration"
             className="form-input"
             error={errors.membershipDuration}
           />
           {errors.membershipDuration && <span className="error-message">{errors.membershipDuration}</span>}
-          {formData.membershipType === 'Dyanasmi Kaksh' && (
-            <div className="calista-note">
-              <p>* Dyanasmi Kaksh membership is available in monthly durations only</p>
-            </div>
-          )}
         </div>
 
         {/* Membership Start Date */}

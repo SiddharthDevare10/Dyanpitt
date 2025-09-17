@@ -264,6 +264,11 @@ body {
    LOGIN SCREEN STYLES
    ======================================== */
 
+/* Login Screen Container */
+.login-screen-container {
+  /* Inherits from main-container */
+}
+
 /* Login Screen Header */
 .login-screen-header {
   margin-bottom: 20px;
@@ -3834,7 +3839,7 @@ select.form-input option:checked {
   position: fixed;
   top: 50%;
   left: 50%;
-  
+  transform: translate(-50%, -50%);
   background: #ffffff;
   border-radius: 12px;
   max-width: calc(100vw - 60px);
@@ -3879,14 +3884,58 @@ select.form-input option:checked {
 
 /* Modal Seat Layout Styles - matching app colors */
 .seat-modal .seat-legend-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
   padding: 12px 16px;
   margin: 10px 16px;
   background: #f9fafb;
   border-radius: 8px;
   border: 1px solid #dddddd;
+}
+
+/* Mobile legend layout - 2x2 grid with specific pairing */
+@media (max-width: 480px) {
+  .seat-modal .seat-legend-container {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: auto auto !important;
+    gap: 8px !important;
+    max-width: 100% !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  /* Reset all items first */
+  .seat-modal .legend-item {
+    order: initial !important;
+    flex: none !important;
+  }
+  
+  /* For venues with 4 items (Dyandhara/Dyanpurn): Gold, Silver, Selected, Not Available */
+  /* Top row: Gold Tier - top left, Silver Tier - top right */
+  .seat-modal .legend-item:nth-child(1) { 
+    order: 1 !important; 
+    grid-column: 1 !important; 
+    grid-row: 1 !important; 
+  }
+  .seat-modal .legend-item:nth-child(2) { 
+    order: 2 !important; 
+    grid-column: 2 !important; 
+    grid-row: 1 !important; 
+  }
+  /* Bottom row: Selected - bottom left, Not Available - bottom right */
+  .seat-modal .legend-item:nth-child(3) { 
+    order: 3 !important; 
+    grid-column: 1 !important; 
+    grid-row: 2 !important; 
+  }
+  .seat-modal .legend-item:nth-child(4) { 
+    order: 4 !important; 
+    grid-column: 2 !important; 
+    grid-row: 2 !important; 
+  }
+  
 }
 
 .seat-modal .legend-item {
@@ -3901,14 +3950,14 @@ select.form-input option:checked {
 .seat-modal .seat-demo-circle {
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: 4px;
   border: 2px solid;
   flex-shrink: 0;
 }
 
 .seat-modal .seat-demo-circle.male-available {
   background-color: #ffffff;
-  border-color: #2196f3;
+  border-color: #38c99f;
 }
 
 .seat-modal .seat-demo-circle.male-selected {
@@ -4050,6 +4099,15 @@ select.form-input option:checked {
   box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
 }
 
+/* Dyanasmi Kaksh specific styling */
+.seat-modal.dyanasmi-kaksh .seat-number {
+  color: #c002e8;
+}
+
+.seat-modal.dyanasmi-kaksh .entry-text {
+  color: #c002e8;
+}
+
 .seat-modal .seat.occupied {
   background-color: #ef4444;
   border-color: #dc2626;
@@ -4065,14 +4123,33 @@ select.form-input option:checked {
 
 /* Male seat styling */
 .seat-modal .seat.male-seat.available {
-  border-color: #2196f3;
-  color: #2196f3;
+  border: 1px solid #8a8a8a;
+  background-color: #ffffff;
+  color: #38c99f;
 }
 
 .seat-modal .seat.male-seat.available:hover {
-  background-color: #e3f2fd;
-  border-color: #1976d2;
-  color: #1976d2;
+  background-color: #f8fffe;
+  border-color: #8a8a8a;
+  color: #38c99f;
+}
+
+/* Silver tier seats - specific seats 54, 55, 56, 63, 64, 65 */
+.seat-modal .seat.male-seat.silver-tier.available {
+  background-color: #e5e7eb !important;
+}
+
+.seat-modal .seat.male-seat.silver-tier.available:hover {
+  background-color: #d1d5db !important;
+}
+
+/* Gold tier seat - specific seat 69 */
+.seat-modal .seat.male-seat.gold-tier.available {
+  background-color: #fef3c7 !important;
+}
+
+.seat-modal .seat.male-seat.gold-tier.available:hover {
+  background-color: #fde68a !important;
 }
 
 .seat-modal .seat.male-seat.selected {
@@ -4243,6 +4320,22 @@ select.form-input option:checked {
     font-size: 12px;
   }
   
+  .seat-modal .empty-space {
+    width: 35px;
+    height: 35px;
+    flex-shrink: 0;
+    visibility: hidden;
+  }
+  
+  .seat-modal .fake-seat {
+    width: 35px;
+    height: 35px;
+    flex-shrink: 0;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  
   .seat-modal .seats-container {
     gap: 6px;
   }
@@ -4290,7 +4383,7 @@ select.form-input option:checked {
   flex-shrink: 0;
 }
 
-/* Aisle space for Calista Garden */
+/* Aisle space */
 .aisle-space {
   width: 40px;
   height: 28px;
@@ -4298,6 +4391,105 @@ select.form-input option:checked {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* Section Legend for Dyanpurn Kaksh */
+.section-legend-container {
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.section-legend-items {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+}
+
+.section-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.section-legend-item:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.section-legend-item.active {
+  background-color: #f0f9ff;
+  border-color: #0ea5e9;
+  color: #0369a1;
+}
+
+
+/* Entry Indicator in Layout */
+.entry-indicator {
+  width: 40px;
+  height: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.entry-arrow {
+  color: #38c99f;
+  font-size: 16px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.entry-text {
+  color: #38c99f;
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: lowercase;
+  line-height: 1;
+}
+
+/* Rotated entry for Dyanpurn Kaksh */
+.entry-indicator.rotated .entry-arrow {
+  transform: rotate(45deg);
+}
+
+.entry-indicator.rotated .entry-text {
+  transform: rotate(45deg);
+}
+
+/* Dyanpurn Kaksh Tier Seat Backgrounds */
+.seat-modal .seat.male-seat.silver-tier.available {
+  background-color: #e5e7eb !important;
+  border: 1px solid #8a8a8a !important;
+  color: #38c99f !important;
+}
+
+.seat-modal .seat.male-seat.silver-tier.available:hover {
+  background-color: #d1d5db !important;
+  border-color: #8a8a8a !important;
+  color: #38c99f !important;
+}
+
+.seat-modal .seat.male-seat.gold-tier.available {
+  background-color: #fef3c7 !important;
+  border: 1px solid #8a8a8a !important;
+  color: #38c99f !important;
+}
+
+.seat-modal .seat.male-seat.gold-tier.available:hover {
+  background-color: #fde68a !important;
+  border-color: #8a8a8a !important;
+  color: #38c99f !important;
 }
 
 /* Seat Tier Styles */
@@ -4392,18 +4584,17 @@ select.form-input option:checked {
   border-color: #999;
 }
 
-/* Female seat styling for Calista Garden */
+/* Female seat styling (legacy) */
 .seat-modal .seat.female-only.available {
-  border: 2px solid #ff69b4;
+  border: 1px solid #8a8a8a;
   background-color: #ffffff;
-  color: #c2185b;
+  color: #38c9a0;
 }
 
 .seat-modal .seat.female-only.available:hover {
-  background-color: #f5f5f5;
-  border-color: #e91e63;
-  color: #ad1457;
-  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+  background-color: #f8fffe;
+  border-color: #8a8a8a;
+  color: #38c9a0;
 }
 
 .seat-modal .seat.female-only.selected {
@@ -4427,7 +4618,6 @@ select.form-input option:checked {
   border-color: #d1d5db;
   color: #9ca3af;
   cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .seat-modal .seat.gender-restricted:hover {
@@ -4612,6 +4802,10 @@ select.form-input option:checked {
    ======================================== */
 
 /* Admin Dashboard */
+.admin-dashboard-container {
+  /* Inherits from main-container */
+}
+
 .admin-dashboard-content {
   display: flex;
   flex-direction: column;
@@ -4668,6 +4862,10 @@ select.form-input option:checked {
 }
 
 /* User Management */
+.user-management-container {
+  /* Inherits from main-container */
+}
+
 .user-management-content {
   display: flex;
   flex-direction: column;

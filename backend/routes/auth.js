@@ -1,7 +1,5 @@
 const express = require('express');
-// const bcrypt = require('bcryptjs'); - Currently unused
 const jwt = require('jsonwebtoken');
-// const passport = require('passport'); - Currently unused
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { authenticateToken: auth } = require('../middleware/auth');
@@ -10,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const emailService = require('../services/emailService');
 const verificationService = require('../services/verificationService');
-const { uploadSingle, uploadMemorySingle, uploadWithProcessing, saveBufferToUploads } = require('../middleware/upload');
+const { uploadWithProcessing } = require('../middleware/upload');
 const cleanupService = require('../services/cleanupService');
 
 const router = express.Router();
@@ -162,9 +160,11 @@ router.post('/send-otp', otpLimiter, [
     const emailResult = await verificationService.sendOTPEmail(email);
     
     if (!emailResult.success) {
+      console.error('Email sending failed:', emailResult.error);
       return res.status(500).json({
         success: false,
-        message: 'Failed to send OTP email'
+        message: emailResult.userMessage || emailResult.error || 'Failed to send OTP email',
+        code: 'EMAIL_SEND_FAILED'
       });
     }
 
@@ -473,8 +473,20 @@ router.post('/login', loginLimiter, [
   body('password').exists()
 ], async (req, res) => {
   try {
+    console.log('🔐 LOGIN REQUEST RECEIVED:', {
+      timestamp: new Date().toISOString(),
+      ip: req.ip,
+      body: {
+        email: req.body.email || 'not provided',
+        dyanpittId: req.body.dyanpittId || 'not provided',
+        hasPassword: !!req.body.password,
+        rememberMe: req.body.rememberMe
+      }
+    });
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('🔐 LOGIN VALIDATION FAILED:', errors.array());
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -484,6 +496,8 @@ router.post('/login', loginLimiter, [
 
     const { email, dyanpittId, password, rememberMe } = req.body;
     const identifier = email || dyanpittId;
+    
+    console.log('🔐 LOGIN PROCESSING:', { identifier, hasPassword: !!password });
 
     if (!identifier) {
       return res.status(400).json({
@@ -493,16 +507,23 @@ router.post('/login', loginLimiter, [
     }
 
     // Find user by email or Dyanpitt ID (updated for optional Dyanpitt ID)
+    console.log('🔐 LOOKING UP USER:', identifier);
     const user = await User.findByEmailOrDyanpittId(identifier);
     if (!user) {
+      console.log('🔐 USER NOT FOUND:', identifier);
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
+    console.log('🔐 USER FOUND:', { userId: user._id, email: user.email });
 
     // Check if account is active and email verified
     if (!user.isActive || !user.isEmailVerified) {
+      console.log('🔐 ACCOUNT NOT ACTIVE OR EMAIL NOT VERIFIED:', {
+        isActive: user.isActive,
+        isEmailVerified: user.isEmailVerified
+      });
       return res.status(400).json({
         success: false,
         message: 'Account is not active or email not verified'
@@ -512,6 +533,12 @@ router.post('/login', loginLimiter, [
     // SECURITY: Ensure user has completed full registration (has real password and email)
     if (!user.email || user.email.includes('@temp.local') ||
         user.password === 'temporary' || user.pendingEmail) {
+      console.log('🔐 INCOMPLETE REGISTRATION:', {
+        hasEmail: !!user.email,
+        isTempEmail: user.email?.includes('@temp.local'),
+        isTempPassword: user.password === 'temporary',
+        hasPendingEmail: !!user.pendingEmail
+      });
       return res.status(400).json({
         success: false,
         message: 'Please complete your registration first'
@@ -521,7 +548,9 @@ router.post('/login', loginLimiter, [
     // Note: Users can login without Dyanpitt ID (will get it after first membership payment)
 
     // Check password
+    console.log('🔐 CHECKING PASSWORD...');
     const isMatch = await user.comparePassword(password);
+    console.log('🔐 PASSWORD CHECK RESULT:', isMatch);
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -530,9 +559,11 @@ router.post('/login', loginLimiter, [
     }
 
     // Update last login
+    console.log('🔐 UPDATING LAST LOGIN...');
     await user.updateLastLogin();
 
     // Generate JWT token
+    console.log('🔐 GENERATING JWT TOKEN...');
     const expiresIn = rememberMe ? '30d' : '15m'; // Industry standard: 15 minutes, 30 days for remember me
     const token = jwt.sign(
       { userId: user._id },
@@ -540,6 +571,7 @@ router.post('/login', loginLimiter, [
       { expiresIn }
     );
 
+    console.log('🔐 LOGIN SUCCESS - SENDING RESPONSE');
     res.json({
       success: true,
       message: user.hasDnyanpittId ? 'Login successful' : 'Login successful. Complete your membership to get your Dyanpitt ID.',
@@ -850,26 +882,6 @@ router.post('/update-booking', auth, async (req, res) => {
       '7 Months', '8 Months', '9 Months', '10 Months', '11 Months', '12 Months'
     ];
     
-    // Special validation for Calista Garden - only monthly durations allowed
-    if (bookingDetails.membershipType === 'Calista Garden') {
-      const monthlyDurations = [
-        '1 Month', '2 Months', '3 Months', '4 Months', '5 Months', '6 Months',
-        '7 Months', '8 Months', '9 Months', '10 Months', '11 Months', '12 Months'
-      ];
-      if (!monthlyDurations.includes(bookingDetails.membershipDuration)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Calista Garden membership only supports monthly durations'
-        });
-      }
-      
-      if (bookingDetails.timeSlot !== 'Calista Garden (7:00 AM - 7:00 PM)') {
-        return res.status(400).json({
-          success: false,
-          message: 'Calista Garden only supports 7:00 AM - 7:00 PM time slot'
-        });
-      }
-    }
     
     for (const field of requiredFields) {
       if (!bookingDetails[field]) {
@@ -927,19 +939,8 @@ router.post('/update-booking', auth, async (req, res) => {
     // Calculate total amount
     let totalAmount = 0;
     
-    if (bookingDetails.membershipType === 'Calista Garden') {
-      // Special pricing for Calista Garden - Rs.399 per month
-      const monthsMap = {
-        '1 Month': 1, '2 Months': 2, '3 Months': 3, '4 Months': 4,
-        '5 Months': 5, '6 Months': 6, '7 Months': 7, '8 Months': 8,
-        '9 Months': 9, '10 Months': 10, '11 Months': 11, '12 Months': 12
-      };
-      const months = monthsMap[bookingDetails.membershipDuration] || 1;
-      totalAmount = 399 * months;
-    } else {
-      // Use CSV pricing data for other memberships
-      totalAmount = pricingData[bookingDetails.membershipDuration]?.[bookingDetails.membershipType]?.[bookingDetails.timeSlot] || 0;
-    }
+    // Use CSV pricing data for memberships
+    totalAmount = pricingData[bookingDetails.membershipDuration]?.[bookingDetails.membershipType]?.[bookingDetails.timeSlot] || 0;
 
     // Calculate membership end date
     const membershipEndDate = new Date(startDate);
@@ -1244,6 +1245,57 @@ router.get('/cleanup-status', (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error getting cleanup status',
+      error: error.message
+    });
+  }
+});
+
+// Test route for email debugging - REMOVE IN PRODUCTION
+router.post('/test-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email is required' 
+      });
+    }
+
+    console.log(`Testing email delivery to: ${email}`);
+    
+    // Send a test OTP
+    const testOTP = Math.floor(100000 + Math.random() * 900000).toString();
+    const result = await emailService.sendOTP(email, testOTP, 'Test User');
+    
+    console.log('Email send result:', result);
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Test email sent successfully',
+        messageId: result.messageId,
+        otp: testOTP, // Only for testing - remove in production
+        instructions: [
+          'Check your inbox for the OTP email',
+          'Check your spam/junk folder if not in inbox',
+          'Emails may take 1-2 minutes to arrive',
+          `Email was sent via ${result.isConsoleMode ? 'Console Mode' : 'MailerSend'}`,
+          result.messageId ? `Message ID: ${result.messageId}` : ''
+        ].filter(Boolean)
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to send test email',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Test email error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while sending test email',
       error: error.message
     });
   }

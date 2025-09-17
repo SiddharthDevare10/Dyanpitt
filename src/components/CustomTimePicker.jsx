@@ -99,7 +99,6 @@ const CustomTimePicker = ({
   };
 
   const displayHour = selectedHour === 0 ? 12 : selectedHour > 12 ? selectedHour - 12 : selectedHour;
-  const currentValue = value || formatTime(selectedHour, selectedMinute, selectedPeriod);
   const displayValue = formatDisplayTime(selectedHour, selectedMinute, selectedPeriod);
 
   return (

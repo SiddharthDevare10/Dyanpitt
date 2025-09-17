@@ -254,9 +254,6 @@ export default function VisitorPassScreen() {
     }
   };
 
-  const handleBack = () => {
-    navigate('/');
-  };
 
   if (!tourData) {
     return (
