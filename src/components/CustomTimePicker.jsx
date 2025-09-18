@@ -85,7 +85,7 @@ const CustomTimePicker = ({
   };
 
   const handleConfirm = () => {
-    const timeValue = formatTime(selectedHour, selectedMinute, selectedPeriod);
+    const timeValue = formatDisplayTime(selectedHour, selectedMinute, selectedPeriod);
     onChange(timeValue);
     setIsOpen(false);
   };

@@ -8,6 +8,16 @@ Prerequisite: Node.js 20.19+
 - Use nvm: `nvm install` then `nvm use` (project contains .nvmrc)
 - Verify: `node -v` should print v20.19.0 or newer 20.x
 
+### **First Time Setup**
+```bash
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
+cd backend && npm install
+cd ..
+```
+
 ### **Start Development**
 ```bash
 # Start both frontend and backend

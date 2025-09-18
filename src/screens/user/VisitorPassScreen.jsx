@@ -291,9 +291,6 @@ export default function VisitorPassScreen() {
 
           <div className="congratulations-header">
             <h1 className="congratulations-title">Tour Request Confirmed!</h1>
-            <p className="congratulations-subtitle">
-              Your digital visitor pass is ready.
-            </p>
           </div>
 
           <div className="qr-code-container">
@@ -305,29 +302,48 @@ export default function VisitorPassScreen() {
               />
             )}
           </div>
-          <div className="detail-row">
-            <span className="detail-label">Name:</span>
-            <span className="detail-value">{tourData.fullName || 'N/A'}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Email:</span>
-            <span className="detail-value">{tourData.email || 'N/A'}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Contact:</span>
-            <span className="detail-value">{tourData.phoneNumber || 'N/A'}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Gender:</span>
-            <span className="detail-value">{tourData.gender ? tourData.gender.charAt(0).toUpperCase() + tourData.gender.slice(1) : 'N/A'}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Tour Date:</span>
-            <span className="detail-value">{tourData.tourDate ? new Date(tourData.tourDate).toLocaleDateString() : 'N/A'}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Tour Time:</span>
-            <span className="detail-value">{tourData.tourTime || 'N/A'}</span>
+          <div className="details-grid">
+            <div className="detail-label-cell">
+              <span className="detail-label">Name</span>
+            </div>
+            <div className="detail-value-cell">
+              <span className="detail-value">{tourData.fullName || 'N/A'}</span>
+            </div>
+            
+            <div className="detail-label-cell">
+              <span className="detail-label">Email</span>
+            </div>
+            <div className="detail-value-cell">
+              <span className="detail-value">{tourData.email || 'N/A'}</span>
+            </div>
+            
+            <div className="detail-label-cell">
+              <span className="detail-label">Contact</span>
+            </div>
+            <div className="detail-value-cell">
+              <span className="detail-value">{tourData.phoneNumber || 'N/A'}</span>
+            </div>
+            
+            <div className="detail-label-cell">
+              <span className="detail-label">Gender</span>
+            </div>
+            <div className="detail-value-cell">
+              <span className="detail-value">{tourData.gender ? tourData.gender.charAt(0).toUpperCase() + tourData.gender.slice(1) : 'N/A'}</span>
+            </div>
+            
+            <div className="detail-label-cell">
+              <span className="detail-label">Tour Date</span>
+            </div>
+            <div className="detail-value-cell">
+              <span className="detail-value">{tourData.tourDate ? new Date(tourData.tourDate).toLocaleDateString() : 'N/A'}</span>
+            </div>
+            
+            <div className="detail-label-cell">
+              <span className="detail-label">Tour Time</span>
+            </div>
+            <div className="detail-value-cell">
+              <span className="detail-value">{tourData.tourTime || 'N/A'}</span>
+            </div>
           </div>
           
           {/* Download Button inside container */}
