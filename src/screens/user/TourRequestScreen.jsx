@@ -211,7 +211,7 @@ export default function TourRequestScreen() {
 
       // Debug logging
       console.log('=== TOUR REQUEST DEBUG ===');
-      console.log('Request URL:', 'http://localhost:5000/api/tour/request');
+      console.log('Request URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/request`);
       console.log('Request data:', JSON.stringify(tourRequestData, null, 2));
       console.log('Tour date validation:');
       console.log('- Selected date:', tourRequestData.tourDate);
@@ -222,7 +222,7 @@ export default function TourRequestScreen() {
       // Submit to backend API
       console.log('=== ABOUT TO MAKE API CALL ===');
       console.log('Endpoint:', '/tour/request');
-      console.log('Full URL will be:', 'http://localhost:5000/api/tour/request');
+      console.log('Full URL will be:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/request`);
       
       const response = await apiService.request('/tour/request', {
         method: 'POST',

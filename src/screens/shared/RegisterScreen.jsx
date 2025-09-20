@@ -16,9 +16,9 @@ export default function RegisterScreen() {
   const [currentStep, setCurrentStep] = useState('email');
   
   const [formData, setFormData] = useState(() => {
-    // Recover form data from sessionStorage to prevent data loss
-    const savedData = sessionStorage.getItem('registrationFormData');
-    return savedData ? JSON.parse(savedData) : {
+    // Always start with fresh data - clear any previous registration attempts
+    sessionStorage.removeItem('registrationFormData');
+    return {
       email: '',
       otp: '',
       fullName: '',
@@ -93,6 +93,42 @@ export default function RegisterScreen() {
       navigate('/dashboard');
     }
   }, [navigate]);
+
+  // Clear sessionStorage when component unmounts (user navigates away)
+  useEffect(() => {
+    return () => {
+      // Only clear if user is not in the middle of active registration flow
+      // Check if user is currently in email step with no data, or completely left registration
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes('/register') && !currentPath.includes('/login')) {
+        sessionStorage.removeItem('registrationFormData');
+      }
+    };
+  }, []);
+
+  // Add a function to reset form data completely
+  const resetFormData = () => {
+    const emptyFormData = {
+      email: '',
+      otp: '',
+      fullName: '',
+      countryCode: '+91',
+      phoneNumber: '',
+      dateOfBirth: '',
+      gender: '',
+      password: '',
+      confirmPassword: '',
+      profilePicture: null,
+      profilePictureBase64: null
+    };
+    setFormData(emptyFormData);
+    sessionStorage.removeItem('registrationFormData');
+    setCurrentStep('email');
+    setErrors({});
+    setTouched({});
+    setShowTourIndicator(false);
+    setTourDataChecked(false);
+  };
 
   const fetchAndPopulateTourData = async (email) => {
     try {

@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+console.log('🔗 Frontend API Base URL:', API_BASE_URL);
 
 class ApiService {
   constructor() {
@@ -267,11 +268,26 @@ class ApiService {
     if (!token) return false;
 
     try {
+      // Check if token is properly formatted
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        this.removeToken();
+        return false;
+      }
+
       // Check if token is expired (basic check)
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const payload = JSON.parse(atob(parts[1]));
       const currentTime = Date.now() / 1000;
-      return payload.exp > currentTime;
-    } catch {
+      
+      if (payload.exp <= currentTime) {
+        console.log('Token expired, removing...');
+        this.removeToken();
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.log('Invalid token format, removing...', error);
       this.removeToken();
       return false;
     }

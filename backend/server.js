@@ -88,39 +88,48 @@ app.options('*', (req, res) => {
   res.sendStatus(200);
 });
 
-// Security middleware (enabled by default)
+// Security middleware (more permissive for development)
 app.use(helmet({
-  contentSecurityPolicy: {
-    useDefaults: true,
-    directives: {
-      defaultSrc: ["'self'"],
-      baseUri: ["'self'"],
-      frameAncestors: ["'none'"],
-      objectSrc: ["'none'"],
-      imgSrc: ["'self'", 'data:', 'blob:'],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", process.env.FRONTEND_URL || 'http://localhost:5173'],
-      upgradeInsecureRequests: []
-    }
-  },
+  contentSecurityPolicy: false, // Disable CSP in development to avoid conflicts
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false, // Allow cross-origin requests for images
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files (uploaded images) with caching headers
+// Handle CORS for uploads explicitly with debugging
 app.use('/uploads', (req, res, next) => {
-  // Set caching headers for images
-  res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year
-  res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString());
+  const origin = req.get('Origin');
+  console.log(`🖼️ Upload request: ${req.method} ${req.url}, Origin: ${origin || 'none'}`);
   
-  // Add security headers for images
+  // Set specific origin instead of * to allow credentials if needed
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // Handle OPTIONS preflight
+  if (req.method === 'OPTIONS') {
+    console.log('🔄 Handling OPTIONS preflight for uploads');
+    return res.sendStatus(200);
+  }
+  
+  // Set caching headers for images
+  res.setHeader('Cache-Control', 'public, max-age=31536000');
+  res.setHeader('Expires', new Date(Date.now() + 31536000000).toUTCString());
   res.setHeader('X-Content-Type-Options', 'nosniff');
   
   next();
-}, express.static(path.join(__dirname, 'uploads'), {
+});
+
+// Serve static files (uploaded images) 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   maxAge: '1y', // 1 year cache
   etag: true,
   lastModified: true,

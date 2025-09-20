@@ -49,10 +49,6 @@ export default function CongratulationsScreen({ email }) {
           </button>
         </div>
         
-        {/* Helper Text */}
-        <p className="congratulations-next-step">
-          Click "Continue" to log in and complete your profile setup.
-        </p>
       </div>
     </div>
   );

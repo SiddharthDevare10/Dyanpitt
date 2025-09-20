@@ -739,6 +739,7 @@ body {
   position: absolute;
   right: 12px;
   top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
@@ -937,6 +938,7 @@ body {
   position: absolute;
   right: 12px;
   top: 50%;
+  transform: translateY(-50%);
   background-color: #f0fdf4;
   border-radius: 50%;
   padding: 2px;

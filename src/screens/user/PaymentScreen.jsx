@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, CreditCard, Smartphone, Building, Banknote } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import apiService from '../../services/api';
 import { getPrice } from '../../data/pricing';
@@ -8,11 +8,15 @@ import { getPrice } from '../../data/pricing';
 
 export default function PaymentScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, updateUser } = useAuth();
   
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState({});
+
+  // Get payment amount from navigation state or user object
+  const paymentAmount = location.state?.paymentAmount || user?.paymentAmount || user?.bookingDetails?.totalAmount;
 
 
   const paymentMethods = [
@@ -90,7 +94,7 @@ export default function PaymentScreen() {
     }
   };
 
-  const { bookingDetails, paymentAmount } = user || {};
+  const { bookingDetails } = user || {};
   
   // Calculate pricing breakdown
   const calculatePriceBreakdown = () => {

@@ -105,8 +105,17 @@ class VerificationService {
     // Verify OTP
     console.log('VerifyOTP Debug - Comparing:', { provided: otp, stored: storedOTP.code });
     if (storedOTP.code === otp) {
-      console.log('VerifyOTP Debug - OTP match! NOT deleting yet - will delete after password reset');
-      // Don't delete here - let the reset-password route delete it after successful password change
+      console.log('VerifyOTP Debug - OTP match!');
+      
+      // For email verification (registration), delete OTP after successful verification
+      // For password reset, keep it until password is actually changed
+      if (storedOTP.type !== 'password-reset') {
+        console.log('VerifyOTP Debug - Email verification OTP, deleting after successful verification');
+        this.otpStorage.delete(normalizedEmail);
+      } else {
+        console.log('VerifyOTP Debug - Password reset OTP, keeping until password change');
+      }
+      
       return true;
     }
 

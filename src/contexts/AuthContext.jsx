@@ -17,11 +17,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  const clearAuth = useCallback(() => {
+    setUser(null);
+    setIsAuthenticated(false);
+    apiService.removeToken();
+    localStorage.removeItem('userData');
+    sessionStorage.removeItem('cameFromRegistration');
+  }, []);
+
   const initializeAuth = useCallback(async () => {
     try {
       // Check if we have a token
       if (!apiService.isAuthenticated()) {
         console.log('AuthContext: No valid token found');
+        clearAuth(); // Ensure clean state
         setLoading(false);
         return;
       }
@@ -47,11 +56,12 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
+      // Clear auth on any error (network, 401, etc.)
       clearAuth();
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clearAuth]);
 
   // Initialize auth state
   useEffect(() => {
@@ -96,13 +106,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const clearAuth = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    apiService.removeToken();
-    localStorage.removeItem('userData');
-    sessionStorage.removeItem('cameFromRegistration');
-  };
 
   const updateUser = (userData) => {
     setUser(userData);

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import CustomDropdown from '../../components/CustomDropdown';
 import DatePicker from '../../components/DatePicker';
 import apiService from '../../services/api';
+import '../../styles/accordion.css';
 
 export default function MembershipDetailsScreen() {
   const navigate = useNavigate();
@@ -27,6 +28,89 @@ export default function MembershipDetailsScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showTourIndicator, setShowTourIndicator] = useState(false);
   const [tourDataChecked, setTourDataChecked] = useState(false);
+
+  // Accordion state management
+  const [openSections, setOpenSections] = useState({
+    background: true,  // Start with first section open
+    personal: false,
+    study: false
+  });
+
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  // Auto-expand sections when they have errors OR when previous section is completed
+  useEffect(() => {
+    const hasBackgroundErrors = errors.visitedBefore || errors.educationalBackground || errors.currentOccupation || errors.jobTitle;
+    const hasPersonalErrors = errors.fatherName || errors.parentContactNumber || errors.currentAddress;
+    const hasStudyErrors = errors.examPreparation || errors.examinationDate || errors.selfiePhoto;
+
+    // Check section completion status
+    const backgroundCompleted = isSectionCompleted('background');
+    const personalCompleted = isSectionCompleted('personal');
+
+    // Auto-expand on errors
+    if (hasBackgroundErrors && !openSections.background) {
+      setOpenSections(prev => ({ ...prev, background: true }));
+    }
+    if (hasPersonalErrors && !openSections.personal) {
+      setOpenSections(prev => ({ ...prev, personal: true }));
+    }
+    if (hasStudyErrors && !openSections.study) {
+      setOpenSections(prev => ({ ...prev, study: true }));
+    }
+
+    // Auto-progression: Open next section when current is completed
+    if (backgroundCompleted && !hasPersonalErrors) {
+      // Only auto-progress if personal section isn't manually opened and background is still open
+      if (openSections.background && !openSections.personal) {
+        setOpenSections(prev => ({ 
+          ...prev, 
+          background: false, // Close completed section
+          personal: true     // Open next section
+        }));
+      }
+    }
+
+    if (personalCompleted && !hasStudyErrors) {
+      // Only auto-progress if study section isn't manually opened and personal is still open
+      if (openSections.personal && !openSections.study) {
+        setOpenSections(prev => ({ 
+          ...prev, 
+          personal: false,   // Close completed section
+          study: true        // Open next section
+        }));
+      }
+    }
+  }, [errors, openSections, formData]); // Added formData to dependencies to detect completion changes
+
+  // Check if section is completed (has no errors and all required fields filled)
+  const isSectionCompleted = (section) => {
+    switch (section) {
+      case 'background':
+        return formData.visitedBefore && 
+               formData.educationalBackground && 
+               formData.currentOccupation &&
+               (formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student' || (formData.jobTitle && formData.jobTitle.trim())) &&
+               !errors.visitedBefore && !errors.educationalBackground && !errors.currentOccupation && !errors.jobTitle;
+      case 'personal':
+        return formData.fatherName && formData.fatherName.trim() && 
+               formData.parentContactNumber && formData.parentContactNumber.trim() && 
+               formData.currentAddress && formData.currentAddress.trim() &&
+               !errors.fatherName && !errors.parentContactNumber && !errors.currentAddress;
+      case 'study':
+        return formData.examPreparation && 
+               formData.examinationDate && 
+               formData.selfiePhoto &&
+               !errors.examPreparation && !errors.examinationDate && !errors.selfiePhoto;
+      default:
+        return false;
+    }
+  };
 
   // Auto-check for tour data when component loads
   useEffect(() => {
@@ -310,6 +394,30 @@ export default function MembershipDetailsScreen() {
       <form 
         onSubmit={handleSubmit}
       >
+        {/* Accordion Section 1: Background Information */}
+        <div className="accordion-section">
+          <div 
+            className={`accordion-header ${isSectionCompleted('background') ? 'completed' : ''}`}
+            onClick={() => toggleSection('background')}
+          >
+            <div className="accordion-title-wrapper">
+              <h3 className="accordion-title">Background Information</h3>
+              {isSectionCompleted('background') && (
+                <div className="completion-indicator">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="9"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            <div className="accordion-chevron">
+              {openSections.background ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+          </div>
+          
+          {openSections.background && (
+            <div className="accordion-content">
         {/* Have you visited before */}
         <div 
           className="input-group"
@@ -365,87 +473,6 @@ export default function MembershipDetailsScreen() {
               {errors.visitedBefore}
             </span>
           )}
-        </div>
-
-        {/* Father's Name */}
-        <div 
-          className="input-group"
-        >
-          <label className="membership-input-label">
-            What is your father's name?
-          </label>
-          <div className="marathi-text">
-            वडिलांचे नाव येथे टाका.
-          </div>
-          <input
-            type="text"
-            name="fatherName"
-            placeholder="Enter your father's name"
-            value={formData.fatherName}
-            onChange={handleInputChange}
-            className={`form-input ${errors.fatherName ? 'input-error' : ''}`}
-          />
-          {errors.fatherName && (
-              <span 
-                className="error-message"
-              >
-                {errors.fatherName}
-              </span>
-            )}
-        </div>
-
-        {/* Parent's Contact Number */}
-        <div 
-          className="input-group"
-        >
-          <label className="membership-input-label">
-            Parent's contact number?
-          </label>
-          <div className="marathi-text">
-            तुमच्या पालकांचा मोबाईल नंबर येथे लिहा.
-          </div>
-          <input
-            type="tel"
-            name="parentContactNumber"
-            placeholder="Enter parent's contact number"
-            value={formData.parentContactNumber}
-            onChange={handleInputChange}
-            className={`form-input ${errors.parentContactNumber ? 'input-error' : ''}`}
-          />
-          {errors.parentContactNumber && (
-              <span 
-                className="error-message"
-              >
-                {errors.parentContactNumber}
-              </span>
-            )}
-        </div>
-
-        {/* Current Address */}
-        <div 
-          className="input-group"
-        >
-          <label className="membership-input-label">
-            What is your current address?
-          </label>
-          <div className="marathi-text">
-            तुम्ही सध्या राहत असलेला संपूर्ण पत्ता येथे लिहा.
-          </div>
-          <textarea
-            name="currentAddress"
-            placeholder="Enter your current address"
-            value={formData.currentAddress}
-            onChange={handleInputChange}
-            className={`form-input ${errors.currentAddress ? 'input-error' : ''}`}
-            rows="3"
-          />
-          {errors.currentAddress && (
-              <span 
-                className="error-message"
-              >
-                {errors.currentAddress}
-              </span>
-            )}
         </div>
 
         {/* Educational Background */}
@@ -554,6 +581,143 @@ export default function MembershipDetailsScreen() {
               </span>
             )}
         </div>
+            </div>
+          )}
+        </div>
+
+        {/* Accordion Section 2: Personal & Contact Details */}
+        <div className="accordion-section">
+          <div 
+            className={`accordion-header ${isSectionCompleted('personal') ? 'completed' : ''}`}
+            onClick={() => toggleSection('personal')}
+          >
+            <div className="accordion-title-wrapper">
+              <h3 className="accordion-title">Personal & Contact Details</h3>
+              {isSectionCompleted('personal') && (
+                <div className="completion-indicator">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="9"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            <div className="accordion-chevron">
+              {openSections.personal ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+          </div>
+          
+          {openSections.personal && (
+            <div className="accordion-content">
+
+        {/* Father's Name */}
+        <div 
+          className="input-group"
+        >
+          <label className="membership-input-label">
+            What is your father's name?
+          </label>
+          <div className="marathi-text">
+            वडिलांचे नाव येथे टाका.
+          </div>
+          <input
+            type="text"
+            name="fatherName"
+            placeholder="Enter your father's name"
+            value={formData.fatherName}
+            onChange={handleInputChange}
+            className={`form-input ${errors.fatherName ? 'input-error' : ''}`}
+          />
+          {errors.fatherName && (
+              <span 
+                className="error-message"
+              >
+                {errors.fatherName}
+              </span>
+            )}
+        </div>
+
+        {/* Parent's Contact Number */}
+        <div 
+          className="input-group"
+        >
+          <label className="membership-input-label">
+            Parent's contact number?
+          </label>
+          <div className="marathi-text">
+            तुमच्या पालकांचा मोबाईल नंबर येथे लिहा.
+          </div>
+          <input
+            type="tel"
+            name="parentContactNumber"
+            placeholder="Enter parent's contact number"
+            value={formData.parentContactNumber}
+            onChange={handleInputChange}
+            className={`form-input ${errors.parentContactNumber ? 'input-error' : ''}`}
+          />
+          {errors.parentContactNumber && (
+              <span 
+                className="error-message"
+              >
+                {errors.parentContactNumber}
+              </span>
+            )}
+        </div>
+
+        {/* Current Address */}
+        <div 
+          className="input-group"
+        >
+          <label className="membership-input-label">
+            What is your current address?
+          </label>
+          <div className="marathi-text">
+            तुम्ही सध्या राहत असलेला संपूर्ण पत्ता येथे लिहा.
+          </div>
+          <textarea
+            name="currentAddress"
+            placeholder="Enter your current address"
+            value={formData.currentAddress}
+            onChange={handleInputChange}
+            className={`form-input ${errors.currentAddress ? 'input-error' : ''}`}
+            rows="3"
+          />
+          {errors.currentAddress && (
+              <span 
+                className="error-message"
+              >
+                {errors.currentAddress}
+              </span>
+            )}
+        </div>
+            </div>
+          )}
+        </div>
+
+        {/* Accordion Section 3: Study Goals & Documentation */}
+        <div className="accordion-section">
+          <div 
+            className={`accordion-header ${isSectionCompleted('study') ? 'completed' : ''}`}
+            onClick={() => toggleSection('study')}
+          >
+            <div className="accordion-title-wrapper">
+              <h3 className="accordion-title">Study Goals & Documentation</h3>
+              {isSectionCompleted('study') && (
+                <div className="completion-indicator">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="9"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            <div className="accordion-chevron">
+              {openSections.study ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+          </div>
+          
+          {openSections.study && (
+            <div className="accordion-content">
 
         {/* Exam Preparation */}
         <div 
@@ -679,6 +843,9 @@ export default function MembershipDetailsScreen() {
                 {errors.selfiePhoto}
               </span>
             )}
+        </div>
+            </div>
+          )}
         </div>
         
         {/* Submit Error */}

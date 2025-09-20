@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import apiService from '../../services/api';
 
+// Get the API base URL for avatar images
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const AVATAR_BASE_URL = API_BASE_URL.replace('/api', '');
+
 export default function DashboardScreen() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
+  const [avatarError, setAvatarError] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -69,6 +74,16 @@ export default function DashboardScreen() {
     }
   };
 
+  // Handle avatar image load error
+  const handleAvatarError = () => {
+    setAvatarError(true);
+  };
+
+  // Reset avatar error when user changes
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.avatar]);
+
   const handleLogout = async () => {
     try {
       await apiService.logout();
@@ -95,11 +110,13 @@ export default function DashboardScreen() {
       <div className="dashboard-header">
         <div className="profile-picture-container">
           <div className="profile-picture">
-            {user?.avatar ? (
+            {user?.avatar && !avatarError ? (
               <img 
-                src={`http://localhost:5000${user.avatar}`}
+                src={`${AVATAR_BASE_URL}${user.avatar}`}
                 alt="Profile" 
                 className="dashboard-profile-image"
+                onError={handleAvatarError}
+                crossOrigin="anonymous"
               />
             ) : (
               user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'
@@ -157,11 +174,13 @@ export default function DashboardScreen() {
             <div className="profile-upload-container">
               <div className="current-profile-display">
                 <div className="dashboard-profile-picture">
-                  {user?.avatar ? (
+                  {user?.avatar && !avatarError ? (
                     <img 
-                      src={`http://localhost:5000${user.avatar}`}
+                      src={`${AVATAR_BASE_URL}${user.avatar}`}
                       alt="Current Profile" 
                       className="dashboard-current-profile-image"
+                      onError={handleAvatarError}
+                      crossOrigin="anonymous"
                     />
                   ) : (
                     user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'

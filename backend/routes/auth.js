@@ -58,7 +58,7 @@ function deleteUploadedFile(file) {
 // @desc    Check if email exists
 // @access  Public
 router.post('/check-email', [
-  body('email').isEmail().normalizeEmail()
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false })
 ], async (req, res) => {
   try {
     const { email } = req.body;
@@ -104,7 +104,7 @@ router.post('/check-phone', [
 // @desc    Send OTP for email verification
 // @access  Public
 router.post('/send-otp', otpLimiter, [
-  body('email').isEmail().normalizeEmail()
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -130,7 +130,15 @@ router.post('/send-otp', otpLimiter, [
     // Check for existing unverified user with this pending email
     let tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
     
+    // Also check for previously verified but not completed profile users (cleanup may have removed them)
+    let expiredVerifiedUser = await User.findOne({ pendingEmail: email, isEmailVerified: true });
+    
     if (!tempUser) {
+      // If there's an expired verified user, remove it first to allow fresh registration
+      if (expiredVerifiedUser) {
+        await expiredVerifiedUser.deleteOne();
+      }
+      
       // Create temporary user WITHOUT email and Dyanpitt ID to avoid wastage
       // We'll generate these only after successful registration completion
       const timestamp = Date.now();
@@ -186,7 +194,7 @@ router.post('/send-otp', otpLimiter, [
 // @desc    Verify OTP
 // @access  Public
 router.post('/verify-otp', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }),
   body('otp').isLength({ min: 6, max: 6 }).isNumeric()
 ], async (req, res) => {
   try {
@@ -212,7 +220,7 @@ router.post('/verify-otp', [
       console.log('All stored OTPs:', verificationService.getStoredOTPs());
     }
 
-    // Verify OTP using verification service
+    // Verify OTP using verification service FIRST
     if (!verificationService.verifyOTP(email, otp)) {
       console.log('OTP verification failed');
       return res.status(400).json({
@@ -226,13 +234,46 @@ router.post('/verify-otp', [
     }
     
     // Find temp user by pending email and mark as verified
-    const tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
+    let tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: false });
     
+    // RECOVERY MECHANISM: If temp user not found, check if there's already a verified user
+    // or create a new temp user if OTP was valid but user was somehow lost
     if (!tempUser) {
-      return res.status(400).json({
-        success: false,
-        message: 'No pending verification found for this email'
+      console.log('No unverified temp user found, checking for other scenarios...');
+      
+      // Check if there's already a verified temp user for this email
+      const existingVerifiedUser = await User.findOne({ pendingEmail: email, isEmailVerified: true });
+      
+      if (existingVerifiedUser) {
+        // User already verified, just return success
+        console.log('User already verified, returning success');
+        return res.json({
+          success: true,
+          message: 'Email verified successfully'
+        });
+      }
+      
+      // Create a new temp user since OTP was valid but user record is missing
+      console.log('Creating new temp user for valid OTP verification');
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(2, 8);
+      
+      tempUser = new User({
+        email: `temp_recovery_${timestamp}_${randomSuffix}@temp.local`,
+        dyanpittId: `temp_recovery_${timestamp}_${randomSuffix}`,
+        fullName: 'Temporary Recovery',
+        phoneNumber: `temp_recovery_${timestamp}_${randomSuffix}`,
+        dateOfBirth: new Date(),
+        gender: 'other',
+        password: 'temporary',
+        registrationMonth: '000000',
+        registrationNumber: 0,
+        isEmailVerified: false,
+        pendingEmail: email
       });
+      
+      await tempUser.save();
+      console.log('Created recovery temp user for email:', email);
     }
 
     // Mark as verified and extend cleanup time for profile completion
@@ -269,7 +310,7 @@ router.post('/register', uploadWithProcessing('avatar', {
   maxHeight: 800, 
   quality: 85 
 }), [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }),
   body('fullName').trim().isLength({ min: 2 }),
   body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format with valid Indian mobile number'),
   body('dateOfBirth').isISO8601(),
@@ -468,7 +509,7 @@ router.post('/register', uploadWithProcessing('avatar', {
 // @desc    Login user with email or Dyanpitt ID
 // @access  Public
 router.post('/login', loginLimiter, [
-  body('email').optional().isEmail().normalizeEmail(),
+  body('email').optional().isEmail().normalizeEmail({ gmail_remove_dots: false }),
   body('dyanpittId').optional().matches(/^@DA\d{9}$/),
   body('password').exists()
 ], async (req, res) => {
@@ -626,7 +667,7 @@ router.get('/me', auth, async (req, res) => {
 // @desc    Send password reset OTP
 // @access  Public
 router.post('/forgot-password', forgotLimiter, [
-  body('email').isEmail().normalizeEmail()
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false })
 ], async (req, res) => {
   try {
     const { email } = req.body;
@@ -673,7 +714,7 @@ router.post('/forgot-password', forgotLimiter, [
 // @desc    Verify password reset OTP
 // @access  Public
 router.post('/verify-reset-otp', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }),
   body('otp').isLength({ min: 6, max: 6 })
 ], async (req, res) => {
   try {
@@ -712,7 +753,7 @@ router.post('/verify-reset-otp', [
 // @desc    Reset password with OTP
 // @access  Public
 router.post('/reset-password', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }),
   body('otp').isLength({ min: 6, max: 6 }),
   body('newPassword').isLength({ min: 8 }).matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/)
 ], async (req, res) => {
@@ -913,7 +954,7 @@ router.post('/update-booking', auth, async (req, res) => {
     }
 
     // Import pricing data (shared with frontend)
-    const { pricingData } = require('../../src/data/pricing.js');
+    const { pricingData } = require('../data/pricing.js');
 
     // const durationMultipliers = {
       // // Daily options

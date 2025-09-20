@@ -11,7 +11,7 @@ import { getPrice } from '../../data/pricing';
 
 export default function BookingScreen() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   
   const [formData, setFormData] = useState({
     timeSlot: user?.bookingDetails?.timeSlot || '',
@@ -114,15 +114,15 @@ export default function BookingScreen() {
           const response = await apiService.updateBookingDetails(bookingData);
           
           if (response.success) {
-            // Pass updated user data and payment amount to payment screen
-            navigate('/payment', {
-              state: {
-                ...user,
-                ...response.user,
-                bookingDetails: formData,
-                paymentAmount: response.paymentAmount
-              }
+            // Update user context with the new booking details and payment amount
+            updateUser({
+              ...user,
+              ...response.user,
+              paymentAmount: response.paymentAmount
             });
+            
+            // Navigate to payment screen
+            navigate('/payment');
           } else {
             setErrors({ submit: response.message || 'Failed to save booking details' });
           }
@@ -165,7 +165,7 @@ export default function BookingScreen() {
   // Membership types based on CSV data - filter out male-only options for female users
   const getAllMembershipTypes = () => [
     { 
-      value: 'Dyandhara', 
+      value: 'Dyandhara Kaksh', 
       label: 'Dyandhara Kaksh (ज्ञानधारा कक्ष)',
       stars: '',
       tier: 'Basic',
@@ -173,7 +173,7 @@ export default function BookingScreen() {
       maleOnly: true
     },
     { 
-      value: 'Dyanpurn', 
+      value: 'Dyanpurn Kaksh', 
       label: 'Dyanpurn Kaksh (ज्ञानपूर्ण कक्ष)',
       stars: '',
       tier: 'Premium',
@@ -337,7 +337,7 @@ export default function BookingScreen() {
           {errors.membershipType && <span className="error-message">{errors.membershipType}</span>}
           
           {/* Show features and pricing for selected membership - Hide for Dyandhara Kaksh */}
-          {formData.membershipType && formData.membershipType !== 'Dyandhara' && (
+          {formData.membershipType && formData.membershipType !== 'Dyandhara Kaksh' && (
             <div className="membership-features">
               <div className="membership-tier">
                 <span className="tier-stars">{membershipTypes.find(m => m.value === formData.membershipType)?.stars}</span>
