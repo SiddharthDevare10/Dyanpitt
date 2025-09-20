@@ -3477,6 +3477,213 @@ select.form-input option:checked {
   background-color: #5A5A5A;
 }
 
+/* Membership Status Section */
+.dashboard-membership-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.membership-status-card {
+  margin-top: 16px;
+}
+
+.active-membership,
+.pending-membership,
+.no-membership {
+  border-radius: 12px;
+  padding: 20px;
+  border: 2px solid;
+}
+
+.active-membership {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-color: #22c55e;
+}
+
+.pending-membership {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-color: #f59e0b;
+}
+
+.no-membership {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-color: #e2e8f0;
+}
+
+.membership-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.status-indicator.active {
+  color: #16a34a;
+}
+
+.status-indicator.pending {
+  color: #d97706;
+}
+
+.status-indicator.inactive {
+  color: #64748b;
+}
+
+.membership-type {
+  font-weight: 700;
+  font-size: 18px;
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.membership-details {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.membership-details .detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.membership-details .detail-row:last-child {
+  border-bottom: none;
+}
+
+.membership-details .detail-row .detail-label {
+  font-weight: 500;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.membership-details .detail-row .detail-value {
+  font-weight: 600;
+  color: #1e293b;
+  text-align: right;
+}
+
+.membership-action {
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.membership-action.expired {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #f87171;
+}
+
+.membership-action.expiring {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fbbf24;
+}
+
+.membership-action.active {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+}
+
+.expiry-notice,
+.expiry-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.membership-action.expired .expiry-notice {
+  color: #dc2626;
+}
+
+.membership-action.expiring .expiry-notice {
+  color: #d97706;
+}
+
+.membership-action.active .expiry-info {
+  color: #16a34a;
+  margin-bottom: 0;
+}
+
+.renew-button,
+.complete-payment-button,
+.get-membership-button {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.renew-button:hover,
+.complete-payment-button:hover,
+.get-membership-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+.membership-message {
+  color: #64748b;
+  margin: 12px 0 16px 0;
+  line-height: 1.5;
+}
+
+/* Mobile responsive for membership section */
+@media (max-width: 768px) {
+  .membership-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .membership-type {
+    font-size: 16px;
+    padding: 6px 12px;
+  }
+  
+  .membership-details .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .membership-details .detail-row .detail-value {
+    text-align: left;
+  }
+  
+  .renew-button,
+  .complete-payment-button,
+  .get-membership-button {
+    width: 100%;
+    padding: 14px;
+  }
+}
+
 /* Dashboard Profile Picture Upload Styles */
 .dashboard-profile-section {
   background: #f8fafc;

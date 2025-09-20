@@ -1032,6 +1032,137 @@ router.post('/update-booking', auth, async (req, res) => {
   }
 });
 
+// Renew membership (extends existing membership)
+router.post('/renew-membership', auth, async (req, res) => {
+  try {
+    const { bookingDetails } = req.body;
+    
+    // Validate required fields for renewal
+    const requiredFields = ['timeSlot', 'membershipType', 'membershipDuration', 'membershipStartDate'];
+    
+    // Valid duration options
+    const validDurations = [
+      '1 Day', '8 Days', '15 Days', 
+      '1 Month', '2 Months', '3 Months', '4 Months', '5 Months', '6 Months',
+      '7 Months', '8 Months', '9 Months', '10 Months', '11 Months', '12 Months'
+    ];
+    
+    for (const field of requiredFields) {
+      if (!bookingDetails[field]) {
+        return res.status(400).json({
+          success: false,
+          message: `${field} is required`
+        });
+      }
+    }
+
+    // Validate membership duration
+    if (!validDurations.includes(bookingDetails.membershipDuration)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid membership duration'
+      });
+    }
+
+    // Get user first
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user has completed membership before
+    if (!user.membershipCompleted) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please complete your initial membership first'
+      });
+    }
+
+    // For renewal, use the current membership end date as the start date if it's in the future
+    // Otherwise use the provided start date
+    let effectiveStartDate = new Date(bookingDetails.membershipStartDate);
+    
+    if (user.bookingDetails && user.bookingDetails.membershipEndDate) {
+      const currentEndDate = new Date(user.bookingDetails.membershipEndDate);
+      const today = new Date();
+      
+      // If current membership is still active, start renewal from end date
+      if (currentEndDate > today) {
+        effectiveStartDate = currentEndDate;
+      }
+    }
+
+    // Validate that start date is reasonable (not more than 1 year in the future)
+    const today = new Date();
+    const oneYearFromNow = new Date(today.getTime() + (365 * 24 * 60 * 60 * 1000));
+    
+    if (effectiveStartDate > oneYearFromNow) {
+      return res.status(400).json({
+        success: false,
+        message: 'Membership start date cannot be more than 1 year in the future'
+      });
+    }
+
+    // Import pricing data
+    const { pricingData } = require('../data/pricing.js');
+    
+    // Calculate total amount
+    const totalAmount = pricingData[bookingDetails.membershipDuration]?.[bookingDetails.membershipType]?.[bookingDetails.timeSlot] || 0;
+
+    // Calculate new membership end date
+    const membershipEndDate = new Date(effectiveStartDate);
+    const duration = bookingDetails.membershipDuration;
+    
+    if (duration.includes('Day')) {
+      const days = parseInt(duration.split(' ')[0]);
+      membershipEndDate.setDate(membershipEndDate.getDate() + days);
+    } else if (duration.includes('Month')) {
+      const months = parseInt(duration.split(' ')[0]);
+      membershipEndDate.setMonth(membershipEndDate.getMonth() + months);
+    }
+
+    // Update user with new booking details (renewal)
+    user.bookingDetails = {
+      ...user.bookingDetails, // Keep existing details like preferredSeat if not provided
+      ...bookingDetails,
+      membershipStartDate: effectiveStartDate,
+      membershipEndDate,
+      totalAmount,
+      paymentStatus: 'pending',
+      paymentId: null, // Reset payment info for new payment
+      paymentDate: null
+    };
+
+    // Reset booking completion status since new payment is required
+    user.bookingCompleted = false;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Membership renewal initiated successfully',
+      user: user.getPublicProfile(),
+      paymentAmount: totalAmount,
+      renewalInfo: {
+        previousEndDate: user.bookingDetails.membershipEndDate,
+        newStartDate: effectiveStartDate,
+        newEndDate: membershipEndDate,
+        isExtension: effectiveStartDate > today
+      }
+    });
+
+  } catch (error) {
+    console.error('Renew membership error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while processing membership renewal'
+    });
+  }
+});
+
 // Complete payment
 router.post('/complete-payment', auth, async (req, res) => {
   try {

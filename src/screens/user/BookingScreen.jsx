@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 import CustomDropdown from '../../components/CustomDropdown';
 import SeatSelectionModal from '../../components/SeatSelectionModal';
@@ -12,6 +12,8 @@ import { getPrice } from '../../data/pricing';
 export default function BookingScreen() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isRenewal = searchParams.get('renewal') === 'true';
   
   const [formData, setFormData] = useState({
     timeSlot: user?.bookingDetails?.timeSlot || '',
@@ -24,6 +26,23 @@ export default function BookingScreen() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [showSeatModal, setShowSeatModal] = useState(false);
+
+  // Set default start date for renewals
+  useEffect(() => {
+    if (isRenewal && user?.bookingDetails?.membershipEndDate) {
+      const endDate = new Date(user.bookingDetails.membershipEndDate);
+      const today = new Date();
+      
+      // If membership is still active, use end date as start date
+      // Otherwise use today's date
+      const defaultStartDate = endDate > today ? endDate : today;
+      
+      setFormData(prev => ({
+        ...prev,
+        membershipStartDate: defaultStartDate.toISOString().split('T')[0]
+      }));
+    }
+  }, [isRenewal, user?.bookingDetails?.membershipEndDate]);
   
 
   const handleInputChange = (e) => {
@@ -111,7 +130,11 @@ export default function BookingScreen() {
             ...formData,
             totalAmount: calculateTotalPrice()
           };
-          const response = await apiService.updateBookingDetails(bookingData);
+          
+          // Use renewal endpoint if this is a renewal, otherwise use regular booking
+          const response = isRenewal 
+            ? await apiService.renewMembership(bookingData)
+            : await apiService.updateBookingDetails(bookingData);
           
           if (response.success) {
             // Update user context with the new booking details and payment amount
@@ -136,8 +159,8 @@ export default function BookingScreen() {
             }
           });
         }
-      } catch {
-        setErrors({ submit: 'Failed to save booking details. Please try again.' });
+      } catch (error) {
+        setErrors({ submit: error.message || 'Failed to save booking details. Please try again.' });
       } finally {
         setIsLoading(false);
       }
@@ -315,8 +338,13 @@ export default function BookingScreen() {
         <ArrowLeft size={20} color="white" />
       </button>
       <div className="header-section">
-        <h1 className="main-title">Book Your Seat</h1>
-        <p className="main-subtitle">Choose your preferred time, membership plan, and duration</p>
+        <h1 className="main-title">{isRenewal ? 'Renew Your Membership' : 'Book Your Seat'}</h1>
+        <p className="main-subtitle">
+          {isRenewal 
+            ? 'Extend your membership with your preferred plan and duration' 
+            : 'Choose your preferred time, membership plan, and duration'
+          }
+        </p>
       </div>
 
       <form onSubmit={handleSubmit}>

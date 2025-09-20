@@ -363,6 +363,14 @@ class ApiService {
     });
   }
 
+  // Renew membership
+  async renewMembership(bookingDetails) {
+    return this.request('/auth/renew-membership', {
+      method: 'POST',
+      body: JSON.stringify({ bookingDetails })
+    });
+  }
+
   // Complete payment
   async completePayment(paymentId, paymentStatus) {
     return this.request('/auth/complete-payment', {

@@ -131,10 +131,6 @@ export default function DashboardScreen() {
 
       <div className="dashboard-content">
         <div className="dashboard-welcome-section">
-          <div className="dashboard-welcome-placeholder"></div>
-          <p className="dashboard-description">
-            You have successfully logged in to your Dyanpitt account.
-          </p>
 
           {user && (
             <div className="dashboard-user-card">
@@ -162,6 +158,175 @@ export default function DashboardScreen() {
                   <div className="user-detail-item">
                     <span className="detail-label">Phone:</span>
                     <span className="detail-value">{user.phoneNumber}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Membership Status Section */}
+          {user && (
+            <div className="dashboard-membership-section">
+              <h3 className="section-title">Membership Status</h3>
+              <div className="membership-status-card">
+                {user.bookingDetails && user.bookingDetails.paymentStatus === 'completed' ? (
+                  <div className="active-membership">
+                    <div className="membership-header">
+                      <div className="status-indicator active">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M9 12l2 2 4-4"/>
+                          <circle cx="12" cy="12" r="9"/>
+                        </svg>
+                        <span>Active Membership</span>
+                      </div>
+                      <div className="membership-type">{user.bookingDetails.membershipType}</div>
+                    </div>
+                    
+                    <div className="membership-details">
+                      <div className="detail-row">
+                        <span className="detail-label">Duration:</span>
+                        <span className="detail-value">{user.bookingDetails.membershipDuration}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Time Slot:</span>
+                        <span className="detail-value">{user.bookingDetails.timeSlot}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Start Date:</span>
+                        <span className="detail-value">
+                          {new Date(user.bookingDetails.membershipStartDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">End Date:</span>
+                        <span className="detail-value">
+                          {new Date(user.bookingDetails.membershipEndDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {user.bookingDetails.preferredSeat && (
+                        <div className="detail-row">
+                          <span className="detail-label">Preferred Seat:</span>
+                          <span className="detail-value">{user.bookingDetails.preferredSeat}</span>
+                        </div>
+                      )}
+                      <div className="detail-row">
+                        <span className="detail-label">Amount Paid:</span>
+                        <span className="detail-value">₹{user.bookingDetails.totalAmount}</span>
+                      </div>
+                    </div>
+
+                    {/* Check if membership is expired or expiring soon */}
+                    {(() => {
+                      const endDate = new Date(user.bookingDetails.membershipEndDate);
+                      const today = new Date();
+                      const daysUntilExpiry = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                      
+                      // Log membership status for debugging
+                      console.log('Membership Status Check:', {
+                        endDate: endDate.toLocaleDateString(),
+                        today: today.toLocaleDateString(),
+                        daysUntilExpiry,
+                        paymentStatus: user.bookingDetails.paymentStatus
+                      });
+                      
+                      if (daysUntilExpiry <= 0) {
+                        return (
+                          <div className="membership-action expired">
+                            <div className="expiry-notice">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                              </svg>
+                              Your membership has expired
+                            </div>
+                            <button 
+                              className="renew-button"
+                              onClick={() => window.location.href = '/booking?renewal=true'}
+                            >
+                              Renew Membership
+                            </button>
+                          </div>
+                        );
+                      } else if (daysUntilExpiry <= 7) {
+                        return (
+                          <div className="membership-action expiring">
+                            <div className="expiry-notice">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                              </svg>
+                              Expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}
+                            </div>
+                            <button 
+                              className="renew-button"
+                              onClick={() => window.location.href = '/booking?renewal=true'}
+                            >
+                              Renew Membership
+                            </button>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="membership-action active">
+                            <div className="expiry-info">
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M9 12l2 2 4-4"/>
+                                <circle cx="12" cy="12" r="9"/>
+                              </svg>
+                              {daysUntilExpiry} days remaining
+                            </div>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                ) : user.bookingDetails && user.bookingDetails.paymentStatus === 'pending' ? (
+                  <div className="pending-membership">
+                    <div className="status-indicator pending">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      <span>Payment Pending</span>
+                    </div>
+                    <p className="membership-message">
+                      Your membership booking is pending payment completion.
+                    </p>
+                    <button 
+                      className="complete-payment-button"
+                      onClick={() => window.location.href = '/payment'}
+                    >
+                      Complete Payment
+                    </button>
+                  </div>
+                ) : (
+                  <div className="no-membership">
+                    <div className="status-indicator inactive">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                      </svg>
+                      <span>No Active Membership</span>
+                    </div>
+                    <p className="membership-message">
+                      You don't have an active membership yet. Get started by purchasing a membership plan.
+                    </p>
+                    <button 
+                      className="get-membership-button"
+                      onClick={() => {
+                        if (user.membershipCompleted) {
+                          window.location.href = '/booking';
+                        } else {
+                          window.location.href = '/membership-details';
+                        }
+                      }}
+                    >
+                      {user.membershipCompleted ? 'Purchase Membership' : 'Complete Profile & Get Membership'}
+                    </button>
                   </div>
                 )}
               </div>
