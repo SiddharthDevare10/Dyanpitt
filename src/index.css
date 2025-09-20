@@ -3627,7 +3627,7 @@ select.form-input option:checked {
 .renew-button,
 .complete-payment-button,
 .get-membership-button {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background-color: #5B5B5B;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -3636,15 +3636,12 @@ select.form-input option:checked {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .renew-button:hover,
 .complete-payment-button:hover,
 .get-membership-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  background-color: #5A5A5A;
 }
 
 .membership-message {
@@ -3680,6 +3677,110 @@ select.form-input option:checked {
   .complete-payment-button,
   .get-membership-button {
     width: 100%;
+    padding: 14px;
+  }
+}
+
+/* QR Code Section */
+.qr-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.qr-left-side {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.scan-me-text h4 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.scan-me-text p {
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.download-qr-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #5B5B5B;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: center;
+  width: 100%;
+}
+
+.download-qr-button:hover {
+  background-color: #5A5A5A;
+}
+
+.qr-right-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.qr-code-display {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.qr-description {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  width: 100%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.qr-description p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Mobile responsive for QR section */
+@media (max-width: 768px) {
+  .qr-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .scan-me-text h4 {
+    font-size: 20px;
+  }
+  
+  .download-qr-button {
+    width: 100%;
+    justify-content: center;
     padding: 14px;
   }
 }

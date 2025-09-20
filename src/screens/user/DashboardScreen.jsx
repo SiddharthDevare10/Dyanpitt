@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import apiService from '../../services/api';
+import QRCode from 'qrcode';
 
 // Get the API base URL for avatar images
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -10,6 +11,7 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [avatarError, setAvatarError] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -83,6 +85,170 @@ export default function DashboardScreen() {
   useEffect(() => {
     setAvatarError(false);
   }, [user?.avatar]);
+
+  // Generate QR code when user data is available
+  useEffect(() => {
+    if (user && user.bookingDetails && user.bookingDetails.paymentStatus === 'completed') {
+      generateQRCode(user);
+    }
+  }, [user?.bookingDetails?.paymentStatus, user?.dyanpittId, user?.fullName]);
+
+  const generateQRCode = async (userData) => {
+    try {
+      // Create QR code data with membership details (similar to tour page format)
+      const qrData = {
+        type: 'MEMBERSHIP_PASS',
+        id: userData.dyanpittId || userData.email,
+        name: userData.fullName,
+        email: userData.email,
+        membership: userData.bookingDetails.membershipType,
+        timeSlot: userData.bookingDetails.timeSlot,
+        validFrom: userData.bookingDetails.membershipStartDate,
+        validUntil: userData.bookingDetails.membershipEndDate,
+        seat: userData.bookingDetails.preferredSeat || 'Any',
+        generatedAt: new Date().toISOString(),
+        status: 'active'
+      };
+
+      // Generate QR code as data URL using same options as tour page
+      const qrCodeUrl = await QRCode.toDataURL(JSON.stringify(qrData), {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+
+      setQrCodeDataUrl(qrCodeUrl);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+    }
+  };
+
+  const handleDownloadPass = async () => {
+    if (!qrCodeDataUrl || !user) return;
+
+    try {
+      // Create a canvas for the detailed pass
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas size (similar to tour page)
+      canvas.width = 800;
+      canvas.height = 1200;
+      
+      // Background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Header
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 32px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('DYANPITT MEMBERSHIP PASS', canvas.width / 2, 60);
+      
+      // Subtitle
+      ctx.font = '18px Arial';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText('Study Room Access Pass', canvas.width / 2, 90);
+      
+      let yPos = 150;
+      
+      // Member Information
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText('Member Information', 50, yPos);
+      yPos += 40;
+      
+      ctx.font = '16px Arial';
+      ctx.fillStyle = '#374151';
+      
+      // Member details
+      const memberInfo = [
+        `Name: ${user.fullName}`,
+        `Email: ${user.email}`,
+        ...(user.dyanpittId ? [`Dyanpitt ID: ${user.dyanpittId}`] : []),
+        ...(user.phoneNumber ? [`Phone: ${user.phoneNumber}`] : [])
+      ];
+      
+      memberInfo.forEach(info => {
+        ctx.fillText(info, 50, yPos);
+        yPos += 25;
+      });
+      
+      yPos += 20;
+      
+      // Membership Details
+      ctx.fillStyle = '#1e293b';
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText('Membership Details', 50, yPos);
+      yPos += 40;
+      
+      ctx.font = '16px Arial';
+      ctx.fillStyle = '#374151';
+      
+      const membershipInfo = [
+        `Type: ${user.bookingDetails.membershipType}`,
+        `Duration: ${user.bookingDetails.membershipDuration}`,
+        `Time Slot: ${user.bookingDetails.timeSlot}`,
+        `Valid From: ${new Date(user.bookingDetails.membershipStartDate).toLocaleDateString()}`,
+        `Valid Until: ${new Date(user.bookingDetails.membershipEndDate).toLocaleDateString()}`,
+        ...(user.bookingDetails.preferredSeat ? [`Preferred Seat: ${user.bookingDetails.preferredSeat}`] : []),
+        `Amount Paid: ₹${user.bookingDetails.totalAmount}`
+      ];
+      
+      membershipInfo.forEach(info => {
+        ctx.fillText(info, 50, yPos);
+        yPos += 25;
+      });
+      
+      yPos += 40;
+      
+      // QR Code section
+      const qrImg = new Image();
+      qrImg.onload = () => {
+        // QR Code - centered
+        const qrSize = 200;
+        const qrX = (canvas.width - qrSize) / 2;
+        ctx.drawImage(qrImg, qrX, yPos, qrSize, qrSize);
+        
+        // QR Code label
+        yPos += qrSize + 30;
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Scan for Verification', canvas.width / 2, yPos);
+        
+        yPos += 40;
+        
+        // Instructions
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText('Present this pass at the entrance for access', canvas.width / 2, yPos);
+        yPos += 20;
+        ctx.fillText('Show QR code to staff for verification', canvas.width / 2, yPos);
+        
+        // Footer
+        yPos += 60;
+        ctx.fillStyle = '#9ca3af';
+        ctx.font = '12px Arial';
+        ctx.fillText(`Generated on: ${new Date().toLocaleString()}`, canvas.width / 2, yPos);
+        
+        // Download the image
+        const link = document.createElement('a');
+        link.download = `dyanpitt-membership-pass-${user.dyanpittId || user.email}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+      };
+      
+      qrImg.src = qrCodeDataUrl;
+      
+    } catch (error) {
+      console.error('Error generating membership pass:', error);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -329,6 +495,57 @@ export default function DashboardScreen() {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* QR Code Section */}
+          {user && user.bookingDetails && user.bookingDetails.paymentStatus === 'completed' && (
+            <div className="qr-container">
+              <div className="qr-left-side">
+                <div className="scan-me-text">
+                  <h4>Scan Me</h4>
+                  <p>Show this QR code at the entrance for quick access to your study room.</p>
+                </div>
+                <button 
+                  className="download-qr-button"
+                  onClick={handleDownloadPass}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download QR Pass
+                </button>
+              </div>
+              <div className="qr-right-side">
+                <div className="qr-code-display">
+                  {qrCodeDataUrl ? (
+                    <img 
+                      src={qrCodeDataUrl} 
+                      alt="Membership Pass QR Code" 
+                      className="qr-code-image"
+                      style={{ width: '200px', height: '200px', border: '2px solid #e2e8f0', borderRadius: '8px' }}
+                    />
+                  ) : (
+                    <div 
+                      style={{ 
+                        width: '200px', 
+                        height: '200px', 
+                        border: '2px solid #e2e8f0', 
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f8fafc',
+                        color: '#64748b'
+                      }}
+                    >
+                      Generating QR Code...
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
