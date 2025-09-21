@@ -37,17 +37,17 @@ export default function LoginScreen() {
     const dyanpittIdRegex = /^@DA\d{9}$/;
     
     if (!emailOrId) {
-      return 'Email address or Dyanpitt ID is required';
+      return 'Email address or Dyanpeeth Abhyasika ID is required';
     }
     
     if (emailOrId.trim().length === 0) {
-      return 'Please enter your email address or Dyanpitt ID';
+      return 'Please enter your email address or Dyanpeeth Abhyasika ID';
     }
     
-    // Check if it's a Dyanpitt ID
+    // Check if it's a Dyanpeeth Abhyasika ID
     if (emailOrId.startsWith('@DA')) {
       if (!dyanpittIdRegex.test(emailOrId)) {
-        return 'Invalid Dyanpitt ID format. Should be @DA followed by 9 digits (e.g., @DA202507001)';
+        return 'Invalid Dyanpeeth Abhyasika ID format. Should be @DA followed by 9 digits (e.g., @DA202507001)';
       }
       return '';
     }
@@ -64,7 +64,7 @@ export default function LoginScreen() {
     }
     
     // If it doesn't start with @DA and doesn't contain @, it's invalid
-    return 'Please enter a valid email address or Dyanpitt ID (starts with @DA)';
+    return 'Please enter a valid email address or Dyanpeeth Abhyasika ID (starts with @DA)';
   };
 
   const validatePassword = (password) => {
@@ -148,7 +148,7 @@ export default function LoginScreen() {
     try {
       console.log('🔐 Starting login process...');
       
-      // Determine if login is with email or Dyanpitt ID
+      // Determine if login is with email or Dyanpeeth Abhyasika ID
       const isEmailLogin = email.includes('@') && !email.startsWith('@DA');
       const loginData = {
         [isEmailLogin ? 'email' : 'dyanpittId']: email,
@@ -290,10 +290,10 @@ export default function LoginScreen() {
 
       {/* Email Input */}
       <div className="input-group login-screen-input-group">
-        <label className="input-label login-screen-input-label">Email or Dyanpitt ID</label>
+        <label className="input-label login-screen-input-label">Email or Dyanpeeth Abhyasika ID</label>
         <input
           type="text"
-          placeholder="Enter your email or Dyanpitt ID"
+          placeholder="Enter your email or Dyanpeeth Abhyasika ID"
           value={email}
           onChange={handleEmailChange}
           onBlur={() => handleBlur('email')}

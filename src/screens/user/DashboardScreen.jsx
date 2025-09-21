@@ -169,7 +169,7 @@ export default function DashboardScreen() {
       const memberInfo = [
         `Name: ${user.fullName}`,
         `Email: ${user.email}`,
-        ...(user.dyanpittId ? [`Dyanpitt ID: ${user.dyanpittId}`] : []),
+        ...(user.dyanpittId ? [`Dyanpeeth Abhyasika ID: ${user.dyanpittId}`] : []),
         ...(user.phoneNumber ? [`Phone: ${user.phoneNumber}`] : [])
       ];
       
@@ -311,7 +311,7 @@ export default function DashboardScreen() {
                   <span className="detail-value">{user.email}</span>
                 </div>
                 <div className="user-detail-item">
-                  <span className="detail-label">Dyanpitt ID:</span>
+                  <span className="detail-label">Dyanpeeth Abhyasika ID:</span>
                   {user.hasDnyanpittId ? (
                     <span className="detail-value dyanpitt-id">{user.dyanpittId}</span>
                   ) : (

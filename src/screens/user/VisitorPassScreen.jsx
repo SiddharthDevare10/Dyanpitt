@@ -222,7 +222,7 @@ export default function VisitorPassScreen() {
         ctx.textAlign = 'center';
         ctx.fillText('Generated: ' + new Date().toLocaleString(), canvas.width / 2, yPos);
         yPos += 12;
-        ctx.fillText('Dyanpitt Study Room • Digital Visitor Pass', canvas.width / 2, yPos);
+        ctx.fillText('Dyanpeeth Abhyasika • Digital Visitor Pass', canvas.width / 2, yPos);
         
         // Download the canvas as image
         canvas.toBlob((blob) => {
@@ -275,7 +275,7 @@ export default function VisitorPassScreen() {
       <div className="congratulations-content">
         {/* Logo */}
         <div className="visitor-pass-logo">
-          <img src="/Logo.png" alt="Dyanpitt Logo" className="logo-image" />
+          <img src="/Logo.png" alt="Dyanpeeth Abhyasika Logo" className="logo-image" />
         </div>
 
         {/* Visitor Details with QR Code */}
