@@ -39,5 +39,3 @@ backend/uploads/*
 *.sln
 *.sw?
 
-# Deployment
-.vercel

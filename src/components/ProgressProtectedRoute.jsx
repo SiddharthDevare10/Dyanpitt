@@ -1,8 +1,15 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useDemoMode } from './DemoMode.jsx';
 
 const ProgressProtectedRoute = ({ children, requiredStep }) => {
   const { user, isAuthenticated, loading } = useAuth();
+  const { demoMode, demoUser, demoAdminUser } = useDemoMode();
+
+  // In demo mode, bypass all authentication and progress checks
+  if (demoMode) {
+    return children;
+  }
   
   // 🚨 DEVELOPMENT BYPASS - AUTOMATICALLY DISABLED IN PRODUCTION 🚨
   // This only works when NODE_ENV !== 'production' and import.meta.env.DEV === true

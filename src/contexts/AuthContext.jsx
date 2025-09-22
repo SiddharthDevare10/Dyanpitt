@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import apiService from '../services/api.js';
+import { useDemoMode } from '../components/DemoMode.jsx';
 
 const AuthContext = createContext();
 
@@ -13,6 +14,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { demoMode, demoUser } = useDemoMode();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -27,6 +29,15 @@ export const AuthProvider = ({ children }) => {
 
   const initializeAuth = useCallback(async () => {
     try {
+      // Demo mode - skip API calls and use demo user
+      if (demoMode) {
+        console.log('AuthContext: Demo mode enabled, using demo user');
+        setUser(demoUser);
+        setIsAuthenticated(false); // Keep isAuthenticated false to allow access to auth pages
+        setLoading(false);
+        return;
+      }
+
       // Check if we have a token
       if (!apiService.isAuthenticated()) {
         console.log('AuthContext: No valid token found');
@@ -61,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [clearAuth]);
+  }, [clearAuth, demoMode, demoUser]);
 
   // Initialize auth state
   useEffect(() => {

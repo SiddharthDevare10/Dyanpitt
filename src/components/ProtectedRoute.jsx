@@ -1,9 +1,16 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
+import { useDemoMode } from './DemoMode.jsx';
 
 const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false, redirectTo = '/login' }) => {
   const { user, isAuthenticated, loading } = useAuth();
+  const { demoMode, demoUser, demoAdminUser } = useDemoMode();
   const location = useLocation();
+
+  // In demo mode, bypass all authentication checks
+  if (demoMode) {
+    return children;
+  }
 
 
   // Show loading while checking authentication

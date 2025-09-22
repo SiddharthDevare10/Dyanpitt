@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.jsx';
+import { DemoProvider } from './components/DemoMode.jsx';
+import DemoNavigation from './components/DemoNavigation.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import ProgressProtectedRoute from './components/ProgressProtectedRoute.jsx';
 
@@ -26,9 +28,11 @@ import TourManagementScreen from './screens/admin/TourManagementScreen.jsx';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
+    <DemoProvider>
+      <AuthProvider>
+        <Router>
+          <DemoNavigation />
+          <Routes>
           {/* Public routes */}
           <Route 
             path="/" 
@@ -165,7 +169,8 @@ export default function App() {
           {/* Catch all route - redirect to landing */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+        </Router>
+      </AuthProvider>
+    </DemoProvider>
   );
 }
