@@ -247,7 +247,7 @@ export default function VisitorPassScreen() {
       console.warn('Logo failed to load, proceeding without logo');
       drawPassContent();
     };
-    logoImg.src = '/Logo.png';
+    logoImg.src = './Logo.png';
     } catch (error) {
       console.error('Error downloading pass:', error);
       setIsDownloading(false);
@@ -275,7 +275,7 @@ export default function VisitorPassScreen() {
       <div className="congratulations-content">
         {/* Logo */}
         <div className="visitor-pass-logo">
-          <img src="/Logo.png" alt="Dyanpeeth Abhyasika Logo" className="logo-image" />
+          <img src="./Logo.png" alt="Dyanpeeth Abhyasika Logo" className="logo-image" />
         </div>
 
         {/* Visitor Details with QR Code */}

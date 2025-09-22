@@ -292,7 +292,7 @@ export default function ForgotPasswordScreen() {
       <div className="header-section">
         <div className="logo-container" style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <img 
-            src="/Logo.png" 
+            src="./Logo.png" 
             alt="Logo" 
             style={{ 
               width: '150px', 

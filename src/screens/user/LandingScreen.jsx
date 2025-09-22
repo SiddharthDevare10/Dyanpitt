@@ -23,7 +23,7 @@ const LandingScreen = () => {
       
       {/* Top centered logo */}
       <div className="landing-logo">
-        <img src="/Logo.png" alt="Dyanpeeth Abhyasika Logo" className="logo-image" />
+        <img src="./Logo.png" alt="Dyanpeeth Abhyasika Logo" className="logo-image" />
       </div>
       
       <div className="landing-content">
