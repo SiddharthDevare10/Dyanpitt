@@ -5,6 +5,8 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import CustomDropdown from '../../components/CustomDropdown';
 import DatePicker from '../../components/DatePicker';
 import apiService from '../../services/api';
+import { validateFile, FILE_ERROR_MESSAGES } from '../../utils/fileValidation';
+import { useFormAutoSave } from '../../utils/formAutoSave';
 import '../../styles/accordion.css';
 
 export default function MembershipDetailsScreen() {
@@ -12,17 +14,30 @@ export default function MembershipDetailsScreen() {
   const { user, updateUser } = useAuth();
   
   const [formData, setFormData] = useState({
-    visitedBefore: user?.membershipDetails?.visitedBefore || '',
-    fatherName: user?.membershipDetails?.fatherName || '',
-    parentContactNumber: user?.membershipDetails?.parentContactNumber || '',
-    educationalBackground: user?.membershipDetails?.educationalBackground || '',
-    currentOccupation: user?.membershipDetails?.currentOccupation || '',
-    currentAddress: user?.membershipDetails?.currentAddress || '',
-    jobTitle: user?.membershipDetails?.jobTitle || '',
-    examPreparation: user?.membershipDetails?.examPreparation || '',
-    examinationDate: user?.membershipDetails?.examinationDate || '',
-    selfiePhoto: user?.membershipDetails?.selfiePhoto || null
+    visitedBefore: user?.membership?.visitedBefore || '',
+    fatherName: user?.membership?.fatherName || '',
+    parentContactNumber: user?.membership?.parentContactNumber || '',
+    educationalBackground: user?.membership?.educationalBackground || '',
+    currentOccupation: user?.membership?.currentOccupation || '',
+    jobTitle: user?.membership?.jobTitle || '',
+    examPreparation: user?.membership?.examPreparation || '',
+    examinationDate: user?.membership?.examinationDate || '',
+    selfiePhoto: user?.membership?.selfiePhoto || null
   });
+
+  // Auto-save functionality
+  const autoSave = useFormAutoSave(
+    `membership_${user?.email || 'unknown'}`, 
+    formData, 
+    {
+      excludeFields: ['selfiePhoto'], // Don't auto-save file uploads
+      saveInterval: 2000, // Save every 2 seconds
+      onSave: (data) => console.log('💾 Auto-saved membership form'),
+      onRestore: (data) => console.log('📱 Restored membership form data')
+    }
+  );
+
+  const [showAutoSaveIndicator, setShowAutoSaveIndicator] = useState(false);
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -32,8 +47,8 @@ export default function MembershipDetailsScreen() {
   // Accordion state management
   const [openSections, setOpenSections] = useState({
     background: true,  // Start with first section open
-    personal: false,
-    study: false
+    study: false,
+    personal: false
   });
 
   const toggleSection = (section) => {
@@ -46,71 +61,103 @@ export default function MembershipDetailsScreen() {
   // Auto-expand sections when they have errors OR when previous section is completed
   useEffect(() => {
     const hasBackgroundErrors = errors.visitedBefore || errors.educationalBackground || errors.currentOccupation || errors.jobTitle;
-    const hasPersonalErrors = errors.fatherName || errors.parentContactNumber || errors.currentAddress;
-    const hasStudyErrors = errors.examPreparation || errors.examinationDate || errors.selfiePhoto;
+    const hasStudyErrors = errors.examPreparation || errors.examinationDate;
+    const hasPersonalErrors = errors.fatherName || errors.parentContactNumber || errors.selfiePhoto;
 
     // Check section completion status
     const backgroundCompleted = isSectionCompleted('background');
-    const personalCompleted = isSectionCompleted('personal');
+    const studyCompleted = isSectionCompleted('study');
 
-    // Auto-expand on errors
-    if (hasBackgroundErrors && !openSections.background) {
+    // Auto-expand on errors - always show sections with errors
+    if (hasBackgroundErrors) {
       setOpenSections(prev => ({ ...prev, background: true }));
     }
-    if (hasPersonalErrors && !openSections.personal) {
-      setOpenSections(prev => ({ ...prev, personal: true }));
-    }
-    if (hasStudyErrors && !openSections.study) {
+    if (hasStudyErrors) {
       setOpenSections(prev => ({ ...prev, study: true }));
     }
-
-    // Auto-progression: Open next section when current is completed
-    if (backgroundCompleted && !hasPersonalErrors) {
-      // Only auto-progress if personal section isn't manually opened and background is still open
-      if (openSections.background && !openSections.personal) {
-        setOpenSections(prev => ({ 
-          ...prev, 
-          background: false, // Close completed section
-          personal: true     // Open next section
-        }));
-      }
+    if (hasPersonalErrors) {
+      setOpenSections(prev => ({ ...prev, personal: true }));
     }
 
-    if (personalCompleted && !hasStudyErrors) {
-      // Only auto-progress if study section isn't manually opened and personal is still open
-      if (openSections.personal && !openSections.study) {
-        setOpenSections(prev => ({ 
-          ...prev, 
-          personal: false,   // Close completed section
-          study: true        // Open next section
-        }));
-      }
+    // Auto-progression logic: Open next section when current is completed
+    // Only auto-progress if user hasn't manually interacted with sections
+    if (backgroundCompleted && !hasBackgroundErrors && !hasStudyErrors) {
+      setOpenSections(prev => ({ 
+        ...prev, 
+        background: false, // Close completed background section
+        study: true        // Open next section
+      }));
     }
-  }, [errors, openSections, formData]); // Added formData to dependencies to detect completion changes
+
+    if (studyCompleted && !hasStudyErrors && !hasPersonalErrors) {
+      setOpenSections(prev => ({ 
+        ...prev, 
+        study: false,      // Close completed study section
+        personal: true     // Open final section
+      }));
+    }
+  }, [errors, formData])
 
   // Check if section is completed (has no errors and all required fields filled)
   const isSectionCompleted = (section) => {
     switch (section) {
       case 'background':
+        // For background section, jobTitle is only required if not unemployed or student
+        const isJobTitleValid = formData.currentOccupation === 'Unemployed' || 
+                               formData.currentOccupation === 'Student' || 
+                               (formData.jobTitle && formData.jobTitle.trim());
+        
         return formData.visitedBefore && 
                formData.educationalBackground && 
                formData.currentOccupation &&
-               (formData.currentOccupation === 'Unemployed' || formData.currentOccupation === 'Student' || (formData.jobTitle && formData.jobTitle.trim())) &&
+               isJobTitleValid &&
                !errors.visitedBefore && !errors.educationalBackground && !errors.currentOccupation && !errors.jobTitle;
       case 'personal':
         return formData.fatherName && formData.fatherName.trim() && 
                formData.parentContactNumber && formData.parentContactNumber.trim() && 
-               formData.currentAddress && formData.currentAddress.trim() &&
-               !errors.fatherName && !errors.parentContactNumber && !errors.currentAddress;
+               formData.selfiePhoto &&
+               !errors.fatherName && !errors.parentContactNumber && !errors.selfiePhoto;
       case 'study':
         return formData.examPreparation && 
                formData.examinationDate && 
-               formData.selfiePhoto &&
-               !errors.examPreparation && !errors.examinationDate && !errors.selfiePhoto;
+               !errors.examPreparation && !errors.examinationDate;
       default:
         return false;
     }
   };
+
+  // Auto-restore saved form data on component load
+  useEffect(() => {
+    if (user?.email && autoSave.hasSavedData()) {
+      const savedData = autoSave.loadSavedData();
+      if (savedData && Object.keys(savedData).length > 0) {
+        // Check if there's actually meaningful data to restore
+        const hasData = Object.values(savedData).some(value => 
+          value && value !== '' && value !== null && value !== undefined
+        );
+        
+        if (hasData) {
+          setFormData(prevData => ({
+            ...prevData,
+            ...savedData
+          }));
+          setShowAutoSaveIndicator(true);
+          
+          // Hide the indicator after 4 seconds
+          setTimeout(() => {
+            setShowAutoSaveIndicator(false);
+          }, 4000);
+        }
+      }
+    }
+  }, [user?.email]);
+
+  // Auto-save form data when it changes
+  useEffect(() => {
+    if (user?.email && Object.keys(formData).some(key => formData[key])) {
+      autoSave.scheduleAutoSave();
+    }
+  }, [formData, user?.email]);
 
   // Auto-check for tour data when component loads
   useEffect(() => {
@@ -136,9 +183,31 @@ export default function MembershipDetailsScreen() {
     const { name, value, type, files } = e.target;
     
     if (type === 'file') {
+      const file = files[0];
+      if (file) {
+        // Validate file using standardized validation
+        const validation = validateFile(file, 'SELFIE');
+        
+        if (!validation.isValid) {
+          setErrors(prev => ({
+            ...prev,
+            [name]: validation.error
+          }));
+          // Clear the file input
+          e.target.value = '';
+          return;
+        }
+        
+        // Clear any previous error
+        setErrors(prev => ({
+          ...prev,
+          [name]: ''
+        }));
+      }
+      
       setFormData(prev => ({
         ...prev,
-        [name]: files[0]
+        [name]: file
       }));
     } else {
       setFormData(prev => {
@@ -192,7 +261,6 @@ export default function MembershipDetailsScreen() {
             const parsedData = JSON.parse(localUserData);
             userEmail = parsedData.email;
           } catch {
-            console.log('Could not parse localStorage userData');
           }
         }
         
@@ -204,13 +272,11 @@ export default function MembershipDetailsScreen() {
               userEmail = currentUserResponse.user.email;
             }
           } catch {
-            console.log('Could not get current user email from API');
           }
         }
       }
       
       if (!userEmail) {
-        console.log('No email available to check for tour data');
         return;
       }
       
@@ -219,13 +285,11 @@ export default function MembershipDetailsScreen() {
       try { 
         result = await apiService.request(`/tour/requests/${encodeURIComponent(userEmail)}`); 
       } catch { 
-        console.log('No tour data found for this email:', userEmail); 
         return; 
       }
       
       // apiService.request returned parsed JSON
       if (!result || !result.success) {
-        console.log('No tour data found for this email:', userEmail);
         return;
       }
       
@@ -263,7 +327,6 @@ export default function MembershipDetailsScreen() {
         });
         
       } else {
-        console.log('No tour requests found for this email:', userEmail);
       }
       
     } catch (error) {
@@ -297,9 +360,6 @@ export default function MembershipDetailsScreen() {
       newErrors.currentOccupation = 'Current occupation is required';
     }
     
-    if (!formData.currentAddress.trim()) {
-      newErrors.currentAddress = 'Current address is required';
-    }
     
     // Job title is only required if not unemployed or student
     if (!formData.jobTitle.trim() && formData.currentOccupation !== 'Unemployed' && formData.currentOccupation !== 'Student') {
@@ -339,37 +399,35 @@ export default function MembershipDetailsScreen() {
     if (validateForm()) {
       setIsLoading(true);
       try {
-        // Check if we have auth token, if not, skip API call for now
-        const hasToken = localStorage.getItem('authToken');
+        // Always try to save to database first
+        const response = await apiService.updateMembershipDetails(formData);
         
-        if (hasToken) {
-          // Save membership details to database
-          const response = await apiService.updateMembershipDetails(formData);
+        if (response.success) {
+          // Clear auto-saved data since form was successfully submitted
+          autoSave.clearSavedData();
           
-          if (response.success) {
-            // Update user data and navigate to booking
-            const updatedUser = { 
-              ...response.user, 
-              membershipCompleted: true,
-              membershipDetails: formData 
-            };
-            updateUser(updatedUser);
-            navigate('/booking');
-          } else {
-            setErrors({ submit: response.message || 'Failed to save membership details' });
-          }
-        } else {
-          // For demo mode, update user state locally and continue
+          // Update user data and navigate to booking
           const updatedUser = { 
-            ...user, 
-            membershipCompleted: true,
-            membershipDetails: formData 
+            ...response.user, 
+            membershipCompleted: true
           };
           updateUser(updatedUser);
+          console.log('✅ Membership details saved to database successfully');
           navigate('/booking');
+        } else {
+          // If database save fails, show error but don't proceed
+          setErrors({ submit: response.message || 'Failed to save membership details to database' });
         }
       } catch (error) {
-        setErrors({ submit: error.message || 'Failed to save membership details. Please try again.' });
+        console.error('❌ Failed to save membership details:', error);
+        // If API call fails due to network/auth issues, show specific error
+        if (error.message.includes('Network error') || error.message.includes('Failed to fetch')) {
+          setErrors({ submit: 'Network error. Please check your connection and try again.' });
+        } else if (error.message.includes('401') || error.message.includes('unauthorized')) {
+          setErrors({ submit: 'Session expired. Please log in again.' });
+        } else {
+          setErrors({ submit: error.message || 'Failed to save membership details. Please try again.' });
+        }
       } finally {
         setIsLoading(false);
       }
@@ -389,6 +447,7 @@ export default function MembershipDetailsScreen() {
       >
         <h1 className="main-title">Membership Details</h1>
         <p className="main-subtitle">Fill in your details to complete registration</p>
+        
       </div>
 
       <form 
@@ -585,116 +644,7 @@ export default function MembershipDetailsScreen() {
           )}
         </div>
 
-        {/* Accordion Section 2: Personal & Contact Details */}
-        <div className="accordion-section">
-          <div 
-            className={`accordion-header ${isSectionCompleted('personal') ? 'completed' : ''}`}
-            onClick={() => toggleSection('personal')}
-          >
-            <div className="accordion-title-wrapper">
-              <h3 className="accordion-title">Personal & Contact Details</h3>
-              {isSectionCompleted('personal') && (
-                <div className="completion-indicator">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 12l2 2 4-4"/>
-                    <circle cx="12" cy="12" r="9"/>
-                  </svg>
-                </div>
-              )}
-            </div>
-            <div className="accordion-chevron">
-              {openSections.personal ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            </div>
-          </div>
-          
-          {openSections.personal && (
-            <div className="accordion-content">
-
-        {/* Father's Name */}
-        <div 
-          className="input-group"
-        >
-          <label className="membership-input-label">
-            What is your father's name?
-          </label>
-          <div className="marathi-text">
-            वडिलांचे नाव येथे टाका.
-          </div>
-          <input
-            type="text"
-            name="fatherName"
-            placeholder="Enter your father's name"
-            value={formData.fatherName}
-            onChange={handleInputChange}
-            className={`form-input ${errors.fatherName ? 'input-error' : ''}`}
-          />
-          {errors.fatherName && (
-              <span 
-                className="error-message"
-              >
-                {errors.fatherName}
-              </span>
-            )}
-        </div>
-
-        {/* Parent's Contact Number */}
-        <div 
-          className="input-group"
-        >
-          <label className="membership-input-label">
-            Parent's contact number?
-          </label>
-          <div className="marathi-text">
-            तुमच्या पालकांचा मोबाईल नंबर येथे लिहा.
-          </div>
-          <input
-            type="tel"
-            name="parentContactNumber"
-            placeholder="Enter parent's contact number"
-            value={formData.parentContactNumber}
-            onChange={handleInputChange}
-            className={`form-input ${errors.parentContactNumber ? 'input-error' : ''}`}
-          />
-          {errors.parentContactNumber && (
-              <span 
-                className="error-message"
-              >
-                {errors.parentContactNumber}
-              </span>
-            )}
-        </div>
-
-        {/* Current Address */}
-        <div 
-          className="input-group"
-        >
-          <label className="membership-input-label">
-            What is your current address?
-          </label>
-          <div className="marathi-text">
-            तुम्ही सध्या राहत असलेला संपूर्ण पत्ता येथे लिहा.
-          </div>
-          <textarea
-            name="currentAddress"
-            placeholder="Enter your current address"
-            value={formData.currentAddress}
-            onChange={handleInputChange}
-            className={`form-input ${errors.currentAddress ? 'input-error' : ''}`}
-            rows="3"
-          />
-          {errors.currentAddress && (
-              <span 
-                className="error-message"
-              >
-                {errors.currentAddress}
-              </span>
-            )}
-        </div>
-            </div>
-          )}
-        </div>
-
-        {/* Accordion Section 3: Study Goals & Documentation */}
+        {/* Accordion Section 2: Study Goals & Documentation */}
         <div className="accordion-section">
           <div 
             className={`accordion-header ${isSectionCompleted('study') ? 'completed' : ''}`}
@@ -799,6 +749,88 @@ export default function MembershipDetailsScreen() {
               </span>
             )}
         </div>
+            </div>
+          )}
+        </div>
+
+        {/* Accordion Section 3: Personal & Contact Details */}
+        <div className="accordion-section">
+          <div 
+            className={`accordion-header ${isSectionCompleted('personal') ? 'completed' : ''}`}
+            onClick={() => toggleSection('personal')}
+          >
+            <div className="accordion-title-wrapper">
+              <h3 className="accordion-title">Personal & Contact Details</h3>
+              {isSectionCompleted('personal') && (
+                <div className="completion-indicator">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="9"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+            <div className="accordion-chevron">
+              {openSections.personal ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </div>
+          </div>
+          
+          {openSections.personal && (
+            <div className="accordion-content">
+
+        {/* Father's Name */}
+        <div 
+          className="input-group"
+        >
+          <label className="membership-input-label">
+            What is your father's name?
+          </label>
+          <div className="marathi-text">
+            वडिलांचे नाव येथे टाका.
+          </div>
+          <input
+            type="text"
+            name="fatherName"
+            placeholder="Enter your father's name"
+            value={formData.fatherName}
+            onChange={handleInputChange}
+            className={`form-input ${errors.fatherName ? 'input-error' : ''}`}
+          />
+          {errors.fatherName && (
+              <span 
+                className="error-message"
+              >
+                {errors.fatherName}
+              </span>
+            )}
+        </div>
+
+        {/* Parent's Contact Number */}
+        <div 
+          className="input-group"
+        >
+          <label className="membership-input-label">
+            Parent's contact number?
+          </label>
+          <div className="marathi-text">
+            तुमच्या पालकांचा मोबाईल नंबर येथे लिहा.
+          </div>
+          <input
+            type="tel"
+            name="parentContactNumber"
+            placeholder="Enter parent's contact number"
+            value={formData.parentContactNumber}
+            onChange={handleInputChange}
+            className={`form-input ${errors.parentContactNumber ? 'input-error' : ''}`}
+          />
+          {errors.parentContactNumber && (
+              <span 
+                className="error-message"
+              >
+                {errors.parentContactNumber}
+              </span>
+            )}
+        </div>
 
         {/* Selfie Photo Upload */}
         <div 
@@ -808,7 +840,7 @@ export default function MembershipDetailsScreen() {
             Please upload a selfie photo here. *
           </label>
           <div className="marathi-text">
-            स्वतःचा फोटो येथे अपलोड करा.
+            स्वतःचा फोटो येथे अपलोड करा. (फ्रंट कॅमेरा वापरा)
           </div>
           <div className="file-upload-container">
             <input
@@ -828,7 +860,7 @@ export default function MembershipDetailsScreen() {
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                 <circle cx="12" cy="13" r="4"></circle>
               </svg>
-              {formData.selfiePhoto ? 'Change Photo' : 'Upload Selfie Photo'}
+              {formData.selfiePhoto ? 'Change Selfie' : 'Take Selfie Photo'}
             </label>
             {formData.selfiePhoto && (
               <div className="file-preview">
@@ -847,6 +879,7 @@ export default function MembershipDetailsScreen() {
             </div>
           )}
         </div>
+
         
         {/* Submit Error */}
         {errors.submit && (

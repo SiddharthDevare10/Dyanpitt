@@ -33,8 +33,25 @@ export default function MinimalCalendar({
   };
 
   const isDateDisabled = (date) => {
-    if (minDate && date < new Date(minDate)) return true;
-    if (maxDate && date > new Date(maxDate)) return true;
+    // Normalize dates to local timezone for comparison
+    const normalizeDate = (d) => {
+      const normalized = new Date(d);
+      normalized.setHours(0, 0, 0, 0);
+      return normalized;
+    };
+    
+    const normalizedDate = normalizeDate(date);
+    
+    if (minDate) {
+      const normalizedMin = normalizeDate(minDate);
+      if (normalizedDate < normalizedMin) return true;
+    }
+    
+    if (maxDate) {
+      const normalizedMax = normalizeDate(maxDate);
+      if (normalizedDate > normalizedMax) return true;
+    }
+    
     return false;
   };
 

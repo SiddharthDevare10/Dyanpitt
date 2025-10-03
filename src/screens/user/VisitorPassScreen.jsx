@@ -5,7 +5,6 @@ import QRCode from 'qrcode';
 export default function VisitorPassScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  // const canvasRef = useRef(null); - Currently unused
   
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [tourData, setTourData] = useState(null);

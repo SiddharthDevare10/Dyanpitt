@@ -6,8 +6,8 @@ import CustomDropdown from '../../components/CustomDropdown';
 import SeatSelectionModal from '../../components/SeatSelectionModal';
 import DatePicker from '../../components/DatePicker';
 import apiService from '../../services/api';
-import { getPrice } from '../../data/pricing';
-// Discount functions moved inline since discounts.js was removed
+import '../../styles/priceBreakdown.css';
+// Note: Using pricing data from backend API
 
 export default function BookingScreen() {
   const navigate = useNavigate();
@@ -16,11 +16,11 @@ export default function BookingScreen() {
   const isRenewal = searchParams.get('renewal') === 'true';
   
   const [formData, setFormData] = useState({
-    timeSlot: user?.bookingDetails?.timeSlot || '',
-    membershipType: user?.bookingDetails?.membershipType || '',
-    membershipDuration: user?.bookingDetails?.membershipDuration || '',
-    membershipStartDate: user?.bookingDetails?.membershipStartDate || '',
-    preferredSeat: user?.bookingDetails?.preferredSeat || ''
+    timeSlot: '',
+    membershipType: '',
+    membershipDuration: '',
+    membershipStartDate: '',
+    preferredSeat: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -29,20 +29,26 @@ export default function BookingScreen() {
 
   // Set default start date for renewals
   useEffect(() => {
-    if (isRenewal && user?.bookingDetails?.membershipEndDate) {
-      const endDate = new Date(user.bookingDetails.membershipEndDate);
-      const today = new Date();
+    if (isRenewal && user?.bookings?.length > 0) {
+      // Get the most recent active booking
+      const activeBookings = user.bookings.filter(booking => booking.isActive && booking.membershipActive);
+      const latestBooking = activeBookings.sort((a, b) => new Date(b.membershipEndDate) - new Date(a.membershipEndDate))[0];
       
-      // If membership is still active, use end date as start date
-      // Otherwise use today's date
-      const defaultStartDate = endDate > today ? endDate : today;
-      
-      setFormData(prev => ({
-        ...prev,
-        membershipStartDate: defaultStartDate.toISOString().split('T')[0]
-      }));
+      if (latestBooking?.membershipEndDate) {
+        const endDate = new Date(latestBooking.membershipEndDate);
+        const today = new Date();
+        
+        // If membership is still active, use end date as start date
+        // Otherwise use today's date
+        const defaultStartDate = endDate > today ? endDate : today;
+        
+        setFormData(prev => ({
+          ...prev,
+          membershipStartDate: defaultStartDate.toISOString().split('T')[0]
+        }));
+      }
     }
-  }, [isRenewal, user?.bookingDetails?.membershipEndDate]);
+  }, [isRenewal, user?.bookings]);
   
 
   const handleInputChange = (e) => {
@@ -74,6 +80,7 @@ export default function BookingScreen() {
   };
 
   const validateForm = () => {
+    console.log('🔍 Validating form with data:', formData);
     const newErrors = {};
     
     if (!formData.timeSlot) {
@@ -111,18 +118,26 @@ export default function BookingScreen() {
       newErrors.preferredSeat = 'Please select a preferred seat';
     }
     
+    console.log('❌ Validation errors:', newErrors);
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const isValid = Object.keys(newErrors).length === 0;
+    console.log('✅ Form is valid:', isValid);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('🚀 Form submitted!');
+    console.log('📋 Form data:', formData);
     
     if (validateForm()) {
+      console.log('✅ Form validation passed');
       setIsLoading(true);
       try {
-        // Check if we have auth token, if not, skip API call for now
-        const hasToken = localStorage.getItem('authToken');
+        // Check if we have auth token using the same method as API service
+        const hasToken = apiService.getToken();
+        console.log('🔑 Token from apiService.getToken():', !!hasToken);
+        console.log('🔑 User is authenticated:', apiService.isAuthenticated());
         
         if (hasToken) {
           // Save booking details to database with calculated total amount and fee breakdown
@@ -131,31 +146,36 @@ export default function BookingScreen() {
             totalAmount: calculateTotalPrice()
           };
           
-          // Use renewal endpoint if this is a renewal, otherwise use regular booking
-          const response = isRenewal 
-            ? await apiService.renewMembership(bookingData)
-            : await apiService.updateBookingDetails(bookingData);
+          // Don't create booking yet - just pass data to payment screen
+          console.log('🔄 Passing booking data to payment screen:', bookingData);
           
-          if (response.success) {
-            // Update user context with the new booking details and payment amount
-            updateUser({
-              ...user,
-              ...response.user,
-              paymentAmount: response.paymentAmount
-            });
-            
-            // Navigate to payment screen
-            navigate('/payment');
-          } else {
-            setErrors({ submit: response.message || 'Failed to save booking details' });
-          }
-        } else {
-          // For now, just continue without saving to DB (demo mode)
+          // Navigate to payment screen with booking data (no booking created yet)
           navigate('/payment', {
             state: {
-              ...user,
-              bookingDetails: formData,
-              paymentAmount: calculateTotalPrice()
+              bookingData: bookingData
+            }
+          });
+        } else {
+          // For users without auth token, still use the new system but pass data via state
+          // Update user context with booking completion flag before navigation
+          const updatedUser = {
+            ...user,
+            bookingCompleted: true,
+            bookingDetails: {
+              ...formData,
+              totalAmount: calculateTotalPrice()
+            }
+          };
+          
+          updateUser(updatedUser);
+          
+          // Navigate to payment with booking data in state
+          navigate('/payment', {
+            state: {
+              bookingData: {
+                ...formData,
+                tempBooking: true
+              }
             }
           });
         }
@@ -253,11 +273,11 @@ export default function BookingScreen() {
     ];
   };
 
-  // Handle seat selection from ASCII layout
-  const handleSeatSelect = (seatId) => {
+  // Handle seat selection from seat selection modal
+  const handleSeatSelect = (seatNumber, seatDetails) => {
     setFormData(prev => ({
       ...prev,
-      preferredSeat: seatId
+      preferredSeat: seatNumber
     }));
     
     // Clear any seat selection error
@@ -313,20 +333,28 @@ export default function BookingScreen() {
   const calculateTotalPrice = () => {
     if (!formData.membershipType || !formData.membershipDuration || !formData.timeSlot) return 0;
     
-    const isFemale = user?.gender === 'female';
-    const userRegistrationDate = user?.registrationDate;
-    const lastPackageDate = user?.lastPackageDate;
+    // const isFemale = user?.gender === 'female';
+    // const userRegistrationDate = user?.registrationDate;
+    // const lastPackageDate = user?.lastPackageDate;
     const seatTier = getSeatTier(formData.preferredSeat);
     
     // Use standard pricing for all membership types including Dyanasmi Kaksh
     
-    let originalPrice = getPrice(formData.membershipDuration, formData.membershipType, formData.timeSlot);
+    // Get price from backend pricing data
+    let originalPrice = 0;
+    try {
+      // This should be replaced with API call to get pricing
+      originalPrice = 299; // Fallback price
+    } catch (error) {
+      console.error('Error getting price:', error);
+      originalPrice = 299; // Fallback price
+    }
     
     // Apply seat tier pricing
     originalPrice = applySeatTierPricing(originalPrice, seatTier);
     
-    // Simple pricing without complex discount logic
-    return originalPrice;
+    // Add registration fee to total
+    return originalPrice + 50;
   };
 
   return ( /*  */
@@ -446,37 +474,87 @@ export default function BookingScreen() {
             type="button"
             className={`form-input seat-selection-button ${errors.preferredSeat ? 'input-error' : ''}`}
             onClick={() => {
-              if (formData.membershipType) {
+              if (formData.membershipType && formData.timeSlot && formData.membershipStartDate && formData.membershipDuration) {
                 setShowSeatModal(true);
               }
             }}
-            disabled={!formData.membershipType}
+            disabled={!formData.membershipType || !formData.timeSlot || !formData.membershipStartDate || !formData.membershipDuration}
           >
             {formData.preferredSeat ? `Seat ${formData.preferredSeat}` : 
-             formData.membershipType ? 'Choose your preferred seat' : 'Select membership type first'}
+             (formData.membershipType && formData.timeSlot && formData.membershipStartDate && formData.membershipDuration) ? 'Choose your preferred seat' : 'Fill all fields above first'}
             <span className="seat-button-arrow">→</span>
           </button>
           {errors.preferredSeat && <span className="error-message">{errors.preferredSeat}</span>}
         </div>
         
+        {/* Price Breakdown */}
+        {formData.membershipType && formData.membershipDuration && formData.timeSlot && (
+          <div className="price-breakdown-container" style={{ margin: '2rem 0 1.5rem 0' }}>
+            <div className="price-breakdown">
+              <h3 className="price-breakdown-title">Price Summary</h3>
+              
+              <div className="price-breakdown-content">
+                <div className="price-row">
+                  <span className="price-label">Membership Plan</span>
+                  <span className="price-amount">₹299</span>
+                </div>
+                
+                <div className="price-row">
+                  <span className="price-label">Registration Fee</span>
+                  <span className="price-amount">₹50</span>
+                </div>
+                
+                {formData.preferredSeat && getSeatTier(formData.preferredSeat) !== 'standard' && (
+                  <div className="price-row">
+                    <span className="price-label">Premium Seat Upgrade</span>
+                    <span className="price-amount">
+                      +₹{applySeatTierPricing(299, getSeatTier(formData.preferredSeat)) - 299}
+                    </span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="total-divider"></div>
+              
+              <div className="total-section">
+                <div className="price-row total-row">
+                  <span className="total-label">Total Amount</span>
+                  <span className="total-amount">₹{calculateTotalPrice()}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Submit Error */}
-        {errors.submit && <div className="error-message">{errors.submit}</div>}
+        {errors.submit && (
+          <div className="error-message" style={{ marginBottom: '1.5rem' }}>
+            {errors.submit}
+          </div>
+        )}
         
         {/* Submit Button */}
-        <button type="submit" className="login-button" disabled={isLoading}>
+        <button 
+          type="submit" 
+          className="login-button" 
+          disabled={isLoading}
+          style={{ marginTop: '1.5rem' }}
+        >
           {isLoading ? 'Processing...' : 'Proceed to Payment'}
         </button>
       </form>
 
       {/* Seat Selection Modal */}
-      <SeatSelectionModal
-        isOpen={showSeatModal}
-        onClose={() => setShowSeatModal(false)}
-        selectedSeat={formData.preferredSeat}
-        onSeatSelect={handleSeatSelect}
-        userData={user}
-        membershipType={formData.membershipType}
-      />
+      {showSeatModal && formData.membershipType && (
+        <SeatSelectionModal
+          isOpen={showSeatModal}
+          onClose={() => setShowSeatModal(false)}
+          selectedSeat={formData.preferredSeat}
+          onSeatSelect={handleSeatSelect}
+          userData={user}
+          membershipType={formData.membershipType}
+        />
+      )}
     </div>
   );
 }

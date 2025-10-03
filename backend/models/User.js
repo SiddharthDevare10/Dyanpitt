@@ -1,6 +1,42 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// Helper function to convert datetime to IST (for timestamps)
+const toIST = (date) => {
+  if (!date) return date;
+  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+  return new Date(new Date(date).getTime() + istOffset);
+};
+
+// Helper function for date-only fields (like DOB) - preserve exact date without timezone shifts
+const toDateOnly = (date) => {
+  if (!date) return date;
+  
+  // If the date is already a string in YYYY-MM-DD format, parse it carefully
+  if (typeof date === 'string' && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [year, month, day] = date.split('-').map(Number);
+    // Create date in UTC to avoid any timezone interpretation
+    return new Date(Date.UTC(year, month - 1, day));
+  }
+  
+  // If it's a Date object or datetime string, extract just the date part
+  const d = new Date(date);
+  
+  // Handle the case where date might be interpreted in local timezone
+  // Get the date components and create a UTC date
+  if (typeof date === 'string') {
+    // Parse the string to get date components
+    const dateStr = date.split('T')[0]; // Get just the date part if it's an ISO string
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, day));
+    }
+  }
+  
+  // Fallback: Use local date components but create UTC date
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+};
+
 const userSchema = new mongoose.Schema({
   // Basic Info
   email: {
@@ -30,12 +66,18 @@ const userSchema = new mongoose.Schema({
   },
   dateOfBirth: {
     type: Date,
-    required: true
+    required: true,
+    set: toDateOnly // Store as date-only without timezone conversion
   },
   gender: {
     type: String,
     required: true,
     enum: ['male', 'female', 'other', 'prefer-not-to-say']
+  },
+  currentAddress: {
+    type: String,
+    required: false, // Not required for temp users, will be required during registration
+    trim: true
   },
   password: {
     type: String,
@@ -45,6 +87,10 @@ const userSchema = new mongoose.Schema({
   
   // Verification Status
   isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  isPhoneVerified: {
     type: Boolean,
     default: false
   },
@@ -90,7 +136,8 @@ const userSchema = new mongoose.Schema({
   },
   lastLogin: {
     type: Date,
-    default: null
+    default: null,
+    set: toIST // Convert to IST when saving
   },
   
   // User Role
@@ -117,132 +164,11 @@ const userSchema = new mongoose.Schema({
   },
   dnyanpittIdGenerated: {
     type: Date,
-    default: null
+    default: null,
+    set: toIST // Convert to IST when saving
   },
   
-  // Membership Details
-  membershipDetails: {
-    visitedBefore: {
-      type: String,
-      enum: ['yes', 'no']
-    },
-    fatherName: {
-      type: String,
-      trim: true
-    },
-    parentContactNumber: {
-      type: String,
-      trim: true
-    },
-    educationalBackground: {
-      type: String,
-      enum: ['High School', 'Graduation', 'Post Graduation', 'Doctorate Degree', 'Technical or Vocational School', 'Other']
-    },
-    currentOccupation: {
-      type: String,
-      enum: ['Student', 'Employed', 'Self-employed', 'Unemployed', 'Retired', 'Other']
-    },
-    currentAddress: {
-      type: String,
-      trim: true
-    },
-    jobTitle: {
-      type: String,
-      trim: true
-    },
-    examPreparation: {
-      type: String,
-      enum: ['MPSC', 'UPSC', 'Saral Seva', 'Railway', 'Staff Selection Commission', 'NOR-CET', 'Police Bharti', 'SRPF', 'CRPF', 'Army-GD', 'Army-NA', 'SSC (10th)', 'HSC (12th)', 'JEE', 'NEET', 'MHT-CET', 'UG', 'PG', 'PHD', 'MCR', 'CDS', 'DMER', 'Banking', 'Any Other']
-    },
-    examinationDate: {
-      type: Date
-    },
-    studyRoomDuration: {
-      type: String,
-      enum: ['Less than a month', '1 Month', '2 Month', '3 Month', '4 Month', '5 Month', '6 Month', 'More Than 6 Months', '1 Year', 'More Than 1 Year']
-    },
-    selfiePhotoUrl: {
-      type: String
-    },
-    selfiePhotoThumbnail: {
-      type: String
-    }
-  },
-  
-  // Booking Details
-  bookingDetails: {
-    // Time slot selection
-    timeSlot: {
-      type: String,
-      enum: [
-        'Day Batch (7:00 AM - 10:00 PM)',
-        'Night Batch (10:00 PM - 7:00 AM)', 
-        '24 Hours Batch',
-      ]
-    },
-    
-    // Membership type
-    membershipType: {
-      type: String,
-      enum: ['Dyandhara Kaksh', 'Dyanpurn Kaksh', 'Dyanasmi Kaksh']
-    },
-    
-    // Membership duration
-    membershipDuration: {
-      type: String,
-      enum: [
-        '1 Day', '8 Days', '15 Days', 
-        '1 Month', '2 Months', '3 Months', '4 Months', '5 Months', '6 Months',
-        '7 Months', '8 Months', '9 Months', '10 Months', '11 Months', '12 Months'
-      ]
-    },
-    
-    // Membership start date (within 30 days)
-    membershipStartDate: {
-      type: Date,
-      validate: {
-        validator: function(date) {
-          // Compare dates only, not times
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          
-          const startDate = new Date(date);
-          startDate.setHours(0, 0, 0, 0);
-          
-          const thirtyDaysFromToday = new Date(today.getTime() + (30 * 24 * 60 * 60 * 1000));
-          
-          return startDate >= today && startDate <= thirtyDaysFromToday;
-        },
-        message: 'Membership start date must be within 30 days from today'
-      }
-    },
-    
-    // Preferred seat
-    preferredSeat: {
-      type: String
-    },
-    
-    // Calculated fields
-    membershipEndDate: {
-      type: Date
-    },
-    totalAmount: {
-      type: Number
-    },
-    
-    // Payment details
-    paymentStatus: {
-      type: String,
-      enum: ['pending', 'completed', 'failed'],
-      default: 'pending'
-    },
-    paymentId: {
-      type: String
-    },
-    paymentDate: {
-      type: Date
-    }
-  },
+  // Note: Membership and Booking data now stored in separate tables
   
   // Progress tracking
   profileCompleted: {
@@ -256,6 +182,12 @@ const userSchema = new mongoose.Schema({
   bookingCompleted: {
     type: Boolean,
     default: false
+  },
+  
+  // Cash payment request (temporary, expires in 2 days)
+  pendingCashPaymentRequest: {
+    type: Object,
+    default: null
   }
 }, {
   timestamps: true // Adds createdAt and updatedAt
@@ -269,23 +201,119 @@ userSchema.index({ dnyanpittIdGenerated: 1 });
 // Index for cleanup of temporary users - TTL index for automatic cleanup
 userSchema.index({ cleanupAt: 1 }, { expireAfterSeconds: 0 });
 
-// Hash password before saving
+// Indexes for membership fields
+userSchema.index({ 'membership.examPreparation': 1 });
+userSchema.index({ 'membership.educationalBackground': 1 });
+userSchema.index({ 'membership.currentOccupation': 1 });
+userSchema.index({ 'membership.visitedBefore': 1 });
+userSchema.index({ 'membership.submittedAt': 1 });
+
+// Indexes for booking fields
+userSchema.index({ 'bookings.paymentStatus': 1 });
+userSchema.index({ 'bookings.membershipType': 1 });
+userSchema.index({ 'bookings.timeSlot': 1 });
+userSchema.index({ 'bookings.membershipStartDate': 1 });
+userSchema.index({ 'bookings.membershipEndDate': 1 });
+userSchema.index({ 'bookings.bookedAt': 1 });
+userSchema.index({ 'bookings.isActive': 1 });
+userSchema.index({ 'bookings.membershipActive': 1 });
+userSchema.index({ 'bookings.paymentId': 1 });
+
+// Compound indexes for common queries
+userSchema.index({ 'bookings.paymentStatus': 1, 'bookings.membershipActive': 1 });
+userSchema.index({ 'bookings.membershipStartDate': 1, 'bookings.membershipEndDate': 1 });
+userSchema.index({ 'bookings.timeSlot': 1, 'bookings.membershipType': 1 });
+
+// Pre-save middleware for password hashing and booking calculations
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
+  // Hash password if modified
+  if (this.isModified('password')) {
+    try {
+      const salt = await bcrypt.genSalt(12);
+      this.password = await bcrypt.hash(this.password, salt);
+    } catch (error) {
+      return next(error);
+    }
   }
+  
+  // Calculate membership end dates for bookings
+  if (this.isModified('bookings')) {
+    this.bookings.forEach(booking => {
+      if (booking.membershipStartDate && booking.membershipDuration && !booking.membershipEndDate) {
+        const startDate = new Date(booking.membershipStartDate);
+        let endDate = new Date(startDate);
+        
+        switch (booking.membershipDuration) {
+          case '1 Day':
+            endDate.setDate(startDate.getDate() + 1);
+            break;
+          case '8 Days':
+            endDate.setDate(startDate.getDate() + 8);
+            break;
+          case '15 Days':
+            endDate.setDate(startDate.getDate() + 15);
+            break;
+          case '1 Month':
+            endDate.setMonth(startDate.getMonth() + 1);
+            break;
+          case '2 Months':
+            endDate.setMonth(startDate.getMonth() + 2);
+            break;
+          case '3 Months':
+            endDate.setMonth(startDate.getMonth() + 3);
+            break;
+          case '4 Months':
+            endDate.setMonth(startDate.getMonth() + 4);
+            break;
+          case '5 Months':
+            endDate.setMonth(startDate.getMonth() + 5);
+            break;
+          case '6 Months':
+            endDate.setMonth(startDate.getMonth() + 6);
+            break;
+          case '7 Months':
+            endDate.setMonth(startDate.getMonth() + 7);
+            break;
+          case '8 Months':
+            endDate.setMonth(startDate.getMonth() + 8);
+            break;
+          case '9 Months':
+            endDate.setMonth(startDate.getMonth() + 9);
+            break;
+          case '10 Months':
+            endDate.setMonth(startDate.getMonth() + 10);
+            break;
+          case '11 Months':
+            endDate.setMonth(startDate.getMonth() + 11);
+            break;
+          case '12 Months':
+            endDate.setMonth(startDate.getMonth() + 12);
+            break;
+          default:
+            endDate.setMonth(startDate.getMonth() + 1); // Default to 1 month
+        }
+        
+        booking.membershipEndDate = endDate;
+      }
+      
+      // Update lastUpdated for modified bookings
+      if (booking.isModified && booking.isModified()) {
+        booking.lastUpdated = new Date();
+      }
+    });
+  }
+  
+  next();
 });
 
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+// Note: Membership management now handled by separate Membership model
+
+// Note: Booking management now handled by separate Booking model
 
 // Generate Dyanpitt ID with atomic operation to prevent race conditions
 userSchema.statics.generateDyanpittId = async function() {
@@ -401,6 +429,18 @@ userSchema.methods.assignDyanpittId = async function() {
       this.hasDnyanpittId = true;
       this.dnyanpittIdGenerated = new Date();
       
+      // Update primaryId in related tables
+      await this.updateRelatedTablesPrimaryId(this.email, dyanpittId);
+      
+      // Update tour requests with Dyanpitt ID
+      try {
+        const TourLinkingService = require('../services/tourLinkingService');
+        await TourLinkingService.updateTourRequestsWithDyanpittId(this.email, dyanpittId);
+      } catch (error) {
+        console.error('Error updating tour requests with Dyanpitt ID:', error);
+        // Don't fail the ID assignment if tour update fails
+      }
+      
       return {
         dyanpittId,
         registrationMonth,
@@ -416,6 +456,11 @@ userSchema.methods.assignDyanpittId = async function() {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
+};
+
+// Method to update primaryId - simplified since all data is in User model
+userSchema.methods.updateRelatedTablesPrimaryId = async function(oldPrimaryId, newPrimaryId) {
+  console.log(`User ${newPrimaryId} generated - all data consolidated in User collection`);
 };
 
 // Note: OTP functionality moved to JWT-based tokens for better security
@@ -456,12 +501,17 @@ userSchema.statics.phoneExists = async function(phoneNumber) {
 
 // Update last login
 userSchema.methods.updateLastLogin = function() {
-  this.lastLogin = new Date();
-  return this.save();
+  this.lastLogin = toIST(new Date());
+  return this.save({ validateBeforeSave: false });
 };
 
 // Get public profile (exclude sensitive data)
 userSchema.methods.getPublicProfile = function() {
+  console.log('🔍 getPublicProfile called for user:', this.email);
+  console.log('🔍 User bookings array length:', this.bookings ? this.bookings.length : 'undefined');
+  
+  // Note: Bookings now fetched from separate Booking table when needed
+  
   return {
     // Display email and dyanpittId first for better visibility
     email: this.email,
@@ -477,8 +527,7 @@ userSchema.methods.getPublicProfile = function() {
     lastLogin: this.lastLogin,
     createdAt: this.createdAt,
     role: this.role,
-    membershipDetails: this.membershipDetails,
-    bookingDetails: this.bookingDetails,
+    // Note: membership and booking data now in separate tables
     profileCompleted: this.profileCompleted,
     membershipCompleted: this.membershipCompleted,
     bookingCompleted: this.bookingCompleted,
@@ -571,6 +620,50 @@ userSchema.statics.cleanupExpiredTempUsers = async function() {
   }
 };
 
+// Static method to cleanup expired cash payment requests
+userSchema.statics.cleanupExpiredCashPaymentRequests = async function() {
+  try {
+    const now = new Date();
+    
+    // Find users with expired cash payment requests
+    const usersWithExpiredRequests = await this.find({
+      'pendingCashPaymentRequest.expiresAt': { $lt: now },
+      'pendingCashPaymentRequest': { $ne: null }
+    });
+    
+    // Clear expired requests
+    const result = await this.updateMany(
+      {
+        'pendingCashPaymentRequest.expiresAt': { $lt: now },
+        'pendingCashPaymentRequest': { $ne: null }
+      },
+      {
+        $unset: { 
+          pendingCashPaymentRequest: "",
+          cashPaymentPending: ""
+        },
+        $set: {
+          bookingCompleted: false
+        }
+      }
+    );
+    
+    console.log(`Cleaned up ${result.modifiedCount} expired cash payment requests`);
+    
+    // Log details of cleaned requests
+    usersWithExpiredRequests.forEach(user => {
+      if (user.pendingCashPaymentRequest) {
+        console.log(`💰 Expired cash payment request cleaned: ${user.email} - Transaction: ${user.pendingCashPaymentRequest.transactionId}`);
+      }
+    });
+    
+    return result.modifiedCount;
+  } catch (error) {
+    console.error('Error cleaning up expired cash payment requests:', error);
+    return 0;
+  }
+};
+
 // Static method to cleanup incomplete registrations (24-hour period for temp users, 10-day for verified users)
 userSchema.statics.cleanupIncompleteRegistrations = async function() {
   try {
@@ -612,5 +705,156 @@ userSchema.statics.cleanupIncompleteRegistrations = async function() {
     return 0;
   }
 };
+
+// Static methods for querying users with membership/booking filters
+userSchema.statics.getAllUsersWithMembership = async function(page = 1, limit = 20, filters = {}) {
+  const skip = (page - 1) * limit;
+  
+  // Build query from filters
+  const query = { membershipCompleted: true };
+  
+  if (filters.examPreparation) {
+    query['membership.examPreparation'] = filters.examPreparation;
+  }
+  
+  if (filters.educationalBackground) {
+    query['membership.educationalBackground'] = filters.educationalBackground;
+  }
+  
+  if (filters.currentOccupation) {
+    query['membership.currentOccupation'] = filters.currentOccupation;
+  }
+  
+  if (filters.visitedBefore) {
+    query['membership.visitedBefore'] = filters.visitedBefore;
+  }
+  
+  if (filters.searchTerm) {
+    const searchRegex = { $regex: filters.searchTerm, $options: 'i' };
+    query.$or = [
+      { email: searchRegex },
+      { dyanpittId: searchRegex },
+      { fullName: searchRegex },
+      { 'membership.fatherName': searchRegex }
+    ];
+  }
+  
+  const [users, total] = await Promise.all([
+    this.find(query)
+      .select('-password')
+      .sort({ 'membership.submittedAt': -1 })
+      .skip(skip)
+      .limit(limit),
+    this.countDocuments(query)
+  ]);
+  
+  return {
+    users,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+    hasNext: page < Math.ceil(total / limit),
+    hasPrev: page > 1
+  };
+};
+
+userSchema.statics.getAllUsersWithBookings = async function(page = 1, limit = 20, filters = {}) {
+  const skip = (page - 1) * limit;
+  
+  // Build aggregation pipeline for booking filters
+  const pipeline = [
+    { $match: { bookingCompleted: true } }
+  ];
+  
+  // Add booking filters
+  if (filters.paymentStatus || filters.membershipType || filters.timeSlot || filters.membershipActive !== undefined) {
+    const bookingMatch = {};
+    
+    if (filters.paymentStatus) {
+      bookingMatch['bookings.paymentStatus'] = filters.paymentStatus;
+    }
+    
+    if (filters.membershipType) {
+      bookingMatch['bookings.membershipType'] = filters.membershipType;
+    }
+    
+    if (filters.timeSlot) {
+      bookingMatch['bookings.timeSlot'] = filters.timeSlot;
+    }
+    
+    if (filters.membershipActive !== undefined) {
+      bookingMatch['bookings.membershipActive'] = filters.membershipActive;
+    }
+    
+    pipeline.push({ $match: bookingMatch });
+  }
+  
+  // Add search filter
+  if (filters.searchTerm) {
+    const searchRegex = { $regex: filters.searchTerm, $options: 'i' };
+    pipeline.push({
+      $match: {
+        $or: [
+          { email: searchRegex },
+          { dyanpittId: searchRegex },
+          { fullName: searchRegex },
+          { 'bookings.paymentId': searchRegex }
+        ]
+      }
+    });
+  }
+  
+  // Remove password field
+  pipeline.push({
+    $project: { password: 0 }
+  });
+  
+  // Add sorting
+  pipeline.push({
+    $sort: { 'bookings.bookedAt': -1 }
+  });
+  
+  const [users, total] = await Promise.all([
+    this.aggregate([
+      ...pipeline,
+      { $skip: skip },
+      { $limit: limit }
+    ]),
+    this.aggregate([
+      ...pipeline.slice(0, -1), // Remove sort for count
+      { $count: 'total' }
+    ]).then(result => result[0]?.total || 0)
+  ]);
+  
+  return {
+    users,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit),
+    hasNext: page < Math.ceil(total / limit),
+    hasPrev: page > 1
+  };
+};
+
+userSchema.statics.findUserWithMembership = async function(identifier) {
+  const isEmail = identifier.includes('@') && !identifier.startsWith('@DA');
+  
+  const query = isEmail 
+    ? { email: identifier, membershipCompleted: true }
+    : { dyanpittId: identifier, hasDnyanpittId: true, membershipCompleted: true };
+  
+  return this.findOne(query).select('-password');
+};
+
+userSchema.statics.findUserWithBookings = async function(identifier) {
+  const isEmail = identifier.includes('@') && !identifier.startsWith('@DA');
+  
+  const query = isEmail 
+    ? { email: identifier, bookingCompleted: true }
+    : { dyanpittId: identifier, hasDnyanpittId: true, bookingCompleted: true };
+  
+  return this.findOne(query).select('-password');
+};
+
 
 module.exports = mongoose.model('User', userSchema);

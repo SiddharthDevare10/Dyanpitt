@@ -1,3 +1,6 @@
+import { ERROR_MESSAGES } from '../utils/errorMessages.js';
+import requestCache, { getCacheTTL } from '../utils/requestCache.js';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 console.log('🔗 Frontend API Base URL:', API_BASE_URL);
 
@@ -6,18 +9,35 @@ class ApiService {
     this.baseURL = API_BASE_URL;
   }
 
-  // Get auth token from localStorage
+  // Get auth token from sessionStorage (preferred) or fallback to localStorage
   getToken() {
-    return localStorage.getItem('authToken');
+    // Check sessionStorage first (session-based tokens)
+    let token = sessionStorage.getItem('authToken');
+    
+    // Fallback to localStorage for existing users (migrate them to sessionStorage)
+    if (!token) {
+      token = localStorage.getItem('authToken');
+      if (token) {
+        // Migrate to sessionStorage and remove from localStorage
+        sessionStorage.setItem('authToken', token);
+        localStorage.removeItem('authToken');
+      }
+    }
+    
+    return token;
   }
 
-  // Set auth token in localStorage
+  // Set auth token in sessionStorage (clears when tab/browser closes)
   setToken(token) {
-    localStorage.setItem('authToken', token);
+    sessionStorage.setItem('authToken', token);
+    
+    // Also clear any existing localStorage token to prevent conflicts
+    localStorage.removeItem('authToken');
   }
 
-  // Remove auth token from localStorage
+  // Remove auth token from both storage types
   removeToken() {
+    sessionStorage.removeItem('authToken');
     localStorage.removeItem('authToken');
   }
 
@@ -30,26 +50,63 @@ class ApiService {
     };
   }
 
-  // Generic API request method
+  // Check if token needs refresh (within 5 minutes of expiry)
+  shouldRefreshToken() {
+    const token = this.getToken();
+    if (!token) return false;
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      const refreshBuffer = 5 * 60; // 5 minutes before expiry
+      
+      return payload.exp <= (currentTime + refreshBuffer);
+    } catch {
+      return false;
+    }
+  }
+
+  // Generic API request method with auto token refresh and caching
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    const method = options.method || 'GET';
     
     console.log('=== API SERVICE REQUEST ===');
     console.log('Base URL:', this.baseURL);
     console.log('Endpoint:', endpoint);
     console.log('Full URL:', url);
-    console.log('Method:', options.method || 'GET');
+    console.log('Method:', method);
+    
+    // Check cache for GET requests
+    if (method === 'GET') {
+      const cached = requestCache.get(url, method);
+      if (cached) {
+        console.log('🗂️ Returning cached response for:', endpoint);
+        return cached;
+      }
+    }
+    
+    // Check if we need to refresh token before making request
+    if (this.shouldRefreshToken() && endpoint !== '/auth/refresh') {
+      console.log('Token needs refresh, attempting refresh...');
+      try {
+        await this.refreshToken();
+      } catch (error) {
+        console.warn('Token refresh failed:', error);
+        // Continue with existing token, let the server handle expiry
+      }
+    }
     
     const config = {
       headers: this.getAuthHeaders(),
-      timeout: 30000, // 30 second timeout
+      timeout: 15000, // 15 second timeout
       ...options
     };
 
     try {
       // Add timeout to fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
       const response = await fetch(url, {
         ...config,
@@ -82,6 +139,16 @@ class ApiService {
       }
 
       const data = await response.json();
+      
+      // Cache GET requests if caching is enabled for this endpoint
+      if (method === 'GET') {
+        const ttl = getCacheTTL(endpoint);
+        if (ttl > 0) {
+          requestCache.set(url, method, data, ttl);
+          console.log('💾 Cached response for:', endpoint, 'TTL:', ttl + 'ms');
+        }
+      }
+      
       return data;
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -135,7 +202,7 @@ class ApiService {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -189,6 +256,26 @@ class ApiService {
 
   async getCurrentUser() {
     return this.request('/auth/me');
+  }
+
+  // Refresh token (if backend supports it)
+  async refreshToken() {
+    try {
+      const response = await this.request('/auth/refresh', {
+        method: 'POST'
+      });
+
+      if (response.success && response.token) {
+        this.setToken(response.token);
+        return response;
+      }
+      
+      throw new Error('Token refresh failed');
+    } catch (error) {
+      // If refresh fails, clear token and redirect to login
+      this.removeToken();
+      throw error;
+    }
   }
 
   async forgotPassword(email) {
@@ -262,32 +349,43 @@ class ApiService {
     return false;
   }
 
-  // Check if user is authenticated
+  // Check if user is authenticated with standardized validation
   isAuthenticated() {
     const token = this.getToken();
     if (!token) return false;
 
     try {
-      // Check if token is properly formatted
+      // Check if token is properly formatted JWT
       const parts = token.split('.');
       if (parts.length !== 3) {
+        console.warn('Invalid JWT format - removing token');
         this.removeToken();
         return false;
       }
 
-      // Check if token is expired (basic check)
+      // Decode and validate payload
       const payload = JSON.parse(atob(parts[1]));
-      const currentTime = Date.now() / 1000;
       
-      if (payload.exp <= currentTime) {
-        console.log('Token expired, removing...');
+      // Check required fields
+      if (!payload.userId || !payload.exp) {
+        console.warn('JWT missing required fields - removing token');
+        this.removeToken();
+        return false;
+      }
+      
+      // Check if token is expired (with 60 second buffer for clock skew)
+      const currentTime = Date.now() / 1000;
+      const bufferTime = 60; // 60 seconds buffer
+      
+      if (payload.exp <= (currentTime + bufferTime)) {
+        console.log('Token expired or expiring soon - removing...');
         this.removeToken();
         return false;
       }
       
       return true;
     } catch (error) {
-      console.log('Invalid token format, removing...', error);
+      console.warn('Token validation failed - removing...', error);
       this.removeToken();
       return false;
     }
@@ -295,6 +393,13 @@ class ApiService {
 
   // Update membership details
   async updateMembershipDetails(membershipDetails) {
+    console.log('🔄 Updating membership details...');
+    
+    // Check if user is authenticated before making request
+    if (!this.isAuthenticated()) {
+      throw new Error('You are not logged in. Please log in again to save your membership details.');
+    }
+    
     // Create FormData for file upload
     const formData = new FormData();
     
@@ -312,6 +417,8 @@ class ApiService {
     const token = this.getToken();
     const url = `${this.baseURL}/auth/update-membership`;
     
+    console.log('🔑 Using token for membership update:', token ? 'Token found' : 'No token');
+    
     const config = {
       method: 'POST',
       body: formData,
@@ -323,7 +430,7 @@ class ApiService {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
       const response = await fetch(url, {
         ...config,
@@ -379,6 +486,26 @@ class ApiService {
     });
   }
 
+  // Create cash payment request
+  async createCashPaymentRequest() {
+    return this.request('/auth/create-cash-payment-request', {
+      method: 'POST'
+    });
+  }
+
+  // Get pending cash payments (Admin only)
+  async getPendingCashPayments() {
+    return this.request('/auth/pending-cash-payments');
+  }
+
+  // Confirm cash payment collection (Admin only)
+  async confirmCashPayment(userId, adminNotes = '') {
+    return this.request('/auth/confirm-cash-payment', {
+      method: 'POST',
+      body: JSON.stringify({ userId, adminNotes })
+    });
+  }
+
   // Upload avatar
   async uploadAvatar(avatarFile) {
     const formData = new FormData();
@@ -389,7 +516,7 @@ class ApiService {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
       const response = await fetch(url, {
         method: 'POST',

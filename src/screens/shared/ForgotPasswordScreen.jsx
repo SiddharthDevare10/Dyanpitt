@@ -113,14 +113,11 @@ export default function ForgotPasswordScreen() {
     setErrors({});
 
     try {
-      console.log('Sending password reset OTP to:', formData.email);
       const response = await apiService.forgotPassword(formData.email);
-      console.log('Password reset OTP response:', response);
       
       if (response.success) {
         setCurrentStep('otp');
         setOtpTimer(60); // 60 seconds timer
-        console.log('Password reset OTP sent successfully');
       } else {
         setErrors({ general: response.message || 'Failed to send reset code. Please check your email address and try again.' });
       }

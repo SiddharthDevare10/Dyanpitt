@@ -1,16 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { useDemoMode } from './DemoMode.jsx';
+import { getRedirectPath } from '../utils/progressValidation.js';
 
 const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false, redirectTo = '/login' }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  const { demoMode, demoUser, demoAdminUser } = useDemoMode();
   const location = useLocation();
-
-  // In demo mode, bypass all authentication checks
-  if (demoMode) {
-    return children;
-  }
 
 
   // Show loading while checking authentication
@@ -35,17 +29,9 @@ const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false, re
 
   // If admin access is required but user is not admin
   if (requireAdmin && (!user || (user.role !== 'admin' && user.role !== 'super_admin'))) {
-    // Redirect to appropriate dashboard based on user completion status
-    if (user) {
-      if (!user.membershipCompleted) {
-        return <Navigate to="/membership" replace />;
-      } else if (!user.bookingCompleted) {
-        return <Navigate to="/booking" replace />;
-      } else {
-        return <Navigate to="/dashboard" replace />;
-      }
-    }
-    return <Navigate to="/login" replace />;
+    // Use centralized redirect logic for consistent behavior
+    const redirectPath = getRedirectPath(user);
+    return <Navigate to={redirectPath} replace />;
   }
 
   // If user is admin and accessing admin routes, allow access regardless of completion status
@@ -61,22 +47,18 @@ const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false, re
       return children;
     }
     
-    // Admin users should always go to admin dashboard when accessing auth pages
-    if (user.role === 'admin' || user.role === 'super_admin') {
-      return <Navigate to="/admin-dashboard" replace />;
-    }
-    
     // For auth pages (login/register/forgot-password), redirect authenticated users appropriately
     if (location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/forgot-password') {
-      // Always redirect to dashboard if user is fully completed
-      if (user.membershipCompleted && user.bookingCompleted) {
-        return <Navigate to="/dashboard" replace />;
+      // Admin users should always go to admin dashboard
+      if (user.role === 'admin' || user.role === 'super_admin') {
+        return <Navigate to="/admin-dashboard" replace />;
       }
-      // Otherwise redirect to their next step in the flow
-      else if (user.membershipCompleted && !user.bookingCompleted) {
-        return <Navigate to="/booking" replace />;
-      } else {
-        return <Navigate to="/membership" replace />;
+      
+      // Regular users: use centralized redirect logic for consistent behavior
+      const redirectPath = getRedirectPath(user);
+      // Prevent redirect loops by checking if we're already going to the same path
+      if (redirectPath !== location.pathname) {
+        return <Navigate to={redirectPath} replace />;
       }
     }
   }

@@ -1,15 +1,15 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-import { useDemoMode } from './DemoMode.jsx';
+import { 
+  validateUserProgress, 
+  validatePaymentAccess, 
+  validateDashboardAccess,
+  PROGRESS_STEPS 
+} from '../utils/progressValidation.js';
 
 const ProgressProtectedRoute = ({ children, requiredStep }) => {
   const { user, isAuthenticated, loading } = useAuth();
-  const { demoMode, demoUser, demoAdminUser } = useDemoMode();
-
-  // In demo mode, bypass all authentication and progress checks
-  if (demoMode) {
-    return children;
-  }
+  const location = useLocation();
   
   // 🚨 DEVELOPMENT BYPASS - AUTOMATICALLY DISABLED IN PRODUCTION 🚨
   // This only works when NODE_ENV !== 'production' and import.meta.env.DEV === true
@@ -38,62 +38,42 @@ const ProgressProtectedRoute = ({ children, requiredStep }) => {
 
   // Development bypass check - ONLY WORKS IN DEVELOPMENT
   if (bypassAuth) {
-    console.log('🚧 DEVELOPMENT ONLY: Bypassing authentication for', requiredStep);
-    console.log('⚠️  This bypass is AUTOMATICALLY DISABLED in production builds');
     return children;
   }
 
   // Must be authenticated to access progress routes
   if (!isAuthenticated || !user) {
-    console.log('ProgressProtectedRoute: Not authenticated, redirecting to login', {
-      isAuthenticated,
-      user: user ? 'exists' : 'null',
-      requiredStep
-    });
     return <Navigate to="/login" replace />;
   }
 
-  // Check progress and redirect accordingly
+  // Use centralized validation logic based on the required step
+  let validationResult;
+
   switch (requiredStep) {
-    case 'membership':
-      // Anyone can access membership step
-      return children;
+    case PROGRESS_STEPS.PAYMENT:
+      // Payment step has special validation logic
+      validationResult = validatePaymentAccess(user, location.state);
+      break;
       
-    case 'booking':
-      // Must have completed membership to access booking
-      if (!user.membershipCompleted) {
-        console.log('ProgressProtectedRoute: Membership not completed, redirecting to membership', {
-          membershipCompleted: user.membershipCompleted
-        });
-        return <Navigate to="/membership" replace />;
-      }
-      console.log('ProgressProtectedRoute: Access granted to booking');
-      return children;
-      
-    case 'payment':
-      // Must have completed membership to access payment
-      if (!user.membershipCompleted) {
-        return <Navigate to="/membership" replace />;
-      }
-      // If booking is already completed, redirect to dashboard
-      if (user.bookingCompleted) {
-        return <Navigate to="/dashboard" replace />;
-      }
-      return children;
-      
-    case 'dashboard':
-      // Must have completed both membership and booking
-      if (!user.membershipCompleted) {
-        return <Navigate to="/membership" replace />;
-      }
-      if (!user.bookingCompleted) {
-        return <Navigate to="/booking" replace />;
-      }
-      return children;
+    case PROGRESS_STEPS.DASHBOARD:
+      // Dashboard has special validation logic
+      validationResult = validateDashboardAccess(user);
+      break;
       
     default:
-      return children;
+      // Use standard validation for membership and booking steps
+      validationResult = validateUserProgress(user, requiredStep);
+      break;
   }
+
+  // If validation failed, redirect to the appropriate step
+  if (!validationResult.isValid && validationResult.redirectTo) {
+    console.log(`ProgressProtectedRoute: Redirecting to ${validationResult.redirectTo} - ${validationResult.reason}`);
+    return <Navigate to={validationResult.redirectTo} replace />;
+  }
+
+  // Validation passed, render the children
+  return children;
 };
 
 export default ProgressProtectedRoute;

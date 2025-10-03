@@ -26,6 +26,7 @@ export default function RegisterScreen() {
       phoneNumber: '',
       dateOfBirth: '',
       gender: '',
+      currentAddress: '',
       password: '',
       confirmPassword: '',
       profilePicture: null,
@@ -89,7 +90,6 @@ export default function RegisterScreen() {
       // Handle OAuth callback - using navigate instead
       // Clear URL parameters and redirect
       window.history.replaceState({}, document.title, window.location.pathname);
-      console.log('OAuth registration successful');
       navigate('/dashboard');
     }
   }, [navigate]);
@@ -133,7 +133,6 @@ export default function RegisterScreen() {
   const fetchAndPopulateTourData = async (email) => {
     try {
       if (!email) {
-        console.log('No email available to check for tour data');
         return;
       }
       
@@ -142,7 +141,6 @@ export default function RegisterScreen() {
       try {
         result = await apiService.request(`/tour/requests/${encodeURIComponent(email)}`);
       } catch {
-        console.log('No tour data found for this email:', email);
         return;
       }
       
@@ -166,14 +164,8 @@ export default function RegisterScreen() {
         }, 5000);
 
         // Show success message in console
-        console.log('✅ Pre-populated profile form with tour data:', {
-          email: email,
-          fullName: latestTour.fullName,
-          gender: latestTour.gender
-        });
         
       } else {
-        console.log('No tour requests found for this email:', email);
       }
       
     } catch (error) {
@@ -272,6 +264,12 @@ export default function RegisterScreen() {
     return '';
   };
 
+  const validateCurrentAddress = (address) => {
+    if (!address) return 'Current address is required';
+    if (address.length < 10) return 'Address must be at least 10 characters';
+    return '';
+  };
+
   const validatePassword = (password) => {
     if (!password) {
       return 'Password is required';
@@ -320,15 +318,12 @@ export default function RegisterScreen() {
     setErrors({});
 
     try {
-      console.log('Sending OTP to:', formData.email);
       // Send OTP to email (this will also check if email exists)
       const response = await apiService.sendOtp(formData.email);
-      console.log('OTP response:', response);
       
       if (response.success) {
         setCurrentStep('otp');
         setOtpTimer(60); // 60 seconds timer
-        console.log('OTP sent successfully, moving to OTP step');
       } else {
         setErrors({ general: response.message || 'Failed to send verification code. Please check your email address and try again.' });
       }
@@ -377,11 +372,6 @@ export default function RegisterScreen() {
     setErrors({});
 
     try {
-      console.log('=== FRONTEND OTP VERIFICATION DEBUG ===');
-      console.log('Email:', formData.email);
-      console.log('OTP:', formData.otp);
-      console.log('OTP type:', typeof formData.otp);
-      console.log('OTP length:', formData.otp.length);
       
       const response = await apiService.verifyOtp(formData.email, formData.otp);
       
@@ -469,6 +459,9 @@ export default function RegisterScreen() {
         case 'gender':
           error = validateGender(value);
           break;
+        case 'currentAddress':
+          error = validateCurrentAddress(value);
+          break;
         case 'password':
           error = validatePassword(value);
           // Also revalidate confirm password if it's been touched
@@ -545,7 +538,6 @@ export default function RegisterScreen() {
             profilePictureBase64: base64Data
           }));
           // Profile picture will be uploaded during registration
-          console.log('Profile picture saved to localStorage');
         } catch (error) {
           if (error.name === 'QuotaExceededError') {
             console.error('localStorage quota exceeded.');
@@ -584,6 +576,9 @@ export default function RegisterScreen() {
       case 'gender':
         error = validateGender(formData.gender);
         break;
+      case 'currentAddress':
+        error = validateCurrentAddress(formData.currentAddress);
+        break;
       case 'password':
         error = validatePassword(formData.password);
         break;
@@ -602,6 +597,7 @@ export default function RegisterScreen() {
     const phoneNumberError = validatePhoneNumber(formData.phoneNumber);
     const dateOfBirthError = validateDateOfBirth(formData.dateOfBirth);
     const genderError = validateGender(formData.gender);
+    const currentAddressError = validateCurrentAddress(formData.currentAddress);
     const passwordError = validatePassword(formData.password);
     const confirmPasswordError = validateConfirmPassword(formData.confirmPassword, formData.password);
     
@@ -610,6 +606,7 @@ export default function RegisterScreen() {
       phoneNumber: phoneNumberError,
       dateOfBirth: dateOfBirthError,
       gender: genderError,
+      currentAddress: currentAddressError,
       password: passwordError,
       confirmPassword: confirmPasswordError
     };
@@ -620,11 +617,12 @@ export default function RegisterScreen() {
       phoneNumber: true,
       dateOfBirth: true,
       gender: true,
+      currentAddress: true,
       password: true, 
       confirmPassword: true 
     });
     
-    return !fullNameError && !phoneNumberError && !dateOfBirthError && !genderError && !passwordError && !confirmPasswordError;
+    return !fullNameError && !phoneNumberError && !dateOfBirthError && !genderError && !currentAddressError && !passwordError && !confirmPasswordError;
   };
 
   const handleRegister = async () => {
@@ -651,7 +649,8 @@ export default function RegisterScreen() {
         fullName: formData.fullName,
         phoneNumber: `+91${formData.phoneNumber}`,
         dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender
+        gender: formData.gender,
+        currentAddress: formData.currentAddress
       };
 
       // Add avatar file if selected
@@ -1032,6 +1031,26 @@ export default function RegisterScreen() {
         {errors.gender && (
           <div className="error-message">
             {errors.gender}
+          </div>
+        )}
+      </div>
+
+      {/* Current Address */}
+      <div className="input-group">
+        <label className="input-label">Current Address</label>
+        <textarea
+          name="currentAddress"
+          placeholder="Enter your current address"
+          value={formData.currentAddress}
+          onChange={(e) => handleInputChange('currentAddress', e.target.value)}
+          onBlur={() => handleBlur('currentAddress')}
+          className={`form-input ${errors.currentAddress ? 'input-error' : ''}`}
+          rows="3"
+          disabled={isLoading}
+        />
+        {errors.currentAddress && (
+          <div className="error-message">
+            {errors.currentAddress}
           </div>
         )}
       </div>

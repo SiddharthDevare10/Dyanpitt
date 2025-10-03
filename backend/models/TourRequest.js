@@ -10,6 +10,26 @@ const tourRequestSchema = new mongoose.Schema({
     match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   },
   
+  // User ID - linked when user registers
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  
+  // Dyanpitt ID - updated when user gets their ID
+  dyanpittId: {
+    type: String,
+    default: null,
+    sparse: true
+  },
+  
+  // Linking timestamp
+  linkedAt: {
+    type: Date,
+    default: null
+  },
+  
   // Personal Information
   fullName: {
     type: String,
@@ -96,14 +116,6 @@ const tourRequestSchema = new mongoose.Schema({
   examinationDate: {
     type: Date,
     required: true
-  },
-  studyRoomDuration: {
-    type: String,
-    required: true,
-    enum: [
-      'Less than a month', '1 Month', '2 Month', '3 Month', '4 Month', 
-      '5 Month', '6 Month', 'More Than 6 Months', '1 Year', 'More Than 1 Year'
-    ]
   },
   
   // Marketing and Background Information

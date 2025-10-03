@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import CustomDropdown from './CustomDropdown';
 
 export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSeatSelect, userData, membershipType }) {
   
-  // State for selected section in Dyanpurn Kaksh
+  // State for selected range in Dyanpurn Kaksh
+  const [selectedRange, setSelectedRange] = useState('50-59');
+  
+  // State for selected section in venues that use sections
   const [selectedSection, setSelectedSection] = useState('A');
   
   if (!isOpen) return null;
@@ -44,8 +47,8 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
   // Define seat layouts for different venues
   const getSeatLayout = () => {
     if (venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn') {
-      // Dyanpurn Kaksh layout - Section based
-      if (selectedSection === 'A') {
+      // Dyanpurn Kaksh layout - Range based
+      if (selectedRange === '50-59') {
         return [
           { row: '5', seats: [54, 55, 56] },                // Row 5: 3 seats (top row)
           { row: '4', seats: [53, 0, 57] },            // Row 4: seat 53, zero, seat 57
@@ -53,14 +56,14 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
           { row: '2', seats: [51, 0, 59] },            // Row 2: seat 51, zero, seat 59
           { row: '1', seats: [50, 0, 0] }             // Row 1: seat 50, two zeros
         ];
-      } else if (selectedSection === 'B') {
+      } else if (selectedRange === '60-69') {
         return [
           { row: '4', seats: [63, 64, 65] },                  // Row 4: 3 seats (top row) - col1: 5, col2: 6, col3: 7
           { row: '3', seats: [62, 0, 66] },             // Row 3: 2 seats with fake box - col1: 3, col2: fake, col3: 4
           { row: '2', seats: [61, 0, 0] },        // Row 2: seat 1 aligned with seat 5 (col1)
           { row: '1', seats: [60, 0, 0] }         // Row 1: seat 2 aligned with seat 6 (col2)
         ];
-      } else if (selectedSection === 'C') {
+      } else if (selectedRange === '70-73') {
         return [
           { row: '4', seats: [72, 0, 71] },               // Row 4: 2 seats with space in between
           { row: '3', seats: [73, 0, 70] },               // Row 3: 2 seats with space in between
@@ -70,8 +73,8 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
       }
       return [];
     } else if (venue === 'Dyanasmi Kaksh') {
-      // Dyanasmi Kaksh layout - Section based (separate from Dyanpurn)
-      if (selectedSection === 'A') {
+      // Dyanasmi Kaksh layout - Range based (separate from Dyanpurn)
+      if (selectedRange === '74-81') {
         return [
           { row: '5', seats: [0, 0, 0,'entry'] },
           { row: '4', seats: [81, 0, 0, 74] },               // Row 4: 2 seats with space in between
@@ -79,7 +82,7 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
           { row: '2', seats: [79, 0, 0, 0] },               // Row 3: 2 seats with space in between              // Row 2: 3 seats
           { row: '1', seats: [0, 78, 77, 76] },                  // Row 1: 3 seats
         ];
-      } else if (selectedSection === 'B') {
+      } else if (selectedRange === '82-88') {
         return [
           { row: '5', seats: [87, 86, 85] }, 
           { row: '4', seats: [88, 0, 0, 84] },                  // Row 4: 3 seats (top row) - col1: 5, col2: 6, col3: 7
@@ -87,7 +90,7 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
           { row: '2', seats: [90, 0, 0, 82] },        // Row 2: seat 1 aligned with seat 5 (col1)
           { row: '1', seats: [0, 91, 92, 'entry'] }         // Row 1: seat 2 aligned with seat 6 (col2)
         ];
-      } else if (selectedSection === 'C') {
+      } else if (selectedRange === '89-95') {
         return [
           { row: '4', seats: [0, 0, 0,'entry'] },                  // Row 4: 3 seats (top row) - col1: 5, col2: 6, col3: 7
           { row: '3', seats: [0, 0, 0, 93] },             // Row 3: 2 seats with fake box - col1: 3, col2: fake, col3: 4
@@ -118,28 +121,28 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
       return 'standard';
     } else if (venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn') {
       // Seat tiers for Dyanpurn Kaksh
-      if (selectedSection === 'A') {
-        // Section A: seats 54, 55, 56 are silver
+      if (selectedRange === '50-59') {
+        // Range 50-59: seats 54, 55, 56 are silver
         if ([54, 55, 56].includes(seatNum)) return 'silver';
-      } else if (selectedSection === 'B') {
-        // Section B: seats 63, 64, 65 are silver
+      } else if (selectedRange === '60-69') {
+        // Range 60-69: seats 63, 64, 65 are silver
         if ([63, 64, 65].includes(seatNum)) return 'silver';
-      } else if (selectedSection === 'C') {
-        // Section C: seat 69 is gold
+      } else if (selectedRange === '70-73') {
+        // Range 70-73: seat 69 is gold
         if (seatNum === 69) return 'gold';
       }
       return 'standard';
     } else if (venue === 'Dyanasmi Kaksh') {
       // Seat tiers for Dyanasmi Kaksh (separate from Dyanpurn)
-      if (selectedSection === 'A') {
-        // Section A: seats 54, 55, 56 are silver
-        if ([54, 55, 56].includes(seatNum)) return 'silver';
-      } else if (selectedSection === 'B') {
-        // Section B: seats 63, 64, 65 are silver
-        if ([63, 64, 65].includes(seatNum)) return 'silver';
-      } else if (selectedSection === 'C') {
-        // Section C: seat 69 is gold
-        if (seatNum === 69) return 'gold';
+      if (selectedRange === '74-81') {
+        // Range 74-81: seats 74, 81 are silver
+        if ([74, 81].includes(seatNum)) return 'silver';
+      } else if (selectedRange === '82-88') {
+        // Range 82-88: seats 82, 88 are silver
+        if ([82, 88].includes(seatNum)) return 'silver';
+      } else if (selectedRange === '89-95') {
+        // Range 89-95: seat 89 is silver
+        if (seatNum === 89) return 'silver';
       }
       return 'standard';
     }
@@ -147,18 +150,86 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
   };
 
 
-  // All seats are available for now
-  const occupiedSeats = [];
+  // Fetch occupied seats from backend
+  const [occupiedSeats, setOccupiedSeats] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Fetch seat data when modal opens
+  useEffect(() => {
+    if (isOpen && membershipType && userData) {
+      fetchSeatData();
+    }
+  }, [isOpen, membershipType, userData]);
+  
+  const fetchSeatData = async () => {
+    // Check if user is authenticated
+    if (!userData) {
+      console.log('⚠️ SeatSelectionModal: User data not available, using static layout');
+      console.log('⚠️ SeatSelectionModal: userData:', userData);
+      setOccupiedSeats([]); // Use empty occupied seats for static layout
+      setLoading(false);
+      return;
+    }
+
+    console.log('✅ SeatSelectionModal: User authenticated, fetching seat data for:', membershipType);
+
+    setLoading(true);
+    try {
+      // Import the API service
+      const apiService = (await import('../services/api.js')).default;
+      
+      // Fetch real seat layout with occupancy data
+      const response = await apiService.request(`/seats/layout?membershipType=${membershipType}`);
+      
+      if (response.success) {
+        // Extract occupied seats from the layout
+        const occupied = [];
+        Object.values(response.data.layout).forEach(row => {
+          row.forEach(seat => {
+            if (seat.isOccupied) {
+              occupied.push(seat.seatNumber);
+            }
+          });
+        });
+        
+        setOccupiedSeats(occupied);
+        console.log('📍 Seat data loaded:', {
+          totalSeats: response.data.totalSeats,
+          occupiedSeats: response.data.occupiedSeats,
+          availableSeats: response.data.availableSeats,
+          occupancyRate: response.data.occupancyRate
+        });
+      } else {
+        console.error('Failed to fetch seat data:', response.message);
+        // Fallback to empty occupied seats
+        setOccupiedSeats([]);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching seat data:', error);
+      // Fallback to empty occupied seats for static layout
+      setOccupiedSeats([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSeatClick = (seatId) => {
     if (occupiedSeats.includes(seatId)) {
       return; // Can't select occupied seats
     }
     
-    // Check gender restrictions for Dyanpurn Kaksh and Dyanasmi Kaksh
-    if (venue === 'Dyanpurn Kaksh' || venue === 'Dyanasmi Kaksh') {
-      if (selectedSection === 'A' && userData?.gender !== 'female') {
-        // Male user trying to select female-only Section A
+    // Check gender restrictions for different venues
+    if (venue === 'Dyanpurn Kaksh') {
+      // Dyanpurn Kaksh is male-only venue - ALL sections A, B, C are for males only
+      if (userData?.gender !== 'male') {
+        // Female user trying to access male-only venue
+        return;
+      }
+    } else if (venue === 'Dyanasmi Kaksh') {
+      // Dyanasmi Kaksh is female-only venue - ALL sections A, B, C are for females only
+      if (userData?.gender !== 'female') {
+        // Male user trying to access female-only venue
         return;
       }
     }
@@ -191,35 +262,74 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
           )}
         </div>
 
-        {/* Section Legend for Dyanpurn Kaksh and Dyanasmi Kaksh */}
-        {(venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh') && (
+        {/* Range Legend for Dyanpurn Kaksh and Dyanasmi Kaksh */}
+        {venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' ? (
           <div className="section-legend-container">
             <div className="section-legend-items">
               <div 
-                className={`section-legend-item ${selectedSection === 'A' ? 'active' : ''}`}
-                onClick={() => setSelectedSection('A')}
+                className={`section-legend-item ${selectedRange === '50-59' ? 'active' : ''}`}
+                onClick={() => setSelectedRange('50-59')}
               >
-                <span>Section A</span>
+                <span>Range 50-59</span>
               </div>
               <div 
-                className={`section-legend-item ${selectedSection === 'B' ? 'active' : ''}`}
-                onClick={() => setSelectedSection('B')}
+                className={`section-legend-item ${selectedRange === '60-69' ? 'active' : ''}`}
+                onClick={() => setSelectedRange('60-69')}
               >
-                <span>Section B</span>
+                <span>Range 60-69</span>
               </div>
               <div 
-                className={`section-legend-item ${selectedSection === 'C' ? 'active' : ''}`}
-                onClick={() => setSelectedSection('C')}
+                className={`section-legend-item ${selectedRange === '70-73' ? 'active' : ''}`}
+                onClick={() => setSelectedRange('70-73')}
               >
-                <span>Section C</span>
+                <span>Range 70-73</span>
               </div>
             </div>
+          </div>
+        ) : venue === 'Dyanasmi Kaksh' ? (
+          <div className="section-legend-container">
+            <div className="section-legend-items">
+              <div 
+                className={`section-legend-item ${selectedRange === '74-81' ? 'active' : ''}`}
+                onClick={() => setSelectedRange('74-81')}
+              >
+                <span>Range 74-81</span>
+              </div>
+              <div 
+                className={`section-legend-item ${selectedRange === '82-88' ? 'active' : ''}`}
+                onClick={() => setSelectedRange('82-88')}
+              >
+                <span>Range 82-88</span>
+              </div>
+              <div 
+                className={`section-legend-item ${selectedRange === '89-95' ? 'active' : ''}`}
+                onClick={() => setSelectedRange('89-95')}
+              >
+                <span>Range 89-95</span>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Loading State */}
+        {loading && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px', margin: '16px' }}>
+            <div style={{ 
+              width: '32px', 
+              height: '32px', 
+              border: '3px solid #f3f3f3', 
+              borderTop: '3px solid #5B5B5B', 
+              borderRadius: '50%', 
+              animation: 'spin 1s linear infinite' 
+            }}></div>
+            <span style={{ marginLeft: '12px', color: '#666' }}>Loading seats...</span>
           </div>
         )}
 
         {/* Interactive Seat Map */}
-        <div className="seat-map">
-          {(venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh') && (selectedSection === 'A' || selectedSection === 'B' || selectedSection === 'C') && seatLayout.map((row, rowIndex) => (
+        {!loading && (
+          <div className="seat-map">
+          {(venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh') && seatLayout.map((row, rowIndex) => (
             <div key={`row-${rowIndex}`} className="seat-row">
               <div className="seats-container">
                 {row.seats.map((seatNum, index) => {
@@ -262,7 +372,10 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                     return <div key={`${row.row}-zero-${index}`} className="empty-space"></div>;
                   }
 
-                  const seatId = `${selectedSection}${seatNum}`;
+                  // Generate seat ID based on venue type
+                  const seatId = (venue === 'Dyanpurn Kaksh' || venue === 'Dyanpurn' || venue === 'Dyanasmi Kaksh') 
+                    ? `${seatNum}` // Range-based venues use just the seat number
+                    : `${row.row}${seatNum}`; // Section-based venues use row letter + seat number
                   const status = getSeatStatus(seatId);
                   const tier = getSeatTier(seatNum);
                   
@@ -279,8 +392,6 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                       style={isDoubleWidth ? { width: '60px', minWidth: '60px' } : {}}
                     >
                       <span className="seat-number">{seatNum}</span>
-                      {tier === 'gold' && <span className="tier-indicator gold"></span>}
-                      {tier === 'silver' && <span className="tier-indicator silver"></span>}
                     </button>
                   );
                 })}
@@ -334,8 +445,6 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
                         title={`Seat ${seatId} - ${status}`}
                       >
                         <span className="seat-number">{seatNum}</span>
-                        {tier === 'gold' && <span className="tier-indicator gold"></span>}
-                        {tier === 'silver' && <span className="tier-indicator silver"></span>}
                       </button>
                     </React.Fragment>
                   );
@@ -343,7 +452,8 @@ export default function SeatSelectionModal({ isOpen, onClose, selectedSeat, onSe
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
 
         {/* Seat Legend */}
         <div className="seat-legend-container">

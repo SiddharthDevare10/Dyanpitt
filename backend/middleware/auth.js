@@ -24,12 +24,6 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    console.log('Auth middleware - User from DB:', {
-      id: user._id,
-      email: user.email,
-      dyanpittId: user.dyanpittId,
-      hasEmail: !!user.email
-    });
 
     req.user = { 
       userId: user._id, 
@@ -60,15 +54,42 @@ const authenticateToken = async (req, res, next) => {
   }
 };
 
-// Middleware to check if user is admin (optional)
-const requireAdmin = (req, res, next) => {
-  if (!req.user || !req.user.isAdmin) {
-    return res.status(403).json({
+// Middleware to check if user is admin (enhanced)
+const requireAdmin = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user || !user.isAdmin()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+    }
+    
+    // Add admin user to request for easy access
+    req.adminUser = user;
+    next();
+  } catch (error) {
+    return res.status(500).json({
       success: false,
-      message: 'Admin access required'
+      message: 'Error verifying admin status'
     });
   }
-  next();
+};
+
+// Middleware to bypass membership/booking requirements for admins
+const allowAdminBypass = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    if (user && user.isAdmin()) {
+      // Admin users bypass membership/booking requirements
+      req.isAdmin = true;
+      return next();
+    }
+    next();
+  } catch (error) {
+    // If error checking admin status, continue with normal flow
+    next();
+  }
 };
 
 // Rate limiting middleware for auth routes
@@ -114,5 +135,6 @@ const rateLimitAuth = (maxAttempts = 5, windowMs = 15 * 60 * 1000) => {
 module.exports = {
   authenticateToken,
   requireAdmin,
+  allowAdminBypass,
   rateLimitAuth
 };

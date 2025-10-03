@@ -1,38 +1,54 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.jsx';
-import { DemoProvider } from './components/DemoMode.jsx';
-import DemoNavigation from './components/DemoNavigation.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import ProgressProtectedRoute from './components/ProgressProtectedRoute.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 
-// Shared screens (used by both user and admin)
-import LoginScreen from './screens/shared/LoginScreen.jsx';
-import RegisterScreen from './screens/shared/RegisterScreen.jsx';
-import ForgotPasswordScreen from './screens/shared/ForgotPasswordScreen.jsx';
+// Loading component
+const LoadingSpinner = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    fontSize: '18px'
+  }}>
+    Loading...
+  </div>
+);
 
-// User screens
-import LandingScreen from './screens/user/LandingScreen.jsx';
-import TourRequestScreen from './screens/user/TourRequestScreen.jsx';
-import VisitorPassScreen from './screens/user/VisitorPassScreen.jsx';
-import CongratulationsScreen from './screens/user/CongratulationsScreen.jsx';
-import MembershipDetailsScreen from './screens/user/MembershipDetailsScreen.jsx';
-import BookingScreen from './screens/user/BookingScreen.jsx';
-import PaymentScreen from './screens/user/PaymentScreen.jsx';
-import DashboardScreen from './screens/user/DashboardScreen.jsx';
+// Lazy load shared screens (used by both user and admin)
+const LoginScreen = lazy(() => import('./screens/shared/LoginScreen.jsx'));
+const RegisterScreen = lazy(() => import('./screens/shared/RegisterScreen.jsx'));
+const ForgotPasswordScreen = lazy(() => import('./screens/shared/ForgotPasswordScreen.jsx'));
 
-// Admin screens
-import AdminDashboardScreen from './screens/admin/AdminDashboardScreen.jsx';
-import UserManagementScreen from './screens/admin/UserManagementScreen.jsx';
-import QRScannerScreen from './screens/admin/QRScannerScreen.jsx';
-import TourManagementScreen from './screens/admin/TourManagementScreen.jsx';
+// Lazy load user screens
+const LandingScreen = lazy(() => import('./screens/user/LandingScreen.jsx'));
+const TourRequestScreen = lazy(() => import('./screens/user/TourRequestScreen.jsx'));
+const VisitorPassScreen = lazy(() => import('./screens/user/VisitorPassScreen.jsx'));
+const CongratulationsScreen = lazy(() => import('./screens/user/CongratulationsScreen.jsx'));
+const CashPaymentPendingScreen = lazy(() => import('./screens/user/CashPaymentPendingScreen.jsx'));
+const PaymentSuccessScreen = lazy(() => import('./screens/user/PaymentSuccessScreen.jsx'));
+const MembershipDetailsScreen = lazy(() => import('./screens/user/MembershipDetailsScreen.jsx'));
+const BookingScreen = lazy(() => import('./screens/user/BookingScreen.jsx'));
+const PaymentScreen = lazy(() => import('./screens/user/PaymentScreen.jsx'));
+const DashboardScreen = lazy(() => import('./screens/user/DashboardScreen.jsx'));
+
+// Lazy load admin screens
+const AdminDashboardScreen = lazy(() => import('./screens/admin/AdminDashboardScreen.jsx'));
+const UserManagementScreen = lazy(() => import('./screens/admin/UserManagementScreen.jsx'));
+const QRScannerScreen = lazy(() => import('./screens/admin/QRScannerScreen.jsx'));
+const TourManagementScreen = lazy(() => import('./screens/admin/TourManagementScreen.jsx'));
+const CashPaymentManagementScreen = lazy(() => import('./screens/admin/CashPaymentManagementScreen.jsx'));
 
 export default function App() {
   return (
-    <DemoProvider>
+    <ErrorBoundary>
       <AuthProvider>
         <Router>
-          <DemoNavigation />
-          <Routes>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
           {/* Public routes */}
           <Route 
             path="/" 
@@ -90,6 +106,8 @@ export default function App() {
 
           {/* Special route for congratulations - accessible without auth */}
           <Route path="/congratulations" element={<CongratulationsScreen />} />
+          <Route path="/cash-payment-pending" element={<CashPaymentPendingScreen />} />
+          <Route path="/payment-success" element={<PaymentSuccessScreen />} />
 
           {/* Protected progress routes */}
           <Route 
@@ -166,11 +184,21 @@ export default function App() {
             } 
           />
 
+          <Route 
+            path="/admin/cash-payments" 
+            element={
+              <ProtectedRoute requireAuth={true} requireAdmin={true}>
+                <CashPaymentManagementScreen />
+              </ProtectedRoute>
+            } 
+          />
+
           {/* Catch all route - redirect to landing */}
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+          </Suspense>
         </Router>
       </AuthProvider>
-    </DemoProvider>
+    </ErrorBoundary>
   );
 }

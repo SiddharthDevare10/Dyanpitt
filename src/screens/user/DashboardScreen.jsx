@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import apiService from '../../services/api';
 import QRCode from 'qrcode';
+import { validateFile } from '../../utils/fileValidation';
+import { hasActiveMembership } from '../../utils/progressValidation';
 
 // Get the API base URL for avatar images
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -12,6 +14,7 @@ export default function DashboardScreen() {
   const [errors, setErrors] = useState({});
   const [avatarError, setAvatarError] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [membershipEligibility, setMembershipEligibility] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -20,6 +23,11 @@ export default function DashboardScreen() {
         const response = await apiService.getCurrentUser();
         if (response.success) {
           setUser(response.user);
+          
+          // Check membership eligibility if user has Dnyanpeeth ID
+          if (response.user.hasDnyanpittId) {
+            await checkMembershipEligibility();
+          }
         } else {
           throw new Error('Failed to fetch user data');
         }
@@ -36,6 +44,26 @@ export default function DashboardScreen() {
     fetchUserData();
   }, []);
 
+  const checkMembershipEligibility = async () => {
+    try {
+      const response = await apiService.get('/booking/check-eligibility');
+      if (response.success) {
+        setMembershipEligibility(response.data);
+      }
+    } catch (error) {
+      console.error('Error checking membership eligibility:', error);
+    }
+  };
+
+  const handleRenewMembership = () => {
+    if (membershipEligibility?.canCreateNewMembership) {
+      // Navigate to membership renewal flow (same as creation flow)
+      window.location.href = '/membership';
+    } else if (membershipEligibility?.hasActiveMembership) {
+      alert('You already have an active membership. Only one active membership is allowed at a time.');
+    }
+  };
+
   // Handle file change for profile picture
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -44,15 +72,13 @@ export default function DashboardScreen() {
       return;
     }
     
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setErrors(prev => ({ ...prev, profilePicture: 'Please select a valid image file' }));
-      return;
-    }
+    // Use standardized file validation
+    const validation = validateFile(file, 'AVATAR');
     
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setErrors(prev => ({ ...prev, profilePicture: 'File size must be less than 5MB' }));
+    if (!validation.isValid) {
+      setErrors(prev => ({ ...prev, profilePicture: validation.error }));
+      // Clear the file input
+      e.target.value = '';
       return;
     }
     
@@ -66,7 +92,6 @@ export default function DashboardScreen() {
       if (response.success) {
         // Update user state with new avatar URL
         setUser(response.user);
-        console.log('Avatar uploaded successfully');
       } else {
         setErrors(prev => ({ ...prev, profilePicture: response.message || 'Failed to upload avatar' }));
       }
@@ -335,7 +360,7 @@ export default function DashboardScreen() {
             <div className="dashboard-membership-section">
               <h3 className="section-title">Membership Status</h3>
               <div className="membership-status-card">
-                {user.bookingDetails && user.bookingDetails.paymentStatus === 'completed' ? (
+                {user.bookingDetails && (user.bookingDetails.paymentStatus === 'completed' || user.bookingDetails.paymentStatus === 'cash_collected') ? (
                   <div className="active-membership">
                     <div className="membership-header">
                       <div className="status-indicator active">
@@ -387,13 +412,6 @@ export default function DashboardScreen() {
                       const today = new Date();
                       const daysUntilExpiry = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                       
-                      // Log membership status for debugging
-                      console.log('Membership Status Check:', {
-                        endDate: endDate.toLocaleDateString(),
-                        today: today.toLocaleDateString(),
-                        daysUntilExpiry,
-                        paymentStatus: user.bookingDetails.paymentStatus
-                      });
                       
                       if (daysUntilExpiry <= 0) {
                         return (
@@ -448,7 +466,7 @@ export default function DashboardScreen() {
                       }
                     })()}
                   </div>
-                ) : user.bookingDetails && user.bookingDetails.paymentStatus === 'pending' ? (
+                ) : user.bookingDetails && (user.bookingDetails.paymentStatus === 'pending' || user.bookingDetails.paymentStatus === 'cash_pending') ? (
                   <div className="pending-membership">
                     <div className="status-indicator pending">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -456,17 +474,24 @@ export default function DashboardScreen() {
                         <line x1="12" y1="8" x2="12" y2="12"/>
                         <line x1="12" y1="16" x2="12.01" y2="16"/>
                       </svg>
-                      <span>Payment Pending</span>
+                      <span>
+                        {user.bookingDetails.paymentStatus === 'cash_pending' ? 'Cash Payment Pending Collection' : 'Payment Pending'}
+                      </span>
                     </div>
                     <p className="membership-message">
-                      Your membership booking is pending payment completion.
+                      {user.bookingDetails.paymentStatus === 'cash_pending' 
+                        ? 'Your cash payment request has been submitted. An admin will contact you to collect the payment. You will receive your Dyanpitt ID after payment collection.'
+                        : 'Your membership booking is pending payment completion.'
+                      }
                     </p>
-                    <button 
-                      className="complete-payment-button"
-                      onClick={() => window.location.href = '/payment'}
-                    >
-                      Complete Payment
-                    </button>
+                    {user.bookingDetails.paymentStatus !== 'cash_pending' && (
+                      <button 
+                        className="complete-payment-button"
+                        onClick={() => window.location.href = '/payment'}
+                      >
+                        Complete Payment
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="no-membership">
@@ -597,8 +622,38 @@ export default function DashboardScreen() {
           </div>
 
           <div className="dashboard-placeholder">
-            <p>This is a placeholder dashboard page.</p>
-            <p>More features will be added here in the future.</p>
+            {user?.hasDnyanpittId ? (
+              <div className="membership-actions">
+                <h3>Membership Options</h3>
+                {membershipEligibility ? (
+                  <div className="membership-status">
+                    {membershipEligibility.hasActiveMembership ? (
+                      <div className="active-membership-notice">
+                        <p>✅ You have an active membership!</p>
+                        <p>Only one active membership is allowed at a time.</p>
+                      </div>
+                    ) : (
+                      <div className="new-membership-option">
+                        <p>Welcome back! You can renew your membership.</p>
+                        <button 
+                          onClick={handleRenewMembership}
+                          className="renew-membership-button"
+                        >
+                          Renew Membership
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p>Checking membership status...</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <p>This is a placeholder dashboard page.</p>
+                <p>More features will be added here in the future.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

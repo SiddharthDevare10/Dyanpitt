@@ -3,9 +3,6 @@
   "version": "1.0.0",
   "description": "Backend for Dyanpitt app with MongoDB authentication",
   "main": "server.js",
-  "engines": {
-    "node": ">=20.19 <23"
-  },
   "scripts": {
     "start": "cross-env NODE_ENV=production node server.js",
     "start:prod": "cross-env NODE_ENV=production node server.js",

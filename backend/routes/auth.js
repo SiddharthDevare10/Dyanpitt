@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
 const { authenticateToken: auth } = require('../middleware/auth');
+const { requireEmailVerification, requireProfileCompletion } = require('../middleware/emailVerification');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs');
 const path = require('path');
@@ -10,6 +11,8 @@ const emailService = require('../services/emailService');
 const verificationService = require('../services/verificationService');
 const { uploadWithProcessing } = require('../middleware/upload');
 const cleanupService = require('../services/cleanupService');
+const TourLinkingService = require('../services/tourLinkingService');
+const phoneVerificationService = require('../services/phoneVerificationService');
 
 const router = express.Router();
 
@@ -100,6 +103,102 @@ router.post('/check-phone', [
   }
 });
 
+// @route   POST /api/auth/send-phone-otp
+// @desc    Send OTP for phone verification
+// @access  Public
+router.post('/send-phone-otp', otpLimiter, [
+  body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format with valid Indian mobile number')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format',
+        errors: errors.array()
+      });
+    }
+
+    const { phoneNumber } = req.body;
+
+    // Check if phone number already exists
+    const existingUser = await User.findOne({ phoneNumber });
+    if (existingUser && existingUser.isEmailVerified && existingUser.profileCompleted) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is already registered with another account'
+      });
+    }
+
+    // Send OTP using phone verification service
+    const result = await phoneVerificationService.sendOTP(phoneNumber);
+    
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: result.message,
+        code: result.code
+      });
+    }
+
+    res.json({
+      success: true,
+      message: result.message,
+      expiresIn: result.expiresIn
+    });
+
+  } catch (error) {
+    console.error('Send phone OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while sending phone OTP'
+    });
+  }
+});
+
+// @route   POST /api/auth/verify-phone-otp
+// @desc    Verify phone OTP
+// @access  Public
+router.post('/verify-phone-otp', [
+  body('phoneNumber').matches(/^\+91[6-9]\d{9}$/).withMessage('Phone number must be in +91 format'),
+  body('otp').isLength({ min: 6, max: 6 }).isNumeric().withMessage('OTP must be 6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid input',
+        errors: errors.array()
+      });
+    }
+
+    const { phoneNumber, otp } = req.body;
+
+    // Verify OTP using phone verification service
+    const isValid = phoneVerificationService.verifyOTP(phoneNumber, otp);
+    
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Phone number verified successfully'
+    });
+
+  } catch (error) {
+    console.error('Verify phone OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during phone verification'
+    });
+  }
+});
+
 // @route   POST /api/auth/send-otp
 // @desc    Send OTP for email verification
 // @access  Public
@@ -150,6 +249,7 @@ router.post('/send-otp', otpLimiter, [
         phoneNumber: `temp_${timestamp}_${randomSuffix}`,
         dateOfBirth: new Date(),
         gender: 'other',
+        currentAddress: 'Temporary Address', // Temporary address
         password: 'temporary',
         registrationMonth: '000000', // Temporary month
         registrationNumber: 0, // Temporary number
@@ -327,7 +427,7 @@ router.post('/register', uploadWithProcessing('avatar', {
       });
     }
 
-    const { email, fullName, phoneNumber, dateOfBirth, gender, password } = req.body;
+    const { email, fullName, phoneNumber, dateOfBirth, gender, currentAddress, password } = req.body;
 
     // Handle uploaded avatar (processed upload)
     let avatarUrl = null;
@@ -342,6 +442,17 @@ router.post('/register', uploadWithProcessing('avatar', {
         message: 'Phone number already registered'
       });
     }
+
+    // Note: Phone verification is optional for now
+    // Can be enabled later when frontend implements phone verification flow
+    // if (!phoneVerificationService.hasValidOTP(phoneNumber)) {
+    //   deleteUploadedFile(req.file);
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'Please verify your phone number first',
+    //     code: 'PHONE_VERIFICATION_REQUIRED'
+    //   });
+    // }
 
     // Find verified temp user by pending email
     let tempUser = await User.findOne({ pendingEmail: email, isEmailVerified: true });
@@ -448,10 +559,12 @@ router.post('/register', uploadWithProcessing('avatar', {
     tempUser.phoneNumber = phoneNumber;
     tempUser.dateOfBirth = new Date(dateOfBirth);
     tempUser.gender = gender;
+    tempUser.currentAddress = currentAddress;
     tempUser.password = password; // Will be hashed by pre-save middleware
     tempUser.pendingEmail = undefined; // Remove the pending email field
     tempUser.profileCompleted = true; // Mark profile as completed since all basic info is provided
     tempUser.hasDnyanpittId = false; // User doesn't have Dyanpitt ID yet
+    tempUser.isPhoneVerified = false; // Phone verification is optional for now
     // Don't set dyanpittId, registrationMonth, registrationNumber - they're optional now
     if (avatarUrl) {
       tempUser.avatar = avatarUrl; // Store avatar URL in database
@@ -468,6 +581,17 @@ router.post('/register', uploadWithProcessing('avatar', {
     tempUser.emailVerificationExpiry = null;
     
     await tempUser.save();
+
+    // Link any existing tour requests to this user
+    try {
+      const linkingResult = await TourLinkingService.linkTourRequestsToUser(email, tempUser._id);
+      if (linkingResult.success && linkingResult.linkedCount > 0) {
+        console.log(`✅ Linked ${linkingResult.linkedCount} tour requests to new user ${email}`);
+      }
+    } catch (linkingError) {
+      console.error('Error linking tour requests during registration:', linkingError);
+      // Don't fail registration if linking fails
+    }
 
     // Send intermediate welcome email (without Dyanpitt ID)
     try {
@@ -514,20 +638,10 @@ router.post('/login', loginLimiter, [
   body('password').exists()
 ], async (req, res) => {
   try {
-    console.log('🔐 LOGIN REQUEST RECEIVED:', {
-      timestamp: new Date().toISOString(),
-      ip: req.ip,
-      body: {
-        email: req.body.email || 'not provided',
-        dyanpittId: req.body.dyanpittId || 'not provided',
-        hasPassword: !!req.body.password,
-        rememberMe: req.body.rememberMe
-      }
-    });
 
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.log('🔐 LOGIN VALIDATION FAILED:', errors.array());
+  
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
@@ -538,7 +652,6 @@ router.post('/login', loginLimiter, [
     const { email, dyanpittId, password, rememberMe } = req.body;
     const identifier = email || dyanpittId;
     
-    console.log('🔐 LOGIN PROCESSING:', { identifier, hasPassword: !!password });
 
     if (!identifier) {
       return res.status(400).json({
@@ -547,39 +660,26 @@ router.post('/login', loginLimiter, [
       });
     }
 
-    // Find user by email or Dyanpitt ID (updated for optional Dyanpitt ID)
-    console.log('🔐 LOOKING UP USER:', identifier);
+    // Find user by email or Dyanpitt ID
     const user = await User.findByEmailOrDyanpittId(identifier);
     if (!user) {
-      console.log('🔐 USER NOT FOUND:', identifier);
       return res.status(400).json({
         success: false,
         message: 'Invalid credentials'
       });
     }
-    console.log('🔐 USER FOUND:', { userId: user._id, email: user.email });
 
     // Check if account is active and email verified
     if (!user.isActive || !user.isEmailVerified) {
-      console.log('🔐 ACCOUNT NOT ACTIVE OR EMAIL NOT VERIFIED:', {
-        isActive: user.isActive,
-        isEmailVerified: user.isEmailVerified
-      });
       return res.status(400).json({
         success: false,
         message: 'Account is not active or email not verified'
       });
     }
 
-    // SECURITY: Ensure user has completed full registration (has real password and email)
+    // SECURITY: Ensure user has completed full registration
     if (!user.email || user.email.includes('@temp.local') ||
         user.password === 'temporary' || user.pendingEmail) {
-      console.log('🔐 INCOMPLETE REGISTRATION:', {
-        hasEmail: !!user.email,
-        isTempEmail: user.email?.includes('@temp.local'),
-        isTempPassword: user.password === 'temporary',
-        hasPendingEmail: !!user.pendingEmail
-      });
       return res.status(400).json({
         success: false,
         message: 'Please complete your registration first'
@@ -589,9 +689,7 @@ router.post('/login', loginLimiter, [
     // Note: Users can login without Dyanpitt ID (will get it after first membership payment)
 
     // Check password
-    console.log('🔐 CHECKING PASSWORD...');
     const isMatch = await user.comparePassword(password);
-    console.log('🔐 PASSWORD CHECK RESULT:', isMatch);
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -599,20 +697,30 @@ router.post('/login', loginLimiter, [
       });
     }
 
+    // Check if user has pending cash payment - prevent login until admin collects payment
+    const pendingBooking = user.bookings?.find(booking => booking.paymentStatus === 'cash_pending');
+    if (pendingBooking) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your cash payment is pending collection. Please wait for an admin to collect your payment before you can access your account.',
+        code: 'CASH_PAYMENT_PENDING',
+        paymentDetails: {
+          requestDate: pendingBooking.cashPaymentRequest?.requestDate,
+          amount: pendingBooking.totalAmount
+        }
+      });
+    }
+
     // Update last login
-    console.log('🔐 UPDATING LAST LOGIN...');
     await user.updateLastLogin();
 
     // Generate JWT token
-    console.log('🔐 GENERATING JWT TOKEN...');
     const expiresIn = rememberMe ? '30d' : '15m'; // Industry standard: 15 minutes, 30 days for remember me
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET || 'fallback-secret',
       { expiresIn }
     );
-
-    console.log('🔐 LOGIN SUCCESS - SENDING RESPONSE');
     res.json({
       success: true,
       message: user.hasDnyanpittId ? 'Login successful' : 'Login successful. Complete your membership to get your Dyanpitt ID.',
@@ -636,7 +744,7 @@ router.post('/login', loginLimiter, [
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
-router.get('/me', auth, async (req, res) => {
+router.get('/me', auth, requireEmailVerification, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId).select('-password');
     if (!user) {
@@ -829,7 +937,7 @@ router.post('/logout', auth, (req, res) => {
 });
 
 // Update membership details
-router.post('/update-membership', auth, uploadWithProcessing('selfiePhoto', { 
+router.post('/update-membership', auth, requireEmailVerification, requireProfileCompletion, uploadWithProcessing('selfiePhoto', { 
   createThumbnails: true, 
   maxWidth: 600, 
   maxHeight: 600, 
@@ -847,7 +955,7 @@ router.post('/update-membership', auth, uploadWithProcessing('selfiePhoto', {
     }
     
     // Validate required fields
-    const requiredFields = ['visitedBefore', 'fatherName', 'parentContactNumber', 'educationalBackground', 'currentOccupation', 'currentAddress', 'examPreparation', 'examinationDate'];
+    const requiredFields = ['visitedBefore', 'fatherName', 'parentContactNumber', 'educationalBackground', 'currentOccupation', 'examPreparation', 'examinationDate'];
     
     for (const field of requiredFields) {
       if (!membershipDetails[field]) {
@@ -876,16 +984,8 @@ router.post('/update-membership', auth, uploadWithProcessing('selfiePhoto', {
       });
     }
 
-    // Update user with membership details
-    const user = await User.findByIdAndUpdate(
-      req.user.userId,
-      {
-        membershipDetails,
-        membershipCompleted: true
-      },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    // Get user details first
+    const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -893,10 +993,41 @@ router.post('/update-membership', auth, uploadWithProcessing('selfiePhoto', {
       });
     }
 
+    // Create membership entry in separate Membership table
+    const Membership = require('../models/Membership');
+    
+    // Check if membership already exists for this user
+    let membership = await Membership.findOne({ userId: user._id });
+    
+    if (membership) {
+      // Update existing membership
+      Object.assign(membership, membershipDetails);
+      membership.submittedAt = new Date();
+      await membership.save();
+    } else {
+      // Create new membership
+      membership = new Membership({
+        userId: user._id,
+        userEmail: user.email,
+        dyanpittId: user.dyanpittId || null, // Include Dyanpeeth ID if available
+        ...membershipDetails,
+        submittedAt: new Date()
+      });
+      await membership.save();
+    }
+
+    // Update user completion status only
+    user.membershipCompleted = true;
+    await user.save();
+
+    // Get updated user data
+    const updatedUser = await User.findById(req.user.userId).select('-password');
+
     res.json({
       success: true,
       message: 'Membership details updated successfully',
-      user
+      user: updatedUser,
+      membership: membership
     });
 
   } catch (error) {
@@ -908,8 +1039,8 @@ router.post('/update-membership', auth, uploadWithProcessing('selfiePhoto', {
   }
 });
 
-// Update booking details
-router.post('/update-booking', auth, async (req, res) => {
+// Update booking details - now saves to separate Booking table
+router.post('/update-booking', auth, requireEmailVerification, requireProfileCompletion, async (req, res) => {
   try {
     const { bookingDetails } = req.body;
     
@@ -995,20 +1126,8 @@ router.post('/update-booking', auth, async (req, res) => {
       membershipEndDate.setMonth(membershipEndDate.getMonth() + months);
     }
 
-    // Update user with booking details
-    const user = await User.findByIdAndUpdate(
-      req.user.userId,
-      {
-        bookingDetails: {
-          ...bookingDetails,
-          membershipEndDate,
-          totalAmount,
-          paymentStatus: 'pending'
-        }
-      },
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    // Get user details first
+    const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -1016,10 +1135,75 @@ router.post('/update-booking', auth, async (req, res) => {
       });
     }
 
+    // Create booking entry in separate Booking table
+    const Booking = require('../models/Booking');
+    
+    // Deactivate any existing active bookings for this user
+    await Booking.updateMany(
+      { userId: user._id, isActive: true },
+      { isActive: false, lastUpdated: new Date() }
+    );
+    
+    // Create new booking
+    const newBooking = new Booking({
+      userId: user._id,
+      userEmail: user.email,
+      dyanpittId: user.dyanpittId || null, // Include Dyanpeeth ID if available
+      ...bookingDetails,
+      membershipEndDate,
+      totalAmount,
+      paymentStatus: 'pending',
+      bookedAt: new Date(),
+      lastUpdated: new Date()
+    });
+    
+    await newBooking.save();
+
+    // Automatically allocate seat for the booking
+    const SeatAllocation = require('../models/SeatAllocation');
+    let seatAllocation = null;
+    
+    try {
+      seatAllocation = await SeatAllocation.allocateSeat(newBooking._id, bookingDetails.preferredSeat);
+      console.log(`✅ Seat ${seatAllocation.seatNumber} allocated for booking ${newBooking._id}`);
+    } catch (seatError) {
+      console.error('⚠️ Seat allocation failed:', seatError.message);
+      // Don't fail the booking, just log the error
+      // User can manually select seat later
+    }
+
+    // Update user completion status only
+    user.bookingCompleted = true;
+    await user.save();
+
+    // Get updated user data
+    const updatedUser = await User.findById(req.user.userId).select('-password');
+
     res.json({
       success: true,
       message: 'Booking details updated successfully',
-      user,
+      user: updatedUser,
+      booking: {
+        id: newBooking._id,
+        timeSlot: newBooking.timeSlot,
+        membershipType: newBooking.membershipType,
+        membershipDuration: newBooking.membershipDuration,
+        membershipStartDate: newBooking.membershipStartDate,
+        membershipEndDate: newBooking.membershipEndDate,
+        totalAmount: newBooking.totalAmount,
+        paymentStatus: newBooking.paymentStatus,
+        membershipActive: newBooking.membershipActive,
+        bookedAt: newBooking.bookedAt
+      },
+      seatAllocation: seatAllocation ? {
+        seatNumber: seatAllocation.seatNumber,
+        allocationId: seatAllocation._id,
+        status: seatAllocation.allocationStatus,
+        allocated: true
+      } : {
+        allocated: false,
+        message: 'Seat allocation pending - you can select a seat manually'
+      },
       paymentAmount: totalAmount
     });
 
@@ -1033,7 +1217,7 @@ router.post('/update-booking', auth, async (req, res) => {
 });
 
 // Renew membership (extends existing membership)
-router.post('/renew-membership', auth, async (req, res) => {
+router.post('/renew-membership', auth, requireEmailVerification, requireProfileCompletion, async (req, res) => {
   try {
     const { bookingDetails } = req.body;
     
@@ -1159,6 +1343,194 @@ router.post('/renew-membership', auth, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error while processing membership renewal'
+    });
+  }
+});
+
+// Create cash payment request
+router.post('/create-cash-payment-request', auth, requireEmailVerification, requireProfileCompletion, async (req, res) => {
+  try {
+    // Get user first
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if membership is completed (required for payment)
+    if (!user.membershipCompleted) {
+      return res.status(400).json({
+        success: false,
+        message: 'Membership must be completed before payment'
+      });
+    }
+
+    // Check if user already has a pending cash payment request
+    if (user.bookingDetails && user.bookingDetails.paymentStatus === 'cash_pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have a pending cash payment request'
+      });
+    }
+
+    // Initialize bookingDetails if it doesn't exist
+    if (!user.bookingDetails) {
+      user.bookingDetails = {};
+    }
+
+    // Update payment details for cash request
+    user.bookingDetails.paymentMethod = 'cash';
+    user.bookingDetails.paymentStatus = 'cash_pending';
+    user.bookingDetails.cashPaymentRequest = {
+      requestDate: new Date(),
+      collectedDate: null,
+      collectedBy: null,
+      adminNotes: null
+    };
+    user.bookingCompleted = false; // Still pending until admin collects
+
+    await user.save();
+
+    console.log('Cash payment request created for user:', user.email);
+
+    res.json({
+      success: true,
+      message: 'Cash payment request created successfully',
+      user: user.getPublicProfile()
+    });
+
+  } catch (error) {
+    console.error('Create cash payment request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while creating cash payment request'
+    });
+  }
+});
+
+// Get pending cash payments (Admin only)
+router.get('/pending-cash-payments', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    const adminUser = await User.findById(req.user.userId);
+    if (!adminUser || !adminUser.isAdmin()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    // Get all users with pending cash payments
+    const pendingPayments = await User.find({
+      'bookingDetails.paymentStatus': 'cash_pending'
+    }).select('email fullName phoneNumber bookingDetails createdAt avatar');
+
+    const formattedPayments = pendingPayments.map(user => ({
+      userId: user._id,
+      email: user.email,
+      fullName: user.fullName,
+      phoneNumber: user.phoneNumber,
+      avatar: user.avatar,
+      membershipType: user.bookingDetails?.membershipType,
+      timeSlot: user.bookingDetails?.timeSlot,
+      duration: user.bookingDetails?.membershipDuration,
+      totalAmount: user.bookingDetails?.totalAmount,
+      requestDate: user.bookingDetails?.cashPaymentRequest?.requestDate,
+      membershipStartDate: user.bookingDetails?.membershipStartDate,
+      registeredDate: user.createdAt
+    }));
+
+    res.json({
+      success: true,
+      pendingPayments: formattedPayments,
+      count: formattedPayments.length
+    });
+
+  } catch (error) {
+    console.error('Get pending cash payments error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching pending cash payments'
+    });
+  }
+});
+
+// Confirm cash payment collection (Admin only)
+router.post('/confirm-cash-payment', auth, async (req, res) => {
+  try {
+    const { userId, adminNotes } = req.body;
+    
+    // Check if user is admin
+    const adminUser = await User.findById(req.user.userId);
+    if (!adminUser || !adminUser.isAdmin()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.'
+      });
+    }
+
+    // Find the user with pending cash payment
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Check if user has pending cash payment
+    if (user.bookingDetails.paymentStatus !== 'cash_pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'User does not have a pending cash payment'
+      });
+    }
+
+    // Update payment status to collected
+    user.bookingDetails.paymentStatus = 'cash_collected';
+    user.bookingDetails.paymentDate = new Date();
+    user.bookingDetails.cashPaymentRequest.collectedDate = new Date();
+    user.bookingDetails.cashPaymentRequest.collectedBy = adminUser.email;
+    user.bookingDetails.cashPaymentRequest.adminNotes = adminNotes || 'Payment collected by admin';
+    user.bookingCompleted = true;
+
+    let dyanpittIdData = null;
+
+    // Generate Dnyanpitt ID if user doesn't have one
+    if (!user.hasDnyanpittId) {
+      try {
+        dyanpittIdData = await user.assignDyanpittId();
+        console.log('Dnyanpitt ID generated for cash payment:', dyanpittIdData.dyanpittId);
+        
+        // Send welcome email with Dnyanpitt ID
+        await emailService.sendWelcomeEmail(user.email, user.fullName, dyanpittIdData.dyanpittId);
+        
+      } catch (error) {
+        console.error('Error generating Dnyanpitt ID for cash payment:', error);
+        // Continue with payment confirmation even if ID generation fails
+      }
+    }
+
+    await user.save();
+
+    console.log('Cash payment confirmed by admin:', adminUser.email, 'for user:', user.email);
+
+    res.json({
+      success: true,
+      message: dyanpittIdData 
+        ? 'Cash payment confirmed successfully! Dyanpitt ID has been generated and sent to the user.' 
+        : 'Cash payment confirmed successfully!',
+      user: user.getPublicProfile(),
+      dyanpittId: dyanpittIdData?.dyanpittId
+    });
+
+  } catch (error) {
+    console.error('Confirm cash payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while confirming cash payment'
     });
   }
 });

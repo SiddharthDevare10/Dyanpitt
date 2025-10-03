@@ -1,12 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import apiService from '../../services/api';
 import { useNavigate } from 'react-router-dom';
 import DatePicker from '../../components/DatePicker';
 import CustomDropdown from '../../components/CustomDropdown';
 import CustomTimePicker from '../../components/CustomTimePicker';
+import NotificationModal from '../../components/NotificationModal';
+import { useFormAutoSave } from '../../utils/formAutoSave';
+import AutoSaveIndicator from '../../components/AutoSaveIndicator';
 
 export default function TourRequestScreen() {
   const navigate = useNavigate();
+  
+  // Notification state
+  const [notification, setNotification] = useState({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+    actions: []
+  });
+
+  // Auto-save state
+  const [autoSaveStatus, setAutoSaveStatus] = useState('saved');
+  const [showRestoreOption, setShowRestoreOption] = useState(false);
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -20,7 +36,6 @@ export default function TourRequestScreen() {
     jobTitle: '',
     examPreparation: '',
     examinationDate: '',
-    studyRoomDuration: '',
     howDidYouKnow: '',
     previousStudyRoomExperience: '',
     studyRoomComparison: '',
@@ -36,6 +51,20 @@ export default function TourRequestScreen() {
   const [errors, setErrors] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [isAgreed, setIsAgreed] = useState(false);
+
+  // Auto-save functionality
+  const { scheduleAutoSave, clearSavedData, hasSavedData } = useFormAutoSave('tour-request-form', formData);
+
+  useEffect(() => {
+    if (hasSavedData()) setShowRestoreOption(true);
+  }, [hasSavedData]);
+
+  useEffect(() => {
+    const hasData = Object.values(formData).some(value => 
+      typeof value === 'string' ? value.trim().length > 0 : Boolean(value)
+    );
+    if (hasData) scheduleAutoSave();
+  }, [formData, scheduleAutoSave]);
   
   // Handle time change from CustomTimePicker
   const handleTimeChange = (timeValue) => {
@@ -134,9 +163,6 @@ export default function TourRequestScreen() {
       newErrors.examinationDate = 'Examination date is required';
     }
     
-    if (!formData.studyRoomDuration) {
-      newErrors.studyRoomDuration = 'Study room duration is required';
-    }
     
     if (!formData.howDidYouKnow) {
       newErrors.howDidYouKnow = 'This field is required';
@@ -167,19 +193,27 @@ export default function TourRequestScreen() {
 
     // Show the self-declaration modal instead of submitting directly
     setShowModal(true);
-    console.log('Modal should open now, showModal:', true);
   };
 
   const handleFinalSubmit = async () => {
-    console.log('🚀 handleFinalSubmit called!');
     
     if (!isAgreed) {
-      alert('Please agree to the terms and conditions to proceed.');
+      setNotification({
+        isOpen: true,
+        type: 'warning',
+        title: 'Terms and Conditions Required',
+        message: 'Please agree to the terms and conditions to proceed.',
+        actions: [
+          {
+            label: 'OK',
+            variant: 'primary',
+            onClick: () => setNotification({ ...notification, isOpen: false })
+          }
+        ]
+      });
       return;
     }
 
-    console.log('=== STARTING TOUR REQUEST SUBMISSION ===');
-    console.log('Form data before processing:', formData);
 
     setIsLoading(true);
     
@@ -199,7 +233,6 @@ export default function TourRequestScreen() {
         jobTitle: formData.jobTitle,
         examPreparation: formData.examPreparation,
         examinationDate: formData.examinationDate,
-        studyRoomDuration: formData.studyRoomDuration,
         howDidYouKnow: formData.howDidYouKnow,
         previousStudyRoomExperience: formData.previousStudyRoomExperience,
         studyRoomComparison: formData.studyRoomComparison,
@@ -210,19 +243,7 @@ export default function TourRequestScreen() {
       };
 
       // Debug logging
-      console.log('=== TOUR REQUEST DEBUG ===');
-      console.log('Request URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/request`);
-      console.log('Request data:', JSON.stringify(tourRequestData, null, 2));
-      console.log('Tour date validation:');
-      console.log('- Selected date:', tourRequestData.tourDate);
-      console.log('- Date object:', new Date(tourRequestData.tourDate));
-      console.log('- Tomorrow:', new Date(Date.now() + 24 * 60 * 60 * 1000));
-      console.log('- Is future date:', new Date(tourRequestData.tourDate) > new Date());
-      
       // Submit to backend API
-      console.log('=== ABOUT TO MAKE API CALL ===');
-      console.log('Endpoint:', '/tour/request');
-      console.log('Full URL will be:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/tour/request`);
       
       const response = await apiService.request('/tour/request', {
         method: 'POST',
@@ -238,7 +259,6 @@ export default function TourRequestScreen() {
         throw new Error(result?.message || 'Failed to submit tour request');
       }
 
-      console.log('Tour request submitted successfully:', result);
       
       // Navigate to visitor pass screen with tour data
       navigate('/visitor-pass', { 
@@ -254,13 +274,69 @@ export default function TourRequestScreen() {
       
       // Show user-friendly error message
       if (error.message.includes('already have a pending')) {
-        alert('You already have a pending tour request. Please wait for confirmation or contact us.');
+        setNotification({
+          isOpen: true,
+          type: 'warning',
+          title: 'Pending Request Exists',
+          message: 'You already have a pending tour request. Please wait for confirmation or contact us.',
+          actions: [
+            {
+              label: 'OK',
+              variant: 'primary',
+              onClick: () => setNotification({ ...notification, isOpen: false })
+            }
+          ]
+        });
       } else if (error.message.includes('already have a tour request for this date')) {
-        alert('You already have a tour request for this date. Please choose a different date.');
+        setNotification({
+          isOpen: true,
+          type: 'warning',
+          title: 'Date Already Booked',
+          message: 'You already have a tour request for this date. Please choose a different date.',
+          actions: [
+            {
+              label: 'OK',
+              variant: 'primary',
+              onClick: () => setNotification({ ...notification, isOpen: false })
+            }
+          ]
+        });
       } else if (error.message.includes('Tour date must be at least tomorrow')) {
-        alert('Please select a tour date that is at least tomorrow. Today\'s date is not allowed.');
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Invalid Date Selection',
+          message: 'Please select a tour date that is at least tomorrow. Today\'s date is not allowed.',
+          actions: [
+            {
+              label: 'OK',
+              variant: 'primary',
+              onClick: () => setNotification({ ...notification, isOpen: false })
+            }
+          ]
+        });
       } else {
-        alert(`Failed to submit tour request: ${error.message}. Please try again or contact support.`);
+        setNotification({
+          isOpen: true,
+          type: 'error',
+          title: 'Request Failed',
+          message: `Failed to submit tour request: ${error.message}. Please try again or contact support.`,
+          actions: [
+            {
+              label: 'Retry',
+              variant: 'primary',
+              onClick: () => {
+                setNotification({ ...notification, isOpen: false });
+                handleSubmit(e);
+              }
+            },
+            {
+              label: 'Cancel',
+              variant: 'secondary',
+              onClick: () => setNotification({ ...notification, isOpen: false })
+            }
+          ]
+        });
       }
     } finally {
       setIsLoading(false);
@@ -535,35 +611,6 @@ export default function TourRequestScreen() {
           {errors.examinationDate && <div className="error-message">{errors.examinationDate}</div>}
         </div>
 
-        {/* Study Room Duration */}
-        <div className="input-group">
-          <label className="input-label tour-input-label">
-            How long do you intend to use the study room? Is it a short-term or long-term commitment?
-            <div className="tour-marathi-text">किती महिन्यांसाठी अभ्यासिकेला यायचे आहे?</div>
-          </label>
-          <CustomDropdown
-            name="studyRoomDuration"
-            value={formData.studyRoomDuration}
-            onChange={handleInputChange}
-            options={[
-              { value: "Less than a month", label: "Less than a month" },
-              { value: "1 Month", label: "1 Month" },
-              { value: "2 Month", label: "2 Month" },
-              { value: "3 Month", label: "3 Month" },
-              { value: "4 Month", label: "4 Month" },
-              { value: "5 Month", label: "5 Month" },
-              { value: "6 Month", label: "6 Month" },
-              { value: "More Than 6 Months", label: "More Than 6 Months" },
-              { value: "1 Year", label: "1 Year" },
-              { value: "More Than 1 Year", label: "More Than 1 Year" }
-            ]}
-            placeholder="Select duration"
-            className="form-input"
-            error={errors.studyRoomDuration}
-            disabled={isLoading}
-          />
-          {errors.studyRoomDuration && <div className="error-message">{errors.studyRoomDuration}</div>}
-        </div>
 
         {/* How did you know about us */}
         <div className="input-group">
@@ -722,6 +769,26 @@ export default function TourRequestScreen() {
           </div>
         </div>
       )}
+
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification({ ...notification, isOpen: false })}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        actions={notification.actions}
+      />
+
+      <AutoSaveIndicator
+        isVisible={autoSaveStatus === 'saving' || autoSaveStatus === 'saved'}
+        status={autoSaveStatus}
+        showRestoreOption={showRestoreOption}
+        onRestore={() => {
+          const savedData = useFormAutoSave('tour-request-form').loadSavedData();
+          if (savedData) setFormData(prev => ({ ...prev, ...savedData }));
+          setShowRestoreOption(false);
+        }}
+      />
     </div>
   );
 }

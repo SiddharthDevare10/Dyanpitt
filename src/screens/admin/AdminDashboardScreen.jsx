@@ -90,6 +90,18 @@ const AdminDashboardScreen = () => {
           </button>
           
           <button 
+            className="admin-action-button cash-payment-action"
+            onClick={() => navigate('/admin/cash-payments')}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="6" width="20" height="12" rx="2" stroke="currentColor" strokeWidth="2"/>
+              <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M6 12H6.01M18 12H18.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            Cash Payments
+          </button>
+          
+          <button 
             className="admin-action-button qr-scanner-action"
             onClick={() => navigate('/admin/qr-scanner')}
           >

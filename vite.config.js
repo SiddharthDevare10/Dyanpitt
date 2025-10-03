@@ -2,9 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: process.env.NODE_ENV === 'production' ? '/Dyanpitt/' : '/',
+  base: command === 'build' ? '/Dyanpitt/' : '/',
   server: {
     host: '0.0.0.0', // Allow external connections
     port: 5173,
@@ -13,4 +13,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom']
   }
-})
+}))

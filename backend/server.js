@@ -164,6 +164,10 @@ app.use('/api/auth', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/tour', require('./routes/tour'));
 app.use('/api/cleanup', require('./routes/cleanup'));
+app.use('/api/booking', require('./routes/booking'));
+app.use('/api/booking-history', require('./routes/bookingHistory')); // New booking history and transaction routes
+app.use('/api/seats', require('./routes/seatManagement')); // Seat allocation and management routes
+app.use('/api/analytics', require('./routes/analytics')); // New analytics routes for separate tables
 
 // Health check route
 app.get('/api/health', (req, res) => {

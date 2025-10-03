@@ -17,7 +17,7 @@ class EmailService {
         });
         
         // Verify connection
-        this.transporter.verify((error, success) => {
+        this.transporter.verify((error, _success) => {
           if (error) {
             console.error('SMTP connection failed:', error.message);
             console.log('Falling back to CONSOLE MODE');
@@ -362,8 +362,86 @@ class EmailService {
     }
   }
 
+  async sendRegistrationCompleteEmailSMTP(email, fullName) {
+    try {
+      const mailOptions = {
+        from: `"Dyanpitt App" <${process.env.SMTP_FROM_EMAIL}>`,
+        to: email,
+        subject: 'Registration Complete - Welcome to Dyanpitt!',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+              <h2 style="margin: 0; font-size: 24px;">✅ Registration Complete!</h2>
+            </div>
+            <div style="padding: 30px; background: #f8f9fa; border-radius: 0 0 8px 8px;">
+              <p style="font-size: 18px; color: #333;">Hello ${fullName},</p>
+              <p>Your account has been successfully created and verified!</p>
+              
+              <div style="background-color: #e7f3ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #007bff;">
+                <h3 style="color: #007bff; margin: 0 0 10px 0;">🎯 Next Steps</h3>
+                <p style="margin: 0;">Complete your membership details and make your first payment to receive your unique Dyanpitt ID.</p>
+              </div>
+              
+              <p>You can now login and complete your membership registration.</p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" 
+                   style="background: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                  Complete Your Membership →
+                </a>
+              </div>
+              
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 14px; color: #666;">
+                <p>If you have any questions, feel free to contact our support team.</p>
+                <p style="margin: 0;">Best regards,<br>The Dyanpitt Team</p>
+              </div>
+            </div>
+          </div>
+        `,
+        text: `
+Hello ${fullName},
+
+Your account has been successfully created and verified!
+
+🎯 Next Steps:
+Complete your membership details and make your first payment to receive your unique Dyanpitt ID.
+
+You can now login and complete your membership registration.
+
+Visit: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/login
+
+If you have any questions, feel free to contact our support team.
+
+Best regards,
+The Dyanpitt Team
+        `
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Registration complete email sent via SMTP to: ${email} MessageID: ${info.messageId}`);
+      
+      return {
+        success: true,
+        messageId: info.messageId
+      };
+    } catch (error) {
+      console.error('❌ Error sending registration complete email via SMTP:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
   async sendRegistrationCompleteEmailMailerSend(email, fullName) {
     try {
+      // Note: MailerSend integration is not implemented yet
+      // These classes would need to be imported from @mailersend/nodejs
+      console.log('MailerSend registration email would be sent to:', email, fullName);
+      return { success: true, message: 'Email logged to console (MailerSend not configured)' };
+      
+      // Commented out until MailerSend is properly configured:
+      /*
       const sentFrom = new Sender(
         process.env.MAILERSEND_FROM_EMAIL || 'noreply@yourdomain.com',
         process.env.MAILERSEND_FROM_NAME || 'Dyanpitt App'
@@ -409,19 +487,10 @@ class EmailService {
       const result = await this.mailerSend.email.send(emailParams);
       console.log('Registration complete email sent successfully via MailerSend to:', email, 'ID:', result.body?.message_id);
       return { success: true, messageId: result.body?.message_id };
+      */
     } catch (error) {
       console.error('Error sending registration complete email via MailerSend:', error);
-      
-      let errorMessage = '';
-      if (error.body && error.body.message) {
-        errorMessage = error.body.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = 'Unknown error occurred';
-      }
-      
-      return { success: false, error: errorMessage };
+      return { success: false, error: 'MailerSend not configured' };
     }
   }
 
@@ -464,6 +533,13 @@ class EmailService {
 
   async sendFeedbackEmailMailerSend(email, fullName) {
     try {
+      // Note: MailerSend integration is not implemented yet
+      // These classes would need to be imported from @mailersend/nodejs
+      console.log('MailerSend feedback email would be sent to:', email, fullName);
+      return { success: true, message: 'Email logged to console (MailerSend not configured)' };
+      
+      // Commented out until MailerSend is properly configured:
+      /*
       const sentFrom = new Sender(
         process.env.MAILERSEND_FROM_EMAIL || 'noreply@yourdomain.com',
         process.env.MAILERSEND_FROM_NAME || 'Dyanpitt App'
@@ -527,19 +603,10 @@ class EmailService {
       const result = await this.mailerSend.email.send(emailParams);
       console.log('Feedback email sent successfully via MailerSend to:', email, 'ID:', result.body?.message_id);
       return { success: true, messageId: result.body?.message_id };
+      */
     } catch (error) {
       console.error('Error sending feedback email via MailerSend:', error);
-      
-      let errorMessage = '';
-      if (error.body && error.body.message) {
-        errorMessage = error.body.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      } else {
-        errorMessage = 'Unknown error occurred';
-      }
-      
-      return { success: false, error: errorMessage };
+      return { success: false, error: 'MailerSend not configured' };
     }
   }
 }

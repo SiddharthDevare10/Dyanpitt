@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
 export default function LoginScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   
   const [email, setEmail] = useState('');
@@ -146,7 +147,6 @@ export default function LoginScreen() {
     setErrors(prev => ({ ...prev, general: '' }));
     
     try {
-      console.log('🔐 Starting login process...');
       
       // Determine if login is with email or Dyanpeeth Abhyasika ID
       const isEmailLogin = email.includes('@') && !email.startsWith('@DA');
@@ -156,11 +156,6 @@ export default function LoginScreen() {
         rememberMe: rememberMe
       };
 
-      console.log('📤 Sending login request with data:', { 
-        identifier: email, 
-        isEmailLogin, 
-        rememberMe 
-      });
 
       // Add timeout to the login request
       const loginPromise = login(loginData);
@@ -170,36 +165,32 @@ export default function LoginScreen() {
 
       const response = await Promise.race([loginPromise, timeoutPromise]);
       
-      console.log('📥 Login response received:', {
-        success: response.success,
-        hasUser: !!response.user,
-        message: response.message
-      });
       
       if (response.success && response.user) {
-        console.log('✅ Login successful, navigating...');
         
         // Mark that user came from login, not registration
         sessionStorage.setItem('cameFromRegistration', 'false');
         
         const user = response.user;
         
+        // Check if user came from registration
+        const fromRegistration = location.state?.fromRegistration;
+        
         // Navigate based on user role and completion status
         if (user.role === 'admin' || user.role === 'super_admin') {
-          console.log('🔧 Navigating to admin dashboard');
           navigate('/admin-dashboard');
+        } else if (fromRegistration) {
+          // For newly registered users, go to dashboard first
+          // They can choose when to start membership process
+          navigate('/dashboard');
         } else if (!user.membershipCompleted) {
-          console.log('📝 Navigating to membership completion');
           navigate('/membership');
         } else if (!user.bookingCompleted) {
-          console.log('📅 Navigating to booking completion');
           navigate('/booking');
         } else {
-          console.log('🏠 Navigating to dashboard');
           navigate('/dashboard');
         }
       } else {
-        console.log('❌ Login failed:', response.message);
         setErrors(prev => ({ 
           ...prev, 
           general: response.message || 'Login failed. Please check your credentials and try again.' 
@@ -223,7 +214,6 @@ export default function LoginScreen() {
         general: errorMessage
       }));
     } finally {
-      console.log('🔄 Login process completed, resetting loading state');
       setIsLoading(false);
     }
   };

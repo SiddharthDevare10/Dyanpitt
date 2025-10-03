@@ -30,10 +30,6 @@ const validateTourRequest = [
     'PHD', 'MCR', 'CDS', 'DMER', 'Banking', 'Any Other'
   ]).withMessage('Valid exam preparation is required'),
   body('examinationDate').isISO8601().withMessage('Valid examination date is required'),
-  body('studyRoomDuration').isIn([
-    'Less than a month', '1 Month', '2 Month', '3 Month', '4 Month', 
-    '5 Month', '6 Month', 'More Than 6 Months', '1 Year', 'More Than 1 Year'
-  ]).withMessage('Valid study room duration is required'),
   body('howDidYouKnow').isIn([
     'Friends', 'Google', 'Facebook', 'Instagram', 'Vivek Sindhu', 
     'WhatsApp', 'SMS', 'Pamphlet', 'Banner / Hoarding'
@@ -59,7 +55,7 @@ router.post('/request', validateTourRequest, async (req, res) => {
     const {
       email, fullName, phoneNumber, gender, tourDate, tourTime,
       educationalBackground, currentOccupation, jobTitle, examPreparation,
-      examinationDate, studyRoomDuration, howDidYouKnow,
+      examinationDate, howDidYouKnow,
       previousStudyRoomExperience, studyRoomComparison, startDate
     } = req.body;
 
@@ -98,7 +94,6 @@ router.post('/request', validateTourRequest, async (req, res) => {
       jobTitle: (currentOccupation === 'Student' || currentOccupation === 'Unemployed') ? null : jobTitle,
       examPreparation,
       examinationDate,
-      studyRoomDuration,
       howDidYouKnow,
       previousStudyRoomExperience,
       studyRoomComparison,
@@ -125,7 +120,6 @@ router.post('/request', validateTourRequest, async (req, res) => {
         jobTitle: tourRequest.jobTitle,
         examPreparation: tourRequest.examPreparation,
         examinationDate: tourRequest.examinationDate,
-        studyRoomDuration: tourRequest.studyRoomDuration,
         howDidYouKnow: tourRequest.howDidYouKnow,
         previousStudyRoomExperience: tourRequest.previousStudyRoomExperience,
         studyRoomComparison: tourRequest.studyRoomComparison,
