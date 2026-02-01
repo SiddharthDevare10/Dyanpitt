@@ -1,0 +1,49 @@
+{
+  "name": "dyanpitt-backend",
+  "version": "1.0.0",
+  "description": "Backend for Dyanpitt app with MongoDB authentication",
+  "main": "server.js",
+  "scripts": {
+    "start": "cross-env NODE_ENV=production node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
+    "start:staging": "cross-env NODE_ENV=staging node server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "dev:debug": "cross-env NODE_ENV=development DEBUG=* nodemon server.js",
+    "test": "cross-env NODE_ENV=test node server.js",
+    "lint": "echo 'Add ESLint for backend later'",
+    "clean": "rm -rf node_modules uploads/temp_* uploads/anonymous_*",
+    "db:seed": "node scripts/seed.js",
+    "db:seed:dummy": "node scripts/seed_dummy_users.js",
+    "db:migrate": "node scripts/migrate.js",
+    "logs": "tail -f logs/app.log",
+    "health": "curl -f http://localhost:5000/api/health || exit 1"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.3.1",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "multer": "^2.0.1",
+    "nodemailer": "^7.0.6",
+    "razorpay": "^2.9.6",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "cross-env": "^10.0.0",
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "express",
+    "mongodb",
+    "jwt",
+    "authentication"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
